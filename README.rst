@@ -7,14 +7,6 @@ Cheshire: a Python Template Repository for Catalyst
    :target: https://github.com/catalyst-cooperative/cheshire/actions?query=workflow%3Atox-pytest
    :alt: Tox-PyTest Status
 
-.. image:: https://github.com/catalyst-cooperative/cheshire/workflows/repo2docker/badge.svg
-   :target: https://github.com/catalyst-cooperative/cheshire/actions?query=workflow%3Arepo2docker
-   :alt: repo2docker Build Status
-
-.. image:: https://github.com/catalyst-cooperative/cheshire/workflows/docker-build-push/badge.svg
-   :target: https://github.com/catalyst-cooperative/cheshire/actions?query=workflow%3Adocker-build-push
-   :alt: Docker build status
-
 .. image:: https://img.shields.io/codecov/c/github/catalyst-cooperative/cheshire?style=flat&logo=codecov
    :target: https://codecov.io/gh/catalyst-cooperative/cheshire
    :alt: Codecov Test Coverage
@@ -22,14 +14,6 @@ Cheshire: a Python Template Repository for Catalyst
 .. image:: https://img.shields.io/readthedocs/catalystcoop-cheshire?style=flat&logo=readthedocs
    :target: https://catalystcoop-cheshire.readthedocs.io/en/latest/
    :alt: Read the Docs Build Status
-
-.. image:: https://img.shields.io/pypi/v/catalystcoop.cheshire?style=flat&logo=python
-   :target: https://pypi.org/project/catalystcoop.cheshire/
-   :alt: PyPI Latest Version
-
-.. image:: https://img.shields.io/conda/vn/conda-forge/catalystcoop.cheshire?style=flat&logo=condaforge
-   :target: https://anaconda.org/conda-forge/catalystcoop.cheshire
-   :alt: conda-forge Version
 
 .. image:: https://img.shields.io/pypi/pyversions/catalystcoop.cheshire?style=flat&logo=python
    :target: https://pypi.org/project/catalystcoop.cheshire/
