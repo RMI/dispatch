@@ -1,0 +1,19 @@
+coverage:
+  range: 70..100
+  round: down
+  precision: 1
+
+codecov:
+  # You will need to get a new token for your repo or at least remove this one, as
+  # they are tied to individual repositories
+  token: 46a0a3f9-1177-4cad-b345-9671a53b924f
+  require_ci_to_pass: true
+  notify:
+    after_n_builds: 3
+    wait_for_ci: true
+
+comment:
+  after_n_builds: 3
+
+github_checks:
+  annotations: false
