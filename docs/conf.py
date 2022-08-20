@@ -24,15 +24,13 @@ DOCS_DIR = Path(__file__).parent.resolve()
 # importable path.
 
 # The full version, including alpha/beta/rc tags
-release = pkg_resources.get_distribution("catalystcoop.cheshire").version
+release = pkg_resources.get_distribution("dispatch").version
 
 # -- Project information -----------------------------------------------------
 
-project = "New Catalyst Python Project"
-copyright = (  # noqa: A001
-    f"202X-{datetime.date.today().year}, Catalyst Cooperative, CC-BY-4.0"
-)
-author = "Catalyst Cooperative"
+project = "Dispatch"
+copyright = f"{datetime.today().year}, RMI"  # noqa: A001
+author = "RMI"
 
 # -- General configuration ---------------------------------------------------
 
@@ -53,7 +51,7 @@ todo_include_todos = True
 # Automatically generate API documentation during the doc build:
 autoapi_type = "python"
 autoapi_dirs = [
-    "../src/cheshire",
+    "../src/dispatch",
 ]
 autoapi_ignore = [
     "*_test.py",
@@ -61,7 +59,7 @@ autoapi_ignore = [
 ]
 
 # GitHub repo
-issues_github_path = "catalyst-cooperative/cheshire"
+issues_github_path = "rmi-electricity/dispatch"
 
 # In order to be able to link directly to documentation for other projects,
 # we need to define these package to URL mappings:

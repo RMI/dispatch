@@ -11,7 +11,7 @@ long_description = readme_path.read_text()
 
 setup(
     # This should be the *installed* package name e.g. catalystcoop.pudl not pudl
-    name="catalystcoop.cheshire",
+    name="rmi-electricity.dispatch",
     description="A one line description of the package.",
     long_description=long_description,
     long_description_content_type="text/x-rst",
@@ -35,7 +35,8 @@ setup(
     # In order for the dependabot to update versions, they must be listed here.
     # Use the format pkg_name>=x,<y", Included packages are just examples:
     install_requires=[
-        "pandas>=1.4,<1.4.4",
+        "pandas >= 1.4,<1.5",
+        "numba >= 0.55.1,<0.56",
         "sqlalchemy>=1.4,<1.4.41",
     ],
     extras_require={
@@ -105,7 +106,7 @@ setup(
     entry_points={
         "console_scripts": [
             # "script_name = dotted.module.path.to:main_script_function",
-            "winston = cheshire.cli:main",
+            "winston = dispatch.cli:main",
         ]
     },
 )

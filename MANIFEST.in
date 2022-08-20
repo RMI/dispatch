@@ -1,4 +1,4 @@
-graft src/cheshire/package_data
+graft src/dispatch/package_data
 
 prune .github
 prune tests/data

@@ -3,21 +3,17 @@ Cheshire: a Python Template Repository for Catalyst
 
 .. readme-intro
 
-.. image:: https://github.com/catalyst-cooperative/cheshire/workflows/tox-pytest/badge.svg
-   :target: https://github.com/catalyst-cooperative/cheshire/actions?query=workflow%3Atox-pytest
+.. image:: https://github.com/rmi-electricity/dispatch/workflows/tox-pytest/badge.svg
+   :target: https://github.com/rmi-electricity/dispatch/actions?query=workflow%3Atox-pytest
    :alt: Tox-PyTest Status
 
 .. image:: https://img.shields.io/codecov/c/github/catalyst-cooperative/cheshire?style=flat&logo=codecov
-   :target: https://codecov.io/gh/catalyst-cooperative/cheshire
+   :target: https://codecov.io/gh/rmi-electricity/dispatch
    :alt: Codecov Test Coverage
 
 .. image:: https://img.shields.io/readthedocs/catalystcoop-cheshire?style=flat&logo=readthedocs
    :target: https://catalystcoop-cheshire.readthedocs.io/en/latest/
    :alt: Read the Docs Build Status
-
-.. image:: https://img.shields.io/pypi/pyversions/catalystcoop.cheshire?style=flat&logo=python
-   :target: https://pypi.org/project/catalystcoop.cheshire/
-   :alt: Supported Python Versions
 
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
    :target: https://github.com/psf/black>

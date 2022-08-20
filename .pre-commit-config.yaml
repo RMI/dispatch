@@ -103,8 +103,8 @@ repos:
     rev: 1.7.4
     hooks:
       - id: bandit
-    # Currently no configuration...
-    # args: ['--configfile', '.bandit.yml']
+        args: [ "-c", "pyproject.toml" ]
+        additional_dependencies: [ "bandit[toml]" ]
 
   # Use type annotations to check types
   - repo: https://github.com/pre-commit/mirrors-mypy
@@ -160,7 +160,7 @@ repos:
         verbose: false
         pass_filenames: false
         always_run: true
-        entry: pytest --doctest-modules src/cheshire tests/unit
+        entry: pytest --doctest-modules src/dispatch tests/unit
 
 # Configuration for pre-commit.ci
 ci:
