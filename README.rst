@@ -7,14 +7,6 @@ Cheshire: a Python Template Repository for Catalyst
    :target: https://github.com/rmi-electricity/dispatch/actions?query=workflow%3Atox-pytest
    :alt: Tox-PyTest Status
 
-.. image:: https://img.shields.io/codecov/c/github/catalyst-cooperative/cheshire?style=flat&logo=codecov
-   :target: https://codecov.io/gh/rmi-electricity/dispatch
-   :alt: Codecov Test Coverage
-
-.. image:: https://img.shields.io/readthedocs/catalystcoop-cheshire?style=flat&logo=readthedocs
-   :target: https://catalystcoop-cheshire.readthedocs.io/en/latest/
-   :alt: Read the Docs Build Status
-
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
    :target: https://github.com/psf/black>
    :alt: Any color you want, so long as it's black.
