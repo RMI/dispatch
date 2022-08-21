@@ -14,5 +14,17 @@ known_first_party = ["dispatch"]
 
 [tool.bandit]
 exclude_dirs = ["tests"]
-tests = ["B201", "B301"]
-skips = ["B101", "B601"]
+skips = ["B101"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+
+[[tool.mypy.overrides]]
+module = [
+    "numpy.*",
+    "pandas.*",
+    "numba.*"
+]
+ignore_missing_imports = true

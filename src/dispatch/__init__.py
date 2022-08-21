@@ -3,17 +3,16 @@ import logging
 
 import pkg_resources
 
-from patio.dispatch.dispatch import *
+from dispatch.dispatch import DispatchModel
 
-__all__ = []
-__all__.extend(dispatch.__all__)
+__all__ = ["DispatchModel"]
 
 __author__ = "RMI"
 __contact__ = "aengel@rmi.org"
 __maintainer__ = "Alex Engel"
 # __license__ = "MIT License"
 __maintainer_email__ = "aengel@rmi.org"
-__version__ = pkg_resources.get_distribution("dispatch").version
+__version__ = pkg_resources.get_distribution("rmi.dispatch").version
 __docformat__ = "restructuredtext en"
 __description__ = "A simple and efficient dispatch model."
 

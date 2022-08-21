@@ -1,6 +1,4 @@
-"""
-Simple dispatch model, engine and interface
-"""
+"""Simple dispatch model, engine and interface."""
 
 
 from __future__ import annotations
@@ -28,10 +26,10 @@ class DispatchModel:
 
     def __init__(
         self,
-        net_load_profile: pd.Series,
+        net_load_profile: pd.Series[float],
         fossil_plant_specs: pd.DataFrame,
+        fossil_profiles: pd.DataFrame,
         storage_specs: pd.DataFrame | None = None,
-        fossil_profiles: pd.DataFrame | None = None,
         re_profiles: pd.DataFrame | None = None,
         re_plant_specs: pd.DataFrame | None = None,
         jit: bool = True,
@@ -47,11 +45,11 @@ class DispatchModel:
                 ramp_rate: max 1-hr increase in output, in MW
                 startup_cost: cost to start up the generator
                 datetime(freq='YS'): a column for each year with marginal cost data
+            fossil_profiles: set the maximum output of each generator in each hour
             storage_specs: rows are types of storage, columns must contain:
                 capacity_mw: max charge/discharge capacity in MW
                 duration_hrs: storage duration in hours
                 roundtrip_eff: roundtrip efficiency
-            fossil_profiles: if provided these set the maximum output of each generator in each hour
             re_profiles: ??
             re_plant_specs: ??
             jit: if True, use numba to compile the dispatch function
@@ -62,7 +60,7 @@ class DispatchModel:
         self.name = name
 
         self.dt_idx = self.net_load_profile.index
-        self.yrs_idx = self.dt_idx.to_series().groupby(pd.Grouper(freq="YS")).first()
+        self.yrs_idx = self.dt_idx.to_series().groupby([pd.Grouper(freq="YS")]).first()
 
         # make sure we have all the `fossil_plant_specs` columns we need
         for col in ("capacity_mw", "ramp_rate", "startup_cost"):
@@ -70,7 +68,7 @@ class DispatchModel:
         assert all(
             x in fossil_plant_specs for x in self.yrs_idx
         ), "`fossil_plant_specs` requires columns for plant cost with 'YS' datetime names"
-        self.fossil_plant_specs = fossil_plant_specs
+        self.fossil_plant_specs: pd.DataFrame = fossil_plant_specs
 
         # validate `storage_specs`
         if storage_specs is None:
@@ -92,12 +90,16 @@ class DispatchModel:
 
         self.disp_func = ba_dispatch if self.jit else _ba_dispatch
 
-        self.fossil_redispatch = MTDF.copy
-        self.storage_dispatch = MTDF.copy
-        self.system_data = MTDF.copy
-        self.starts = MTDF.copy
+        self.fossil_redispatch = MTDF.copy()
+        self.storage_dispatch = MTDF.copy()
+        self.system_data = pd.DataFrame(
+            columns=["deficit", "dirty_charge", "curtailment"]
+        )
+        self.starts: pd.DataFrame | pd.Series[int] = pd.DataFrame(
+            columns=self.fossil_plant_specs.index
+        )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             self.__class__.__qualname__
             + f"({self.name=}, n_plants={len(self.fossil_plant_specs)}, ...)".replace(
@@ -108,49 +110,50 @@ class DispatchModel:
     @classmethod
     def from_patio(
         cls,
-        net_load: pd.Series,
+        net_load: pd.Series[float],
         fossil_profiles: pd.DataFrame,
         plant_data: pd.DataFrame,
         storage_specs: pd.DataFrame,
         jit: bool = True,
-    ):
-        """create DispatchModel with data from patio.BAScenario"""
+    ) -> DispatchModel:
+        """Create DispatchModel with data from patio.BAScenario."""
         return cls(
             net_load_profile=net_load,
             fossil_plant_specs=plant_data,
-            storage_specs=storage_specs,
             fossil_profiles=fossil_profiles,
+            storage_specs=storage_specs,
             jit=jit,
         )
 
     @classmethod
     def new(
         cls,
-        net_load_profile: pd.Series,
+        net_load_profile: pd.Series[float],
         fossil_plant_specs: pd.DataFrame,
         storage_specs: pd.DataFrame,
         jit: bool = True,
-    ):
-        """run dispatch without historical hourly operating constraints"""
+    ) -> DispatchModel:
+        """Run dispatch without historical hourly operating constraints."""
         return cls(
             net_load_profile=net_load_profile,
             fossil_plant_specs=fossil_plant_specs,
-            storage_specs=storage_specs,
             fossil_profiles=pd.DataFrame(
                 fossil_plant_specs.capacity_mw
                 * np.ones((len(net_load_profile), fossil_plant_specs.shape[0])),
                 columns=fossil_plant_specs.index,
                 index=net_load_profile.index,
             ),
+            storage_specs=storage_specs,
             jit=jit,
         )
 
     def __call__(self) -> None:
+        """Run dispatch model."""
         fos_prof, storage, deficits, starts = self.disp_func(
             net_load=self.net_load_profile.to_numpy(dtype=np.float64),
             hr_to_cost_idx=(
-                self.net_load_profile.index.year
-                - self.net_load_profile.index.year.min()
+                self.net_load_profile.index.year  # type: ignore
+                - self.net_load_profile.index.year.min()  # type: ignore
             ).to_numpy(dtype=np.int64),
             fossil_profiles=self.fossil_profiles.to_numpy(dtype=np.float64),
             fossil_ramp_mw=self.fossil_plant_specs.ramp_rate.to_numpy(dtype=np.float64),
@@ -191,13 +194,13 @@ class DispatchModel:
                 columns=self.fossil_plant_specs.index,
                 index=self.yrs_idx,
             )
-            .stack([0, 1])
+            .stack([0, 1])  # type: ignore
             .reorder_levels([1, 2, 0])
             .sort_index()
         )
 
     def storage_durations(self) -> pd.DataFrame:
-        """number of hours during which state of charge was in various duration bins"""
+        """Number of hours during which state of charge was in various duration bins."""
         df = self.storage_dispatch.filter(like="soc")
         durs = df / self.storage_specs.capacity_mw.to_numpy()
         d_min = int(np.floor(durs.min().min()))
@@ -214,7 +217,7 @@ class DispatchModel:
         )
 
     def storage_capacity(self) -> pd.DataFrame:
-        """number of hours where storage charge or discharge was in various bins"""
+        """Number of hours where storage charge or discharge was in various bins."""
         rates = self.storage_dispatch.filter(like="charge")
         d_max = int(np.ceil(rates.max().max()))
         g_bins = [
@@ -228,8 +231,10 @@ class DispatchModel:
             axis=1,
         ).sort_index()
 
-    def lost_load(self, comparison=None) -> pd.DataFrame:
-        """number of hours during which deficit was in various duration bins"""
+    def lost_load(
+        self, comparison: pd.Series[float] | np.ndarray | float | None = None
+    ) -> pd.Series[int]:
+        """Number of hours during which deficit was in various duration bins."""
         if comparison is None:
             durs = self.system_data.deficit / self.net_load_profile
         else:
@@ -256,25 +261,30 @@ class DispatchModel:
         return pd.value_counts(pd.cut(durs, bins, include_lowest=True)).sort_index()
 
     def hrs_to_check(
-        self, cutoff: float = 0.01, comparison: pd.Series | float | None = None
-    ) -> list:
-        """hours with positive deficits are ones where not all of net load was served
+        self, cutoff: float = 0.01, comparison: pd.Series[float] | float | None = None
+    ) -> list[pd.Timestamp]:
+        """Hours from dispatch to look at more closely.
+
+        Hours with positive deficits are ones where not all of net load was served
         we want to be able to easily check the two hours immediately before these
-        positive deficit hours"""
+        positive deficit hours.
+        """
         if comparison is None:
-            comparison = self.net_load_profile.groupby(pd.Grouper(freq="YS")).transform(
+            comparison = self.net_load_profile.groupby(
+                [pd.Grouper(freq="YS")]
+            ).transform(
                 "max"
-            )
+            )  # type: ignore
         td_1h = np.timedelta64(1, "h")
         return sorted(
-            set(
+            {
                 hr
                 for dhr in self.system_data[
                     self.system_data.deficit / comparison > cutoff
                 ].index
                 for hr in (dhr - 2 * td_1h, dhr - td_1h, dhr)
                 if hr in self.net_load_profile.index
-            )
+            }
         )
 
 
@@ -322,7 +332,7 @@ def _ba_dispatch(
     assert (
         len(storage_mw) == len(storage_hrs) == len(storage_eff)
     ), "storage data does not match"
-    storage_soc_max: np.array = storage_mw * storage_hrs
+    storage_soc_max: np.ndarray = storage_mw * storage_hrs
 
     assert (
         fossil_ramp_mw.shape[0]

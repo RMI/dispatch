@@ -103,8 +103,8 @@ repos:
     rev: 1.7.4
     hooks:
       - id: bandit
-        args: [ "-c", "pyproject.toml" ]
-        additional_dependencies: [ "bandit[toml]" ]
+        args: ["-c", "pyproject.toml"]
+        additional_dependencies: ["bandit[toml]"]
 
   # Use type annotations to check types
   - repo: https://github.com/pre-commit/mirrors-mypy
@@ -115,6 +115,7 @@ repos:
           - pytest
           - types-jinja2
           - types-setuptools
+          - pandas-stubs
         args: ["--strict"]
 
   # Check for errors in restructuredtext (.rst) files under the doc hierarchy
@@ -132,26 +133,11 @@ repos:
         additional_dependencies: [sphinx]
         args: ["--config", "tox.ini"]
 
-  # Lint Dockerfiles for errors and to ensure best practices
-  - repo: https://github.com/AleksaC/hadolint-py
-    rev: v2.10.0
-    hooks:
-      - id: hadolint
-
   ########################################################################################
   # Custom local hooks
   ########################################################################################
   - repo: local
     hooks:
-      # clear outputs from Jupyter notebooks
-      - id: nb-output-clear
-        name: nb-output-clear
-        stages: [commit]
-        language: system
-        verbose: false
-        pass_filenames: false
-        always_run: true
-        entry: find notebooks \( -name \*.ipynb -not -name \*checkpoint.ipynb \) -type f -exec jupyter nbconvert --clear-output {} \;
       # Run the unit tests
       - id: unit-tests
         name: unit-tests
@@ -160,7 +146,7 @@ repos:
         verbose: false
         pass_filenames: false
         always_run: true
-        entry: pytest --doctest-modules src/dispatch tests/unit
+        entry: pytest --doctest-modules src/dispatch tests
 
 # Configuration for pre-commit.ci
 ci:

@@ -5,14 +5,11 @@ dependencies:
   # Packages required for setting up the environment
   - pip>=21.0,<23
   - python>=3.10,<3.11
-  - numba >= 0.55.1,<0.56
+  - bottleneck~=1.3
+  - numba >= 0.55.1,<0.57
   - numexpr ~= 2.8
   - numpy >= 1.18.5,<2
   - pandas >= 1.4,<1.5
-
-  # Jupyter packages:
-  - jupyterlab>=3.2,<4
-  - nbconvert>=6,<7 # Used to clear notebook outputs in pre-commit hooks
 
   # Use pip to install the package defined by this repo for development:
   - pip:
