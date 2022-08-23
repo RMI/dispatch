@@ -1,5 +1,5 @@
 ===============================================================================
-The Catalyst Python Project Template
+Dispatch: A simple and efficient electricity dispatch model
 ===============================================================================
 
 .. include:: ../README.rst

@@ -6,6 +6,7 @@ from __future__ import annotations
 import logging
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from numba import njit
 
@@ -88,7 +89,7 @@ class DispatchModel:
         self.re_plant_specs = re_plant_specs
         self.re_profiles = re_profiles
 
-        self.disp_func = ba_dispatch if self.jit else _ba_dispatch
+        self.disp_func = ba_dispatch_jit if self.jit else ba_dispatch
 
         self.fossil_redispatch = MTDF.copy()
         self.storage_dispatch = MTDF.copy()
@@ -150,22 +151,22 @@ class DispatchModel:
     def __call__(self) -> None:
         """Run dispatch model."""
         fos_prof, storage, deficits, starts = self.disp_func(
-            net_load=self.net_load_profile.to_numpy(dtype=np.float64),
+            net_load=self.net_load_profile.to_numpy(dtype=np.float_),  # type: ignore
             hr_to_cost_idx=(
                 self.net_load_profile.index.year  # type: ignore
                 - self.net_load_profile.index.year.min()  # type: ignore
             ).to_numpy(dtype=np.int64),
-            fossil_profiles=self.fossil_profiles.to_numpy(dtype=np.float64),
-            fossil_ramp_mw=self.fossil_plant_specs.ramp_rate.to_numpy(dtype=np.float64),
+            fossil_profiles=self.fossil_profiles.to_numpy(dtype=np.float_),
+            fossil_ramp_mw=self.fossil_plant_specs.ramp_rate.to_numpy(dtype=np.float_),
             fossil_startup_cost=self.fossil_plant_specs.startup_cost.to_numpy(
-                dtype=np.float64
+                dtype=np.float_
             ),
             fossil_marginal_cost=self.fossil_plant_specs[self.yrs_idx].to_numpy(
-                dtype=np.float64
+                dtype=np.float_
             ),
-            storage_mw=self.storage_specs.capacity_mw.to_numpy(dtype=np.float64),
+            storage_mw=self.storage_specs.capacity_mw.to_numpy(dtype=np.float_),
             storage_hrs=self.storage_specs.duration_hrs.to_numpy(dtype=np.int64),
-            storage_eff=self.storage_specs.roundtrip_eff.to_numpy(dtype=np.float64),
+            storage_eff=self.storage_specs.roundtrip_eff.to_numpy(dtype=np.float_),
         )
         self.fossil_redispatch = pd.DataFrame(
             fos_prof.astype(np.float32),
@@ -199,40 +200,8 @@ class DispatchModel:
             .sort_index()
         )
 
-    def storage_durations(self) -> pd.DataFrame:
-        """Number of hours during which state of charge was in various duration bins."""
-        df = self.storage_dispatch.filter(like="soc")
-        durs = df / self.storage_specs.capacity_mw.to_numpy()
-        d_min = int(np.floor(durs.min().min()))
-        d_max = int(np.ceil(durs.max().max()))
-        g_bins = [d_min, 0.01, 2, 4] + [
-            y
-            for x in range(1, 6)
-            for y in (1.0 * 10**x, 2.5 * 10.0**x, 5.0 * 10**x)
-        ]
-        bins = [x for x in g_bins if x < d_max] + [d_max]
-        return pd.concat(
-            [pd.value_counts(pd.cut(durs[col], bins)).sort_index() for col in durs],
-            axis=1,
-        )
-
-    def storage_capacity(self) -> pd.DataFrame:
-        """Number of hours where storage charge or discharge was in various bins."""
-        rates = self.storage_dispatch.filter(like="charge")
-        d_max = int(np.ceil(rates.max().max()))
-        g_bins = [
-            y
-            for x in range(1, 6)
-            for y in (1.0 * 10**x, 2.5 * 10.0**x, 5.0 * 10**x)
-        ]
-        bins = [0, 0.01] + [x for x in g_bins if x < d_max] + [d_max]
-        return pd.concat(
-            [pd.value_counts(pd.cut(rates[col], bins)) for col in rates],
-            axis=1,
-        ).sort_index()
-
     def lost_load(
-        self, comparison: pd.Series[float] | np.ndarray | float | None = None
+        self, comparison: pd.Series[float] | npt.NDArray[float] | float | None = None
     ) -> pd.Series[int]:
         """Number of hours during which deficit was in various duration bins."""
         if comparison is None:
@@ -287,8 +256,39 @@ class DispatchModel:
             }
         )
 
+    def storage_capacity(self) -> pd.DataFrame:
+        """Number of hours where storage charge or discharge was in various bins."""
+        rates = self.storage_dispatch.filter(like="charge")
+        d_max = int(np.ceil(rates.max().max()))
+        g_bins = [
+            y
+            for x in range(1, 6)
+            for y in (1.0 * 10**x, 2.5 * 10.0**x, 5.0 * 10**x)
+        ]
+        bins = [0, 0.01] + [x for x in g_bins if x < d_max] + [d_max]
+        return pd.concat(
+            [pd.value_counts(pd.cut(rates[col], bins)) for col in rates],
+            axis=1,
+        ).sort_index()
 
-def _ba_dispatch(
+    def storage_durations(self) -> pd.DataFrame:
+        """Number of hours during which state of charge was in various duration bins."""
+        df = self.storage_dispatch.filter(like="soc")
+        durs = df / self.storage_specs.capacity_mw.to_numpy(dtype=float)
+        d_max = int(np.ceil(durs.max().max()))
+        g_bins = [0.0, 0.01, 2.0, 4.0] + [
+            y
+            for x in range(1, 6)
+            for y in (1.0 * 10**x, 2.5 * 10.0**x, 5.0 * 10**x)
+        ]
+        bins = [x for x in g_bins if x < d_max] + [d_max]
+        return pd.concat(
+            [pd.value_counts(pd.cut(durs[col], bins)).sort_index() for col in durs],
+            axis=1,
+        )
+
+
+def ba_dispatch(
     net_load: np.ndarray,
     hr_to_cost_idx: np.ndarray,
     fossil_profiles: np.ndarray,
@@ -411,7 +411,7 @@ def _ba_dispatch(
         max_discharge = 0.0
         for es_i in range(storage.shape[2]):
             max_discharge += min(storage[hr - 1, 2, es_i], deficit, storage_mw[es_i])
-        prov_deficit = max(0, deficit - max_discharge)
+        prov_deficit = max(0.0, deficit - max_discharge)
 
         # new hour so reset where we keep track if we've touched a plant for this hour
         fossil_op_data[:, 1] = 0
@@ -532,4 +532,4 @@ def _ba_dispatch(
     return fossil_redispatch, storage, system_level, starts
 
 
-ba_dispatch = njit(_ba_dispatch, error_model="numpy")
+ba_dispatch_jit = njit(ba_dispatch, error_model="numpy")

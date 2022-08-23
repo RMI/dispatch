@@ -2,6 +2,7 @@
 import logging
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
 logger = logging.getLogger(__name__)
@@ -32,3 +33,23 @@ def test_dir() -> Path:
     Mostly this is meant as an example of a fixture.
     """
     return Path(__file__).parent
+
+
+@pytest.fixture(scope="session")
+def re_profiles(test_dir) -> pd.DataFrame:
+    """RE Profiles."""
+    return pd.read_parquet(test_dir / "data/re_profiles.parquet")
+
+
+@pytest.fixture(scope="session")
+def fossil_profiles(test_dir) -> pd.DataFrame:
+    """Fossil Profiles."""
+    return pd.read_parquet(test_dir / "data/fossil_profiles.parquet")
+
+
+@pytest.fixture(scope="session")
+def fossil_specs(test_dir) -> pd.DataFrame:
+    """Fossil Profiles."""
+    df = pd.read_parquet(test_dir / "data/plant_specs.parquet")
+    df.columns = [pd.Timestamp(x) if x[0] == "2" else x for x in df.columns]
+    return df

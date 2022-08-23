@@ -10,6 +10,7 @@ dependencies:
   - numexpr ~= 2.8
   - numpy >= 1.18.5,<2
   - pandas >= 1.4,<1.5
+  - pyarrow >= 7,<10
 
   # Use pip to install the package defined by this repo for development:
   - pip:
