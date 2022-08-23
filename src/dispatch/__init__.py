@@ -3,14 +3,15 @@ import logging
 
 import pkg_resources
 
-from dispatch.dispatch import DispatchModel
+from dispatch.engine import dispatch_engine, dispatch_engine_compiled
+from dispatch.model import DispatchModel
 
-__all__ = ["DispatchModel"]
+__all__ = ["DispatchModel", "dispatch_engine", "dispatch_engine_compiled"]
 
 __author__ = "RMI"
 __contact__ = "aengel@rmi.org"
 __maintainer__ = "Alex Engel"
-# __license__ = "MIT License"
+__license__ = "MIT License"
 __maintainer_email__ = "aengel@rmi.org"
 __version__ = pkg_resources.get_distribution("rmi.dispatch").version
 __docformat__ = "restructuredtext en"

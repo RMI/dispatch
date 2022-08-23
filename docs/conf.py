@@ -89,8 +89,8 @@ exclude_patterns = ["_build"]
 # The theme to use for HTML and HTML Help pages.
 master_doc = "index"
 html_theme = "furo"
-# html_logo = "_static/catalyst_logo-200x200.png"
-# html_icon = "_static/favicon.ico"
+html_logo = "_static/Small_PNG-RMI_logo_PrimaryUse.PNG"
+html_icon = "_static/favicon-16x16.png"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the

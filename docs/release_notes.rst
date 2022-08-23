@@ -10,7 +10,7 @@ Dispatch Release Notes
 
 What's New?
 ^^^^^^^^^^^
-*   A dispatch model with no RMI dependencies in its own repository!
+*   A dispatch model with no RMI dependencies and in its own repository!
 *   Repository built off of
     `catalyst-cooperative.cheshire <https://github.com/catalyst-cooperative/cheshire>`_
     that uses cool tools like ``tox``, ``sphinx``, etc.
@@ -19,11 +19,11 @@ Bug Fixes
 ^^^^^^^^^
 *   It's good to make a note of any known bugs that are fixed by the release, and refer
     to the relevant issues.
-*   mypy is disabled because of error described in :issue:`1`.
+*   `mypy <https://github.com/python/mypy>`_ is disabled because of error described in :issue:`1`.
 
 Known Issues
 ^^^^^^^^^^^^
-*   :py:class:`dispatch.dispatch.DispatchModel` only set up to work properly with
+*   :py:class:`dispatch.model.DispatchModel` only set up to work properly with
     `patio-model <https://github.com/rmi-electricity/patio-model>`_.
 *   Test thoroughness is lacking.
 *   No substantive readme or documentation.

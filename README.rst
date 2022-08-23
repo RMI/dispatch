@@ -1,7 +1,6 @@
 Dispatch: A simple and efficient electricity dispatch model
 =======================================================================================
 
-.. readme-intro
 
 .. image:: https://github.com/rmi-electricity/dispatch/workflows/tox-pytest/badge.svg
    :target: https://github.com/rmi-electricity/dispatch/actions?query=workflow%3Atox-pytest
@@ -11,11 +10,20 @@ Dispatch: A simple and efficient electricity dispatch model
    :target: https://github.com/psf/black>
    :alt: Any color you want, so long as it's black.
 
+.. readme-intro
 
 Description
 =======================================================================================
 
-* TK long description
+For each hour...
+
+1.  First iterate through operating plants in order of their marginal cost.
+2.  Then charge/discharge storage.
+3.  If there is still a deficit, iterate through non-operating plants
+    and turn them on if required.
+
+For more information about how the model works and how to use it, please see the
+`model documentation <https://rmi-electricity.github.io/dispatch/>`__.
 
 Installation
 =======================================================================================

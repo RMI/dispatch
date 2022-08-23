@@ -14,4 +14,4 @@ dependencies:
 
   # Use pip to install the package defined by this repo for development:
   - pip:
-      - --editable ./[dev,docs,tests,types]
+      - --editable ./[dev,doc,tests,types]
