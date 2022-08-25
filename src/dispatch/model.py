@@ -3,7 +3,12 @@
 
 from __future__ import annotations
 
+import inspect
+import json
 import logging
+from io import BytesIO
+from pathlib import Path
+from zipfile import ZIP_DEFLATED, ZipFile
 
 import numpy as np
 import pandas as pd
@@ -24,6 +29,23 @@ class DispatchModel:
     - provide a nicer API that accepts pandas objects, rather than the core numba/numpy engine
     - methods for common analysis of dispatch results
     """
+
+    __slots__ = (
+        "net_load_profile",
+        "fossil_plant_specs",
+        "fossil_profiles",
+        "storage_specs",
+        "re_profiles",
+        "re_plant_specs",
+        "jit",
+        "name",
+        "dt_idx",
+        "yrs_idx",
+        "fossil_redispatch",
+        "storage_dispatch",
+        "system_data",
+        "starts",
+    )
 
     def __init__(
         self,
@@ -64,10 +86,12 @@ class DispatchModel:
 
         # make sure we have all the `fossil_plant_specs` columns we need
         for col in ("capacity_mw", "ramp_rate", "startup_cost"):
-            assert col in fossil_plant_specs, f"`storage_specs` requires `{col}` column"
-        assert all(
-            x in fossil_plant_specs for x in self.yrs_idx
-        ), "`fossil_plant_specs` requires columns for plant cost with 'YS' datetime names"
+            if col not in fossil_plant_specs:
+                raise AssertionError(f"`fossil_plant_specs` requires `{col}` column")
+        if not all(x in fossil_plant_specs for x in self.yrs_idx):
+            raise AssertionError(
+                "`fossil_plant_specs` requires columns for plant cost with 'YS' datetime names"
+            )
         self.fossil_plant_specs: pd.DataFrame = fossil_plant_specs
 
         if not name and "balancing_authority_code_eia" in self.fossil_plant_specs:
@@ -85,17 +109,22 @@ class DispatchModel:
             )
         else:
             for col in ("capacity_mw", "duration_hrs", "roundtrip_eff"):
-                assert col in storage_specs, f"`storage_specs` requires `{col}` column"
+                if col not in storage_specs:
+                    raise AssertionError(f"`storage_specs` requires `{col}` column")
             self.storage_specs = storage_specs
 
-        assert len(fossil_profiles) == len(self.net_load_profile)
-        assert fossil_profiles.shape[1] == len(self.fossil_plant_specs)
+        if len(fossil_profiles) != len(self.net_load_profile):
+            raise AssertionError(
+                "`fossil_profiles` and `net_load_profile` must be the same length"
+            )
+        if fossil_profiles.shape[1] != len(self.fossil_plant_specs):
+            raise AssertionError(
+                "`fossil_profiles` columns and `fossil_plant_specs` rows must match"
+            )
         self.fossil_profiles = fossil_profiles
 
         self.re_plant_specs = re_plant_specs
         self.re_profiles = re_profiles
-
-        self.disp_func = dispatch_engine_compiled if self.jit else dispatch_engine
 
         # create vars with correct column names that will be replaced after dispatch
         self.fossil_redispatch = MTDF.reindex(columns=self.fossil_plant_specs.index)
@@ -111,6 +140,11 @@ class DispatchModel:
         )
         self.starts = MTDF.reindex(columns=self.fossil_plant_specs.index)
 
+    @property
+    def dispatch_func(self):
+        """Appropriate dispatch engine depending on ``self.jit``."""
+        return dispatch_engine_compiled if self.jit else dispatch_engine
+
     def __repr__(self) -> str:
         return (
             self.__class__.__qualname__
@@ -118,6 +152,79 @@ class DispatchModel:
                 "self.", ""
             )
         )
+
+    def _cost(self, profiles: pd.DataFrame) -> pd.DataFrame:
+        """Determine total cost based on hourly production and starts."""
+        profs = profiles.to_numpy()
+        marginal_cost = profs * self.fossil_plant_specs[self.yrs_idx].T.reindex(
+            index=self.net_load_profile.index, method="ffill"
+        )
+        start_cost = self.fossil_plant_specs.startup_cost.to_numpy() * np.where(
+            (profs == 0) & (np.roll(profs, -1, axis=0) > 0), 1, 0
+        )
+        return marginal_cost + start_cost
+
+    @property
+    def historical_cost(self) -> pd.DataFrame:
+        """Total hourly historical cost by generator."""
+        return self._cost(self.fossil_profiles)
+
+    @property
+    def redispatch_cost(self) -> pd.DataFrame:
+        """Total hourly redispatch cost by generator."""
+        return self._cost(self.fossil_redispatch)
+
+    def grouper(self, df: pd.DataFrame, by: str, freq="YS") -> pd.DataFrame:
+        """Aggregate a df of generator profiles.
+
+        Columns are grouped using `by` column from
+        `self.fossil_plant_specs` and `freq` determines
+        the output time resolution.
+        """
+        col_grouper = self.fossil_plant_specs[by].to_dict()
+        df.columns = list(df.columns)
+        out = (
+            df.rename(columns=col_grouper)
+            .groupby(level=0, axis=1)
+            .sum()
+            .groupby([pd.Grouper(freq=freq)])
+            .sum()
+        )
+        out.columns.name = by
+        return out
+
+    @classmethod
+    def from_disk(cls, path: Path | str):
+        """Recreate `DispatchModel` from disk."""
+        if not isinstance(path, Path):
+            path = Path(path)
+        data_dict = {}
+        with ZipFile(path.with_suffix(".zip"), "r") as z:
+            metadata = json.loads(z.read("metadata.json"))
+            for x in z.namelist():
+                if "parquet" in x:
+                    data_dict[x.removesuffix(".parquet")] = pd.read_parquet(
+                        BytesIO(z.read(x))
+                    )
+
+        # have to fix columns and types
+        data_dict["fossil_profiles"].columns = data_dict["fossil_plant_specs"].index
+        data_dict["fossil_redispatch"].columns = data_dict["fossil_plant_specs"].index
+        data_dict["fossil_plant_specs"].columns = [
+            pd.Timestamp(x) if x[0] == "2" else x
+            for x in data_dict["fossil_plant_specs"].columns
+        ]
+        data_dict["net_load_profile"] = data_dict["net_load_profile"].squeeze()
+
+        sig = inspect.signature(cls).parameters
+        self = cls(
+            **{k: v for k, v in data_dict.items() if k in sig},
+            **metadata,
+        )
+        for k, v in data_dict.items():
+            if k not in sig:
+                setattr(self, k, v)
+        return self
 
     @classmethod
     def from_patio(
@@ -162,7 +269,7 @@ class DispatchModel:
     # TODO probably a bad idea to use __call__, but nice to not have to think of a name
     def __call__(self) -> None:
         """Run dispatch model."""
-        fos_prof, storage, deficits, starts = self.disp_func(
+        fos_prof, storage, deficits, starts = self.dispatch_func(
             net_load=self.net_load_profile.to_numpy(dtype=np.float_),  # type: ignore
             hr_to_cost_idx=(
                 self.net_load_profile.index.year  # type: ignore
@@ -258,7 +365,7 @@ class DispatchModel:
         )
 
     def storage_capacity(self) -> pd.DataFrame:
-        """Number of hours where storage charge or discharge was in various bins."""
+        """Number of hours when storage charge or discharge was in various bins."""
         rates = self.storage_dispatch.filter(like="charge")
         # a mediocre way to define the bins...
         d_max = int(np.ceil(rates.max().max()))
@@ -289,3 +396,52 @@ class DispatchModel:
             [pd.value_counts(pd.cut(durs[col], bins)).sort_index() for col in durs],
             axis=1,
         )
+
+    def to_disk(self, path: Path | str, compression=ZIP_DEFLATED, clobber=False):
+        """Save `DispatchModel` to disk.
+
+        A very ugly process at the moment because of our goal not to use pickle
+        and to try to keep the file small-ish. Also need to manage the fact that
+        the parquet requirement for string column names causes some problems.
+        """
+        if not isinstance(path, Path):
+            path = Path(path)
+        path = path.with_suffix(".zip")
+        if path.exists() and not clobber:
+            raise FileExistsError(f"{path} exists, to overwrite set `clobber=True`")
+
+        auto_parquet = (
+            "re_profiles",
+            "storage_dispatch",
+            "system_data",
+            "storage_specs",
+        )
+        metadata = {
+            "name": self.name,
+            "jit": self.jit,
+        }
+
+        # need to make all column names strings
+        fossil_plant_specs = self.fossil_plant_specs.copy()
+        fossil_plant_specs.columns = list(map(str, self.fossil_plant_specs.columns))
+        fossil_profiles = self.fossil_profiles.set_axis(
+            list(map(str, range(self.fossil_profiles.shape[1]))), axis="columns"
+        )
+        fossil_redispatch = self.fossil_redispatch.set_axis(
+            list(map(str, range(self.fossil_profiles.shape[1]))), axis="columns"
+        )
+        with ZipFile(path, "w", compression=compression) as z:
+            for df_name in auto_parquet:
+                df = getattr(self, df_name)
+                if df is not None:
+                    z.writestr(f"{df_name}.parquet", df.to_parquet())
+            z.writestr(
+                "net_load_profile.parquet",
+                self.net_load_profile.to_frame(name="nl").to_parquet(),
+            )
+            z.writestr("fossil_plant_specs.parquet", fossil_plant_specs.to_parquet())
+            z.writestr("fossil_profiles.parquet", fossil_profiles.to_parquet())
+            z.writestr("fossil_redispatch.parquet", fossil_redispatch.to_parquet())
+            z.writestr(
+                "metadata.json", json.dumps(metadata, ensure_ascii=False, indent=4)
+            )

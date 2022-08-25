@@ -29,7 +29,7 @@ release = pkg_resources.get_distribution("rmi.dispatch").version
 # -- Project information -----------------------------------------------------
 
 project = "Dispatch"
-copyright = f"{datetime.today().year}, RMI"  # noqa: A001
+copyright = f"{datetime.today().year}, RMI, CC-BY-4.0"  # noqa: A001
 author = "RMI"
 
 # -- General configuration ---------------------------------------------------

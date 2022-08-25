@@ -2,6 +2,31 @@
 Dispatch Release Notes
 =======================================================================================
 
+.. _release-v0-2-0:
+
+---------------------------------------------------------------------------------------
+0.2.0 (2022-XX-XX)
+---------------------------------------------------------------------------------------
+
+What's New?
+^^^^^^^^^^^
+*   :py:class:`dispatch.model.DispatchModel` now uses ``__slots__``
+*   New ``to_disk`` and ``from_disk`` methods that allow a
+    :py:class:`dispatch.model.DispatchModel` object to be saved to disk and recreated
+    from a file. This uses a ``zip`` of many ``parquet`` files for size and to avoid
+    ``pickle`` being tied to a particular module layout.
+*   Methods to calculate hourly cost for historical and redispatch.
+*   Method to simplify aggregating hourly generator-level data to less granular
+    frequencies and asset specificity.
+
+Bug Fixes
+^^^^^^^^^
+*   ...
+
+Known Issues
+^^^^^^^^^^^^
+*   ...
+
 .. _release-v0-1-0:
 
 ---------------------------------------------------------------------------------------
