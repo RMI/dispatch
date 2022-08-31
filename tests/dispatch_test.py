@@ -34,7 +34,7 @@ def test_from_patio(fossil_profiles, re_profiles, fossil_specs):
 
 def test_low_lost_load(fossil_profiles, re_profiles, fossil_specs):
     """Dummy test to quiet pytest."""
-    fossil_profiles.columns = fossil_specs.index
+    fossil_profiles.columns = pd.MultiIndex.from_tuples(fossil_specs.index)
     dm = setup_dm(
         fossil_profiles,
         fossil_specs,

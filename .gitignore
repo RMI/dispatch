@@ -146,3 +146,6 @@ Thumbs.db
 # PyCharm
 /.idea
 *.iml
+
+# Dispatch
+*.zip

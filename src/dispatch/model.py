@@ -145,6 +145,11 @@ class DispatchModel:
         """Appropriate dispatch engine depending on ``self.jit``."""
         return dispatch_engine_compiled if self.jit else dispatch_engine
 
+    @property
+    def is_redispatch(self):
+        """True if this is redispatch, i.e. has meaningful historical dispatch."""
+        return self.fossil_profiles.nunique().max() > 2
+
     def __repr__(self) -> str:
         return (
             self.__class__.__qualname__
@@ -167,35 +172,65 @@ class DispatchModel:
     @property
     def historical_cost(self) -> pd.DataFrame:
         """Total hourly historical cost by generator."""
-        return self._cost(self.fossil_profiles)
+        if self.is_redispatch:
+            return self._cost(self.fossil_profiles)
+        else:
+            out = self.fossil_profiles.copy()
+            out.loc[:, :] = np.nan
+            return out
 
     @property
     def redispatch_cost(self) -> pd.DataFrame:
         """Total hourly redispatch cost by generator."""
         return self._cost(self.fossil_redispatch)
 
-    def grouper(self, df: pd.DataFrame, by: str, freq="YS") -> pd.DataFrame:
+    def grouper(
+        self,
+        df: pd.DataFrame,
+        by: str | None = "technology_description",
+        freq: str = "YS",
+        col_name: str | None = None,
+    ) -> pd.DataFrame:
         """Aggregate a df of generator profiles.
 
         Columns are grouped using `by` column from
         `self.fossil_plant_specs` and `freq` determines
         the output time resolution.
+
+        Args:
+            df: dataframe to apply grouping to
+            by: column from `self.fossil_plant_specs` to use for grouping df columns,
+                if None, no column grouping
+            freq: output time resolution
+            col_name: if specified, stack the output and use this as the column name
+
         """
-        col_grouper = self.fossil_plant_specs[by].to_dict()
-        df.columns = list(df.columns)
-        out = (
-            df.rename(columns=col_grouper)
-            .groupby(level=0, axis=1)
-            .sum()
-            .groupby([pd.Grouper(freq=freq)])
-            .sum()
+        if by is None:
+            out = df.groupby([pd.Grouper(freq=freq)]).sum()
+        else:
+            df = df.copy()
+            col_grouper = self.fossil_plant_specs[by].to_dict()
+            df.columns = list(df.columns)
+            out = (
+                df.rename(columns=col_grouper)
+                .groupby(level=0, axis=1)
+                .sum()
+                .groupby([pd.Grouper(freq=freq)])
+                .sum()
+            )
+            out.columns.name = by
+        if col_name is None:
+            return out
+        return (
+            out.stack(level=out.columns.names, dropna=False)
+            .reorder_levels(order=[*out.columns.names, "datetime"])
+            .to_frame(name=col_name)
+            .sort_index()
         )
-        out.columns.name = by
-        return out
 
     @classmethod
     def from_disk(cls, path: Path | str):
-        """Recreate `DispatchModel` from disk."""
+        """Recreate an instance of `DispatchModel` from disk."""
         if not isinstance(path, Path):
             path = Path(path)
         data_dict = {}
@@ -206,6 +241,11 @@ class DispatchModel:
                     data_dict[x.removesuffix(".parquet")] = pd.read_parquet(
                         BytesIO(z.read(x))
                     )
+        if metadata["__qualname__"] != cls.__qualname__:
+            raise RuntimeError(
+                f"{path.name} represents a `{metadata['__qualname__']}` which "
+                f"is not compatible with `{cls.__qualname__}.from_disk()`"
+            )
 
         # have to fix columns and types
         data_dict["fossil_profiles"].columns = data_dict["fossil_plant_specs"].index
@@ -219,7 +259,7 @@ class DispatchModel:
         sig = inspect.signature(cls).parameters
         self = cls(
             **{k: v for k, v in data_dict.items() if k in sig},
-            **metadata,
+            **{k: v for k, v in metadata.items() if k in sig},
         )
         for k, v in data_dict.items():
             if k not in sig:
@@ -397,6 +437,114 @@ class DispatchModel:
             axis=1,
         )
 
+    def system_level_summary(self, freq="YS"):
+        """Create system and storage summary metrics."""
+        return pd.concat(
+            [
+                # storage op max
+                self.storage_dispatch.assign(
+                    **{
+                        f"storage_{i}_max_mw": lambda x: x.filter(like=f"e_{i}").max(
+                            axis=1
+                        )
+                        for i in self.storage_specs.index
+                    },
+                    **{
+                        f"storage_{i}_max_hrs": lambda x: x[f"soc_{i}"]
+                        / self.storage_specs.loc[i, "capacity_mw"]
+                        for i in self.storage_specs.index
+                    },
+                )
+                .groupby(pd.Grouper(freq=freq))
+                .max()
+                .filter(like="max"),
+                # mwh deficit, curtailment, dirty charge
+                self.system_data.groupby(pd.Grouper(freq=freq))
+                .sum()
+                .rename(columns={c: f"{c}_mwh" for c in self.system_data}),
+                # max deficit pct of net load
+                self.system_data[["deficit"]]
+                .groupby(pd.Grouper(freq=freq))
+                .max()
+                .rename(columns={"deficit": "deficit_max_pct_net_load"})
+                / self.net_load_profile.max(),
+                # count of deficit greater than 2%
+                pd.Series(
+                    self.system_data[
+                        self.system_data / self.net_load_profile.max() > 0.02
+                    ]
+                    .groupby(pd.Grouper(freq=freq))
+                    .deficit.count(),
+                    name="deficit_gt_2pct_count",
+                ),
+            ],
+            axis=1,
+        ).assign(
+            **{
+                f"storage_{i}_mw_utilization": lambda x: x[f"storage_{i}_max_mw"]
+                / self.storage_specs.loc[i, "capacity_mw"]
+                for i in self.storage_specs.index
+            },
+            **{
+                f"storage_{i}_hrs_utilization": lambda x: x[f"storage_{i}_max_hrs"]
+                / self.storage_specs.loc[i, "duration_hrs"]
+                for i in self.storage_specs.index
+            },
+        )
+
+    def operations_summary(
+        self,
+        by: str | None = "technology_description",
+        freq="YS",
+    ):
+        """Create granular summary of fossil plant metrics.
+
+        Args:
+            by: column from `self.fossil_plant_specs` to use for grouping fossil plants,
+                if None, no column grouping
+            freq: output time resolution
+        """
+        return (
+            pd.concat(
+                [
+                    self.grouper(
+                        self.fossil_profiles,
+                        by=by,
+                        freq=freq,
+                        col_name="historical_fossil_mwh",
+                    ),
+                    self.grouper(
+                        self.fossil_redispatch,
+                        by=by,
+                        freq=freq,
+                        col_name="redispatch_fossil_mwh",
+                    ),
+                    self.grouper(
+                        self.historical_cost,
+                        by=by,
+                        freq=freq,
+                        col_name="historical_fossil_cost",
+                    ),
+                    self.grouper(
+                        self.redispatch_cost,
+                        by=by,
+                        freq=freq,
+                        col_name="redispatch_fossil_cost",
+                    ),
+                ],
+                axis=1,
+            )
+            .assign(
+                avoided_fossil_mwh=lambda x: x.historical_fossil_mwh
+                - x.redispatch_fossil_mwh,
+                avoided_fossil_cost=lambda x: x.historical_fossil_cost
+                - x.redispatch_fossil_cost,
+                pct_fossil_replaced=lambda x: x.avoided_fossil_mwh
+                / x.historical_fossil_mwh,
+            )
+            .sort_index()
+        )
+
     def to_disk(self, path: Path | str, compression=ZIP_DEFLATED, clobber=False):
         """Save `DispatchModel` to disk.
 
@@ -419,6 +567,7 @@ class DispatchModel:
         metadata = {
             "name": self.name,
             "jit": self.jit,
+            "__qualname__": self.__class__.__qualname__,
         }
 
         # need to make all column names strings
