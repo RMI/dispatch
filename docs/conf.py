@@ -88,7 +88,7 @@ exclude_patterns = ["_build"]
 
 # The theme to use for HTML and HTML Help pages.
 master_doc = "index"
-html_theme = "furo"
+html_theme = "pydata_sphinx_theme"
 html_logo = "_static/Small_PNG-RMI_logo_PrimaryUse.PNG"
 html_icon = "_static/favicon-16x16.png"
 
