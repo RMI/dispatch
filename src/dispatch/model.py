@@ -30,7 +30,7 @@ class DispatchModel:
     """Class to contain the core dispatch model functionality.
 
     - allow the core dispatch model to accept data set up for different uses
-    - provide a nicer API that accepts pandas objects, rather than the core numba/numpy engine
+    - provide a nicer API that accepts pandas objects on top of :func:`dispatch.engine.dispatch_engine`
     - methods for common analysis of dispatch results
     """
 

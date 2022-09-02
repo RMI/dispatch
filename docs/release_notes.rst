@@ -10,9 +10,9 @@ Dispatch Release Notes
 
 What's New?
 ^^^^^^^^^^^
-*   :py:class:`DispatchModel` now uses ``__slots__``
+*   :class:`dispatch.model.DispatchModel` now uses ``__slots__``
 *   New ``to_disk`` and ``from_disk`` methods that allow a
-    :py:class:`DispatchModel` object to be saved to disk and recreated
+    :class:`DispatchModel` object to be saved to disk and recreated
     from a file. This uses a ``zip`` of many ``parquet`` files for size and to avoid
     ``pickle`` being tied to a particular module layout.
 *   Methods to calculate hourly cost for historical and redispatch.
@@ -20,7 +20,7 @@ What's New?
     frequencies and asset specificity.
 *   Storage resources can now be added to the portfolio over time based on their
     ``operating_date`` in ``storage_specs``.
-*   When using :py:meth:`DispatchModel.new`, ``operating_date`` and
+*   When using :meth:`dispatch.model.DispatchModel.new`, ``operating_date`` and
     ``retirement_date`` columns in ``fossil_plant_specs`` determine the period during
     dispatch that a generator may operate. This provides a straightforward method for
     having the portfolio you wish to dispatch change over time.
