@@ -32,6 +32,46 @@ def test_from_patio(fossil_profiles, re_profiles, fossil_specs):
     assert dm
 
 
+def test_new(fossil_profiles, re_profiles, fossil_specs):
+    """Dummy test to quiet pytest."""
+    fossil_specs.iloc[
+        0, fossil_specs.columns.get_loc("retirement_date")
+    ] = fossil_profiles.index.max() - pd.Timedelta(weeks=15)
+    self = DispatchModel.new(
+        net_load_profile=fossil_profiles.sum(axis=1),
+        fossil_plant_specs=fossil_specs,
+        storage_specs=pd.DataFrame(
+            [(5000, 4, 0.9), (2000, 8760, 0.5)],
+            columns=["capacity_mw", "duration_hrs", "roundtrip_eff"],
+        ),
+    )
+    assert self
+
+
+def test_new_with_dates(fossil_profiles, re_profiles, fossil_specs):
+    """Test operating and retirement dates for fossil and storage."""
+    fossil_specs.iloc[
+        0, fossil_specs.columns.get_loc("retirement_date")
+    ] = fossil_profiles.index.max() - pd.Timedelta(weeks=15)
+    fossil_specs.loc[8066, "retirement_date"] = pd.Timestamp(
+        year=2018, month=12, day=31
+    )
+    self = DispatchModel.new(
+        net_load_profile=fossil_profiles.sum(axis=1),
+        fossil_plant_specs=fossil_specs,
+        storage_specs=pd.DataFrame(
+            [
+                (5000, 4, 0.9, pd.Timestamp(year=2016, month=1, day=1)),
+                (2000, 8760, 0.5, pd.Timestamp(year=2019, month=1, day=1)),
+            ],
+            columns=["capacity_mw", "duration_hrs", "roundtrip_eff", "operating_date"],
+        ),
+        jit=True,
+    )
+    self()
+    assert self
+
+
 def test_low_lost_load(fossil_profiles, re_profiles, fossil_specs):
     """Dummy test to quiet pytest."""
     fossil_profiles.columns = pd.MultiIndex.from_tuples(fossil_specs.index)
@@ -50,7 +90,7 @@ def test_low_lost_load(fossil_profiles, re_profiles, fossil_specs):
 
 
 def test_write_and_read(fossil_profiles, re_profiles, fossil_specs, test_dir):
-    """Test that DispatchModel can written and read."""
+    """Test that DispatchModel can be written and read."""
     fossil_profiles.columns = fossil_specs.index
     dm = setup_dm(
         fossil_profiles,
@@ -63,12 +103,18 @@ def test_write_and_read(fossil_profiles, re_profiles, fossil_specs, test_dir):
         ),
     )
     file = test_dir / "test_obj.zip"
-    dm.to_disk(file)
-    x = DispatchModel.from_disk(file)
-    x()
-    x.to_disk(file, clobber=True)
-    file.unlink()
-    assert True
+    try:
+        dm.to_disk(file)
+        x = DispatchModel.from_disk(file)
+        x()
+        x.to_disk(file, clobber=True)
+    except Exception as exc:
+        raise exc
+    else:
+        assert True
+    finally:
+        if file.exists():
+            file.unlink()
 
 
 def test_marginal_cost(fossil_profiles, re_profiles, fossil_specs):
