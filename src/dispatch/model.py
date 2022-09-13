@@ -19,6 +19,7 @@ __all__ = ["DispatchModel"]
 
 
 from dispatch.engine import dispatch_engine, dispatch_engine_compiled
+from dispatch.helpers import apply_op_ret_date
 
 LOGGER = logging.getLogger(__name__)
 __version__ = pkg_resources.get_distribution("rmi.dispatch").version
@@ -237,10 +238,10 @@ class DispatchModel:
             )
 
         # duplicate the DatetimeIndex so it is the same shape as `fossil_profiles`
-        dt_ix = pd.concat(
-            [net_load_profile.index.to_series()] * len(fossil_plant_specs),
-            axis=1,
-        ).to_numpy()
+        # dt_ix = pd.concat(
+        #     [net_load_profile.index.to_series()] * len(fossil_plant_specs),
+        #     axis=1,
+        # ).to_numpy()
         wk = pd.Timedelta(weeks=1)
 
         # insert an `operating_date` column if it doesn't exist and fill missing values
@@ -265,17 +266,26 @@ class DispatchModel:
             {"retirement_date": net_load_profile.index.max() + wk}
         )
 
-        fossil_profiles = pd.DataFrame(
-            # make a boolean array for whether a particular hour comes between
-            # a generator's `operating_date` and `retirement_date` or not
-            (
-                (dt_ix < fossil_plant_specs.retirement_date.to_numpy())
-                & (dt_ix >= fossil_plant_specs.operating_date.to_numpy())
-            )
-            * fossil_plant_specs.capacity_mw.to_numpy(),
-            columns=fossil_plant_specs.index,
-            index=net_load_profile.index,
+        # make a boolean array for whether a particular hour comes between
+        # a generator's `operating_date` and `retirement_date` or not
+        fossil_profiles = apply_op_ret_date(
+            pd.DataFrame(
+                1, index=net_load_profile.index, columns=fossil_plant_specs.index
+            ),
+            fossil_plant_specs.operating_date,
+            fossil_plant_specs.retirement_date,
+            fossil_plant_specs.capacity_mw,
         )
+
+        # fossil_profiles = pd.DataFrame(
+        #     (
+        #         (dt_ix < fossil_plant_specs.retirement_date.to_numpy())
+        #         & (dt_ix >= fossil_plant_specs.operating_date.to_numpy())
+        #     )
+        #     * fossil_plant_specs.capacity_mw.to_numpy(),
+        #     columns=fossil_plant_specs.index,
+        #     index=net_load_profile.index,
+        # )
 
         return cls(
             net_load_profile=net_load_profile,
