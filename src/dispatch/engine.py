@@ -17,6 +17,7 @@ def dispatch_engine(
     storage_mw: np.ndarray,
     storage_hrs: np.ndarray,
     storage_eff: np.ndarray = np.array((0.9, 0.5)),
+    storage_op_hour: np.ndarray = np.array((0, 0)),
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Numba-ready dispatch engine.
 
@@ -39,6 +40,8 @@ def dispatch_engine(
         storage_mw: max charge/discharge rate for storage in MW
         storage_hrs: duration of storage
         storage_eff: storage round-trip efficiency
+        storage_op_hour: first hour in which storage is available, i.e. the index of
+            the operating date
 
 
     Returns:
@@ -112,6 +115,9 @@ def dispatch_engine(
             # if there is excess RE we charge the battery in the first hour
             if deficit < 0.0:
                 for es_i in range(storage.shape[2]):
+                    # skip the `es_i` storage resource if it is not yet in operation
+                    if storage_op_hour[es_i] > hr:
+                        continue
                     # charge storage
                     storage[hr, 0, es_i] = min(
                         -deficit,
@@ -170,6 +176,9 @@ def dispatch_engine(
         # # and move on to the next hour
         if deficit < 0.0:
             for es_i in range(storage.shape[2]):
+                # skip the `es_i` storage resource if it is not yet in operation
+                if storage_op_hour[es_i] > hr:
+                    continue
                 # calculate the amount of charging, to account for battery capacity, we
                 # make sure that `charge` would not put `soc` over `storage_soc_max`
                 soc = storage[hr - 1, 2, es_i]
@@ -187,14 +196,21 @@ def dispatch_engine(
                 # TODO check that this calculation is actually correct
                 system_level[hr, 1] += min(max(0, charge - net_load[hr] * -1), charge)
                 # calculate the amount of total curtailment
-                # TODO check that this calculation is actually correct
-                system_level[hr, 2] += -deficit - charge
+                # system_level[hr, 2] += -deficit - charge
                 deficit += charge
+            # store the amount of total curtailment
+            # TODO check that this calculation is actually correct
+            system_level[hr, 2] = -deficit
             continue
 
         # discharge batteries, the amount is the lesser of state of charge,
-        # deficit, and the max MW of the battery
+        # deficit, and the max MW of the battery, we have to either charge
+        # or discharge every hour whether there is a deficit or not to propagate
+        # state of charge forward
         for es_i in range(storage.shape[2]):
+            # skip the `es_i` storage resource if it is not yet in operation
+            if storage_op_hour[es_i] > hr:
+                continue
             discharge = min(storage[hr - 1, 2, es_i], deficit, storage_mw[es_i])
             storage[hr, 1, es_i] = discharge
             storage[hr, 2, es_i] = storage[hr - 1, 2, es_i] - discharge

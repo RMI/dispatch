@@ -11,7 +11,8 @@ dependencies:
   - numpy >= 1.18.5,<2
   - pandas >= 1.4,<1.5
   - pyarrow >= 7,<10
+  - plotly
 
   # Use pip to install the package defined by this repo for development:
   - pip:
-      - --editable ./[dev,doc,tests,types]
+      - --editable ./[dev,doc,tests,types,viz]

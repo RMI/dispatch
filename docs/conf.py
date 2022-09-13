@@ -29,7 +29,7 @@ release = pkg_resources.get_distribution("rmi.dispatch").version
 # -- Project information -----------------------------------------------------
 
 project = "Dispatch"
-copyright = f"{datetime.today().year}, RMI"  # noqa: A001
+copyright = f"{datetime.today().year}, RMI, CC-BY-4.0"  # noqa: A001
 author = "RMI"
 
 # -- General configuration ---------------------------------------------------
@@ -88,7 +88,7 @@ exclude_patterns = ["_build"]
 
 # The theme to use for HTML and HTML Help pages.
 master_doc = "index"
-html_theme = "furo"
+html_theme = "pydata_sphinx_theme"
 html_logo = "_static/Small_PNG-RMI_logo_PrimaryUse.PNG"
 html_icon = "_static/favicon-16x16.png"
 
@@ -97,6 +97,10 @@ html_icon = "_static/favicon-16x16.png"
 # documentation.
 html_theme_options = {
     "navigation_with_keys": True,
+    "logo": {
+        "image_light": "Small_PNG-RMI_logo_PrimaryUse.PNG",
+        "image_dark": "Small_PNG-RMI_logo_PrimaryUse_White_Horizontal.PNG",
+    },
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
