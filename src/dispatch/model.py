@@ -6,13 +6,13 @@ import json
 import logging
 from collections.abc import Callable
 from datetime import datetime
+from importlib.metadata import PackageNotFoundError, version
 from io import BytesIO
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
 
 import numpy as np
 import pandas as pd
-import pkg_resources
 
 __all__ = ["DispatchModel"]
 
@@ -21,7 +21,12 @@ from dispatch.engine import dispatch_engine, dispatch_engine_compiled
 from dispatch.helpers import apply_op_ret_date
 
 LOGGER = logging.getLogger(__name__)
-__version__ = pkg_resources.get_distribution("rmi.dispatch").version
+try:
+    __version__ = version("rmi.dispatch")
+except PackageNotFoundError:
+    # package is not installed
+    pass
+
 MTDF = pd.DataFrame()
 """An empty :py:class:`pd.DataFrame`."""
 
@@ -42,8 +47,6 @@ class DispatchModel:
         "storage_specs",
         "re_profiles",
         "re_plant_specs",
-        # "jit",
-        # "name",
         "dt_idx",
         "yrs_idx",
         "fossil_redispatch",
