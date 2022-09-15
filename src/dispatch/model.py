@@ -1,11 +1,10 @@
 """Simple dispatch model interface."""
-
-
 from __future__ import annotations
 
 import inspect
 import json
 import logging
+from collections.abc import Callable
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
@@ -38,12 +37,13 @@ class DispatchModel:
     __slots__ = (
         "net_load_profile",
         "fossil_plant_specs",
+        "fossil_marginal_cost",
         "fossil_profiles",
         "storage_specs",
         "re_profiles",
         "re_plant_specs",
-        "jit",
-        "name",
+        # "jit",
+        # "name",
         "dt_idx",
         "yrs_idx",
         "fossil_redispatch",
@@ -58,6 +58,7 @@ class DispatchModel:
         net_load_profile: pd.Series[float],
         fossil_plant_specs: pd.DataFrame,
         fossil_profiles: pd.DataFrame,
+        fossil_marginal_cost: pd.Series[float],
         storage_specs: pd.DataFrame | None = None,
         re_profiles: pd.DataFrame | None = None,
         re_plant_specs: pd.DataFrame | None = None,
@@ -75,8 +76,9 @@ class DispatchModel:
                 operating_date: the date the plant entered or will enter service
                 retirement_date: the date the plant will retire
                 startup_cost: cost to start up the generator
-                datetime(freq='YS'): a column for each year with marginal cost data
             fossil_profiles: set the maximum output of each generator in each hour
+            fossil_marginal_cost: marginal cost of each fossil generator in each year
+                must be tidy with :class:`pd.MultiIndex` of ['plant_id_eia', 'generator_id', 'datetime']
             storage_specs: rows are types of storage, columns must contain:
                 capacity_mw: max charge/discharge capacity in MW
                 duration_hrs: storage duration in hours
@@ -87,12 +89,15 @@ class DispatchModel:
             jit: if True, use numba to compile the dispatch engine, False is mostly for debugging
             name: a name, only used in the repr
         """
-        self.net_load_profile = net_load_profile
-        self.jit = jit
-        self.__meta__ = {
+        if not name and "balancing_authority_code_eia" in fossil_plant_specs:
+            name = fossil_plant_specs.balancing_authority_code_eia.mode().iloc[0]
+        self.__meta__: dict[str, str] = {
+            "name": name,
             "version": __version__,
             "created": datetime.now().strftime("%c"),
+            "jit": jit,
         }
+        self.net_load_profile: pd.Series = net_load_profile
 
         self.dt_idx = self.net_load_profile.index
         self.yrs_idx = self.dt_idx.to_series().groupby([pd.Grouper(freq="YS")]).first()
@@ -101,41 +106,14 @@ class DispatchModel:
         for col in ("capacity_mw", "ramp_rate", "startup_cost"):
             if col not in fossil_plant_specs:
                 raise AssertionError(f"`fossil_plant_specs` requires `{col}` column")
-        if not all(x in fossil_plant_specs for x in self.yrs_idx):
-            raise AssertionError(
-                "`fossil_plant_specs` requires columns for plant cost with 'YS' datetime names"
-            )
         self.fossil_plant_specs: pd.DataFrame = fossil_plant_specs
 
-        if not name and "balancing_authority_code_eia" in self.fossil_plant_specs:
-            self.name = (
-                self.fossil_plant_specs.balancing_authority_code_eia.mode().iloc[0]
-            )
-        else:
-            self.name = name
-
+        # validate structure of `fossil_marginal_cost` and set the attribute
+        self.fossil_marginal_cost: pd.Series = self._validate_fossil_marginal_cost(
+            fossil_marginal_cost
+        )
         # validate `storage_specs`
-        if storage_specs is None:
-            LOGGER.warning("Careful, dispatch without storage is untested")
-            self.storage_specs = pd.DataFrame(
-                [0.0, 0, 1.0, self.net_load_profile.index.max()],
-                columns=[
-                    "capacity_mw",
-                    "duration_hrs",
-                    "roundtrip_eff",
-                    "operating_date",
-                ],
-            )
-        else:
-            for col in (
-                "capacity_mw",
-                "duration_hrs",
-                "roundtrip_eff",
-                "operating_date",
-            ):
-                if col not in storage_specs:
-                    raise AssertionError(f"`storage_specs` requires `{col}` column")
-            self.storage_specs = storage_specs
+        self.storage_specs: pd.DataFrame = self._validate_storage_specs(storage_specs)
 
         if len(fossil_profiles) != len(self.net_load_profile):
             raise AssertionError(
@@ -164,43 +142,90 @@ class DispatchModel:
         )
         self.starts = MTDF.reindex(columns=self.fossil_plant_specs.index)
 
+    def _validate_storage_specs(self, storage_specs):
+        if storage_specs is None:
+            LOGGER.warning("Careful, dispatch without storage is untested")
+            storage_specs = pd.DataFrame(
+                [0.0, 0, 1.0, self.net_load_profile.index.max()],
+                columns=[
+                    "capacity_mw",
+                    "duration_hrs",
+                    "roundtrip_eff",
+                    "operating_date",
+                ],
+            )
+        else:
+            for col in (
+                "capacity_mw",
+                "duration_hrs",
+                "roundtrip_eff",
+                "operating_date",
+            ):
+                if col not in storage_specs:
+                    raise AssertionError(f"`storage_specs` requires `{col}` column")
+        return storage_specs
+
+    def _validate_fossil_marginal_cost(self, fossil_marginal_cost):
+        if not np.all(
+            fossil_marginal_cost.reset_index(
+                level="datetime", drop=True
+            ).index.drop_duplicates()
+            == self.fossil_plant_specs.index
+        ):
+            raise AssertionError(
+                "generators in `fossil_marginal_cost` do not match generators in `fossil_plant_specs`"
+            )
+        marg_freq = pd.infer_freq(
+            fossil_marginal_cost.index.get_level_values(2).unique()
+        )
+        self.__meta__["marginal_cost_freq"] = marg_freq
+        marg_dts = fossil_marginal_cost.index.get_level_values("datetime")
+        missing_prds = [
+            d
+            for d in self.net_load_profile.resample(marg_freq).first().index
+            if d not in marg_dts
+        ]
+        if missing_prds:
+            raise AssertionError(f"{missing_prds} not in `fossil_marginal_cost`")
+        return fossil_marginal_cost
+
     @classmethod
-    def from_disk(cls, path: Path | str):
+    def from_file(cls, path: Path | str):
         """Recreate an instance of `DispatchModel` from disk."""
         if not isinstance(path, Path):
             path = Path(path)
+
+        def _type_check(meta):
+            if meta["__qualname__"] != cls.__qualname__:
+                raise TypeError(
+                    f"{path.name} represents a `{meta['__qualname__']}` which "
+                    f"is not compatible with `{cls.__qualname__}.from_disk()`"
+                )
+            del meta["__qualname__"]
+
         data_dict = {}
         with ZipFile(path.with_suffix(".zip"), "r") as z:
             metadata = json.loads(z.read("metadata.json"))
+            _type_check(metadata)
+            plant_index = pd.MultiIndex.from_tuples(
+                metadata.pop("plant_index"), names=["plant_id_eia", "generator_id"]
+            )
             for x in z.namelist():
                 if "parquet" in x:
-                    data_dict[x.removesuffix(".parquet")] = pd.read_parquet(
-                        BytesIO(z.read(x))
-                    )
-        if metadata["__qualname__"] != cls.__qualname__:
-            raise TypeError(
-                f"{path.name} represents a `{metadata['__qualname__']}` which "
-                f"is not compatible with `{cls.__qualname__}.from_disk()`"
-            )
-
-        # have to fix columns and types
-        data_dict["fossil_profiles"].columns = data_dict["fossil_plant_specs"].index
-        data_dict["fossil_redispatch"].columns = data_dict["fossil_plant_specs"].index
-        data_dict["fossil_plant_specs"].columns = [
-            pd.Timestamp(x) if x[0] == "2" else x
-            for x in data_dict["fossil_plant_specs"].columns
-        ]
-        data_dict["net_load_profile"] = data_dict["net_load_profile"].squeeze()
+                    df_name = x.removesuffix(".parquet")
+                    df_in = pd.read_parquet(BytesIO(z.read(x))).squeeze()
+                    if df_name in ("fossil_profiles", "fossil_redispatch"):
+                        df_in.columns = plant_index
+                    data_dict[df_name] = df_in
 
         sig = inspect.signature(cls).parameters
         self = cls(
-            **{k: v for k, v in data_dict.items() if k in sig},
-            **{k: v for k, v in metadata.items() if k in sig},
+            **{k: v for k, v in (data_dict | metadata).items() if k in sig},
         )
         for k, v in data_dict.items():
             if k not in sig:
                 setattr(self, k, v)
-        self.__meta__ = {k: v for k, v in metadata.items() if k not in sig}
+        self.__meta__.update({k: v for k, v in metadata.items() if k not in sig})
         return self
 
     @classmethod
@@ -209,6 +234,7 @@ class DispatchModel:
         net_load: pd.Series[float],
         fossil_profiles: pd.DataFrame,
         plant_data: pd.DataFrame,
+        cost_data: pd.Series,
         storage_specs: pd.DataFrame,
         jit: bool = True,
     ) -> DispatchModel:
@@ -218,16 +244,18 @@ class DispatchModel:
         return cls(
             net_load_profile=net_load,
             fossil_plant_specs=plant_data,
+            fossil_marginal_cost=cost_data,
             fossil_profiles=fossil_profiles,
             storage_specs=storage_specs,
             jit=jit,
         )
 
     @classmethod
-    def new(
+    def from_fresh(
         cls,
         net_load_profile: pd.Series[float],
         fossil_plant_specs: pd.DataFrame,
+        fossil_marginal_cost: pd.Series,
         storage_specs: pd.DataFrame,
         jit: bool = True,
     ) -> DispatchModel:
@@ -236,13 +264,6 @@ class DispatchModel:
             storage_specs = storage_specs.assign(
                 operating_date=net_load_profile.index.min()
             )
-
-        # duplicate the DatetimeIndex so it is the same shape as `fossil_profiles`
-        # dt_ix = pd.concat(
-        #     [net_load_profile.index.to_series()] * len(fossil_plant_specs),
-        #     axis=1,
-        # ).to_numpy()
-        wk = pd.Timedelta(weeks=1)
 
         # insert an `operating_date` column if it doesn't exist and fill missing values
         # with a date before the dispatch period
@@ -256,14 +277,14 @@ class DispatchModel:
         if "retirement_date" not in fossil_plant_specs:
             if "planned_retirement_date" not in fossil_plant_specs:
                 fossil_plant_specs = fossil_plant_specs.assign(
-                    retirement_date=net_load_profile.index.max() + wk
+                    retirement_date=net_load_profile.index.max()
                 )
             else:
                 fossil_plant_specs = fossil_plant_specs.rename(
                     columns={"planned_retirement_date": "retirement_date"}
                 )
         fossil_plant_specs = fossil_plant_specs.fillna(
-            {"retirement_date": net_load_profile.index.max() + wk}
+            {"retirement_date": net_load_profile.index.max()}
         )
 
         # make a boolean array for whether a particular hour comes between
@@ -277,19 +298,10 @@ class DispatchModel:
             fossil_plant_specs.capacity_mw,
         )
 
-        # fossil_profiles = pd.DataFrame(
-        #     (
-        #         (dt_ix < fossil_plant_specs.retirement_date.to_numpy())
-        #         & (dt_ix >= fossil_plant_specs.operating_date.to_numpy())
-        #     )
-        #     * fossil_plant_specs.capacity_mw.to_numpy(),
-        #     columns=fossil_plant_specs.index,
-        #     index=net_load_profile.index,
-        # )
-
         return cls(
             net_load_profile=net_load_profile,
             fossil_plant_specs=fossil_plant_specs,
+            fossil_marginal_cost=fossil_marginal_cost,
             fossil_profiles=fossil_profiles,
             storage_specs=storage_specs,
             jit=jit,
@@ -298,7 +310,7 @@ class DispatchModel:
     @property
     def dispatch_func(self):
         """Appropriate dispatch engine depending on ``self.jit``."""
-        return dispatch_engine_compiled if self.jit else dispatch_engine
+        return dispatch_engine_compiled if self.__meta__["jit"] else dispatch_engine
 
     @property
     def is_redispatch(self):
@@ -346,7 +358,7 @@ class DispatchModel:
             fossil_startup_cost=self.fossil_plant_specs.startup_cost.to_numpy(
                 dtype=np.float_
             ),
-            fossil_marginal_cost=self.fossil_plant_specs[self.yrs_idx].to_numpy(
+            fossil_marginal_cost=self.fossil_marginal_cost.unstack().to_numpy(
                 dtype=np.float_
             ),
             storage_mw=self.storage_specs.capacity_mw.to_numpy(dtype=np.float_),
@@ -397,9 +409,9 @@ class DispatchModel:
     def _cost(self, profiles: pd.DataFrame) -> pd.DataFrame:
         """Determine total cost based on hourly production and starts."""
         profs = profiles.to_numpy()
-        marginal_cost = profs * self.fossil_plant_specs[self.yrs_idx].T.reindex(
-            index=self.net_load_profile.index, method="ffill"
-        )
+        marginal_cost = profs * self.fossil_marginal_cost.unstack(
+            level=("plant_id_eia", "generator_id")
+        ).reindex(index=self.net_load_profile.index, method="ffill")
         start_cost = self.fossil_plant_specs.startup_cost.to_numpy() * np.where(
             (profs == 0) & (np.roll(profs, -1, axis=0) > 0), 1, 0
         )
@@ -639,7 +651,7 @@ class DispatchModel:
             .sort_index()
         )
 
-    def to_disk(self, path: Path | str, compression=ZIP_DEFLATED, clobber=False):
+    def to_file(self, path: Path | str, compression=ZIP_DEFLATED, clobber=False):
         """Save `DispatchModel` to disk.
 
         A very ugly process at the moment because of our goal not to use pickle
@@ -652,40 +664,37 @@ class DispatchModel:
         if path.exists() and not clobber:
             raise FileExistsError(f"{path} exists, to overwrite set `clobber=True`")
 
+        _str_cols: Callable = lambda df, n: df.set_axis(
+            list(map(str, range(df.shape[1]))), axis="columns"
+        )
+        _null: Callable = lambda df, n: df
+        _to_frame: Callable = lambda df, n: df.to_frame(name=n)
+
         auto_parquet = (
-            "re_profiles",
-            "storage_dispatch",
-            "system_data",
-            "storage_specs",
+            ("re_profiles", _null),
+            ("storage_dispatch", _null),
+            ("system_data", _null),
+            ("storage_specs", _null),
+            ("fossil_plant_specs", _null),
+            ("fossil_marginal_cost", _to_frame),
+            ("fossil_profiles", _str_cols),
+            ("fossil_redispatch", _str_cols),
+            ("net_load_profile", _to_frame),
         )
         metadata = {
-            "name": self.name,
-            "jit": self.jit,
-            "__qualname__": self.__class__.__qualname__,
             **self.__meta__,
+            "__qualname__": self.__class__.__qualname__,
+            "plant_index": list(self.fossil_plant_specs.index),
         }
 
-        # need to make all column names strings
-        fossil_plant_specs = self.fossil_plant_specs.copy()
-        fossil_plant_specs.columns = list(map(str, self.fossil_plant_specs.columns))
-        fossil_profiles = self.fossil_profiles.set_axis(
-            list(map(str, range(self.fossil_profiles.shape[1]))), axis="columns"
-        )
-        fossil_redispatch = self.fossil_redispatch.set_axis(
-            list(map(str, range(self.fossil_profiles.shape[1]))), axis="columns"
-        )
         with ZipFile(path, "w", compression=compression) as z:
-            for df_name in auto_parquet:
-                df = getattr(self, df_name)
-                if df is not None:
-                    z.writestr(f"{df_name}.parquet", df.to_parquet())
-            z.writestr(
-                "net_load_profile.parquet",
-                self.net_load_profile.to_frame(name="nl").to_parquet(),
-            )
-            z.writestr("fossil_plant_specs.parquet", fossil_plant_specs.to_parquet())
-            z.writestr("fossil_profiles.parquet", fossil_profiles.to_parquet())
-            z.writestr("fossil_redispatch.parquet", fossil_redispatch.to_parquet())
+            for df_name, func in auto_parquet:
+                try:
+                    df_out = func(getattr(self, df_name), df_name)
+                    if df_out is not None:
+                        z.writestr(f"{df_name}.parquet", df_out.to_parquet())
+                except Exception as exc:
+                    raise RuntimeError(f"{df_name} {exc!r}") from exc
             z.writestr(
                 "metadata.json", json.dumps(metadata, ensure_ascii=False, indent=4)
             )
@@ -693,7 +702,7 @@ class DispatchModel:
     def __repr__(self) -> str:
         return (
             self.__class__.__qualname__
-            + f"({self.name=}, {self.jit=}, n_plants={len(self.fossil_plant_specs)}, ...)".replace(
+            + f"({', '.join(f'{k}={v}' for k, v in self.__meta__.items())}, n_plants={len(self.fossil_plant_specs)})".replace(
                 "self.", ""
             )
         )

@@ -5,7 +5,7 @@ Dispatch Release Notes
 .. _release-v0-2-0:
 
 ---------------------------------------------------------------------------------------
-0.2.0 (2022-XX-XX)
+0.2.0 (2022-09-15)
 ---------------------------------------------------------------------------------------
 
 What's New?
@@ -24,14 +24,22 @@ What's New?
     ``retirement_date`` columns in ``fossil_plant_specs`` determine the period during
     dispatch that a generator may operate. This provides a straightforward method for
     having the portfolio you wish to dispatch change over time.
+*   Cleanup and rationalization of :meth:`dispatch.model.DispatchModel.to_file` and
+    :meth:`dispatch.model.DispatchModel.from_file` methods.
+*   Updates to system for storing and processing marginal cost data. This is now a
+    separate argument to :meth:`dispatch.model.DispatchModel.__init__` rather than a
+    messy confusing part of ``fossil_plant_specs``. This is now consistent with how
+    ``patio`` prepares and stores the data.
 
 Bug Fixes
 ^^^^^^^^^
-*   ...
+*   :meth:`dispatch.model.DispatchModel.to_file` and
+    :meth:`dispatch.model.DispatchModel.from_file` now properly deal with
+    internal data stored in both :class:`pd.DataFrame` and :class:`pd.Series`.
 
 Known Issues
 ^^^^^^^^^^^^
-*   ...
+*   Tests are still pretty rudimentary.
 
 .. _release-v0-1-0:
 
