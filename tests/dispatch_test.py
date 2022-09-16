@@ -117,7 +117,7 @@ def test_write_and_read(
         dm.to_file(file)
         x = DispatchModel.from_file(file)
         x()
-        x.to_file(file, clobber=True)
+        x.to_file(file, clobber=True, include_output=True)
     except Exception as exc:
         raise exc
     else:

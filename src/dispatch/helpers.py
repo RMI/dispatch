@@ -75,3 +75,15 @@ def apply_op_ret_date(
         index=profiles.index,
         columns=operating_date.index,
     )
+
+
+def _str_cols(df, *args):
+    return df.set_axis(list(map(str, range(df.shape[1]))), axis="columns")
+
+
+def _to_frame(df, n):
+    return df.to_frame(name=n)
+
+
+def _null(df, *args):
+    return df
