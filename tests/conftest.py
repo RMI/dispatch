@@ -51,5 +51,14 @@ def fossil_profiles(test_dir) -> pd.DataFrame:
 def fossil_specs(test_dir) -> pd.DataFrame:
     """Fossil Profiles."""
     df = pd.read_parquet(test_dir / "data/plant_specs.parquet")
-    df.columns = [pd.Timestamp(x) if x[0] == "2" else x for x in df.columns]
+    # df.columns = [pd.Timestamp(x) if x[0] == "2" else x for x in df.columns]
     return df
+
+
+@pytest.fixture(scope="session")
+def fossil_cost(test_dir) -> pd.Series:
+    """Fossil Profiles."""
+    df = pd.read_parquet(test_dir / "data/plant_specs.parquet").filter(like="20")
+    df.columns = df.columns.map(lambda x: pd.Timestamp(x))
+    df.columns.name = "datetime"
+    return df.stack()
