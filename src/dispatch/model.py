@@ -4,7 +4,6 @@ from __future__ import annotations
 import inspect
 import json
 import logging
-from collections.abc import Callable
 from datetime import datetime
 from importlib.metadata import PackageNotFoundError, version
 from io import BytesIO
@@ -18,7 +17,7 @@ __all__ = ["DispatchModel"]
 
 
 from dispatch.engine import dispatch_engine, dispatch_engine_compiled
-from dispatch.helpers import apply_op_ret_date
+from dispatch.helpers import _null, _str_cols, _to_frame, apply_op_ret_date
 
 LOGGER = logging.getLogger(__name__)
 try:
@@ -55,6 +54,17 @@ class DispatchModel:
         "starts",
         "__meta__",
     )
+    _parquet_out = {
+        "re_profiles": _null,
+        "storage_dispatch": _null,
+        "system_data": _null,
+        "storage_specs": _null,
+        "fossil_plant_specs": _null,
+        "fossil_marginal_cost": _to_frame,
+        "fossil_profiles": _str_cols,
+        "fossil_redispatch": _str_cols,
+        "net_load_profile": _to_frame,
+    }
 
     def __init__(
         self,
@@ -213,9 +223,8 @@ class DispatchModel:
             plant_index = pd.MultiIndex.from_tuples(
                 metadata.pop("plant_index"), names=["plant_id_eia", "generator_id"]
             )
-            for x in z.namelist():
-                if "parquet" in x:
-                    df_name = x.removesuffix(".parquet")
+            for df_name in cls._parquet_out:
+                if (x := df_name + ".parquet") in z.namelist():
                     df_in = pd.read_parquet(BytesIO(z.read(x))).squeeze()
                     if df_name in ("fossil_profiles", "fossil_redispatch"):
                         df_in.columns = plant_index
@@ -654,7 +663,13 @@ class DispatchModel:
             .sort_index()
         )
 
-    def to_file(self, path: Path | str, compression=ZIP_DEFLATED, clobber=False):
+    def to_file(
+        self,
+        path: Path | str,
+        include_output: bool = False,
+        compression=ZIP_DEFLATED,
+        clobber=False,
+    ):
         """Save `DispatchModel` to disk.
 
         A very ugly process at the moment because of our goal not to use pickle
@@ -667,23 +682,6 @@ class DispatchModel:
         if path.exists() and not clobber:
             raise FileExistsError(f"{path} exists, to overwrite set `clobber=True`")
 
-        _str_cols: Callable = lambda df, n: df.set_axis(
-            list(map(str, range(df.shape[1]))), axis="columns"
-        )
-        _null: Callable = lambda df, n: df
-        _to_frame: Callable = lambda df, n: df.to_frame(name=n)
-
-        auto_parquet = (
-            ("re_profiles", _null),
-            ("storage_dispatch", _null),
-            ("system_data", _null),
-            ("storage_specs", _null),
-            ("fossil_plant_specs", _null),
-            ("fossil_marginal_cost", _to_frame),
-            ("fossil_profiles", _str_cols),
-            ("fossil_redispatch", _str_cols),
-            ("net_load_profile", _to_frame),
-        )
         metadata = {
             **self.__meta__,
             "__qualname__": self.__class__.__qualname__,
@@ -691,13 +689,20 @@ class DispatchModel:
         }
 
         with ZipFile(path, "w", compression=compression) as z:
-            for df_name, func in auto_parquet:
+            for df_name, func in self._parquet_out.items():
                 try:
-                    df_out = func(getattr(self, df_name), df_name)
-                    if df_out is not None:
-                        z.writestr(f"{df_name}.parquet", df_out.to_parquet())
+                    df_out = getattr(self, df_name)
+                    if df_out is not None and not df_out.empty:
+                        z.writestr(
+                            f"{df_name}.parquet", func(df_out, df_name).to_parquet()
+                        )
                 except Exception as exc:
                     raise RuntimeError(f"{df_name} {exc!r}") from exc
+            if include_output and not self.fossil_redispatch.empty:
+                for df_name in ("system_level_summary", "operations_summary"):
+                    z.writestr(
+                        f"{df_name}.parquet", getattr(self, df_name)().to_parquet()
+                    )
             z.writestr(
                 "metadata.json", json.dumps(metadata, ensure_ascii=False, indent=4)
             )
