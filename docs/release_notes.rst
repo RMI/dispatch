@@ -5,13 +5,14 @@ Dispatch Release Notes
 .. _release-v0-3-0:
 
 ---------------------------------------------------------------------------------------
-0.23.0 (2022-XX-XX)
+0.3.0 (2022-XX-XX)
 ---------------------------------------------------------------------------------------
 
 What's New?
 ^^^^^^^^^^^
 *   :meth:`dispatch.model.DispatchModel.to_file` can create an output with summary
     outputs.
+*   Adopting :mod:`pandera` for metadata and validation.
 
 
 .. _release-v0-2-0:

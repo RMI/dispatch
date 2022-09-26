@@ -18,6 +18,12 @@ __all__ = ["DispatchModel"]
 
 from dispatch.engine import dispatch_engine, dispatch_engine_compiled
 from dispatch.helpers import _null, _str_cols, _to_frame, apply_op_ret_date
+from dispatch.metadata import (
+    FOSSIL_SPECS_SCHEMA,
+    MARGINAL_COST_SCHEMA,
+    NET_LOAD_SCHEMA,
+    STORAGE_SPECS_SCHEMA,
+)
 
 LOGGER = logging.getLogger(__name__)
 try:
@@ -110,16 +116,13 @@ class DispatchModel:
             "created": datetime.now().strftime("%c"),
             "jit": jit,
         }
-        self.net_load_profile: pd.Series = net_load_profile
+        self.net_load_profile: pd.Series = NET_LOAD_SCHEMA.validate(net_load_profile)
+        self.fossil_plant_specs: pd.DataFrame = FOSSIL_SPECS_SCHEMA.validate(
+            fossil_plant_specs
+        )
 
         self.dt_idx = self.net_load_profile.index
         self.yrs_idx = self.dt_idx.to_series().groupby([pd.Grouper(freq="YS")]).first()
-
-        # make sure we have all the `fossil_plant_specs` columns we need
-        for col in ("capacity_mw", "ramp_rate", "startup_cost"):
-            if col not in fossil_plant_specs:
-                raise AssertionError(f"`fossil_plant_specs` requires `{col}` column")
-        self.fossil_plant_specs: pd.DataFrame = fossil_plant_specs
 
         # validate structure of `fossil_marginal_cost` and set the attribute
         self.fossil_marginal_cost: pd.Series = self._validate_fossil_marginal_cost(
@@ -167,18 +170,10 @@ class DispatchModel:
                     "operating_date",
                 ],
             )
-        else:
-            for col in (
-                "capacity_mw",
-                "duration_hrs",
-                "roundtrip_eff",
-                "operating_date",
-            ):
-                if col not in storage_specs:
-                    raise AssertionError(f"`storage_specs` requires `{col}` column")
-        return storage_specs
+        return STORAGE_SPECS_SCHEMA.validate(storage_specs)
 
     def _validate_fossil_marginal_cost(self, fossil_marginal_cost):
+        fossil_marginal_cost = MARGINAL_COST_SCHEMA.validate(fossil_marginal_cost)
         if not np.all(
             fossil_marginal_cost.reset_index(
                 level="datetime", drop=True
