@@ -69,6 +69,7 @@ issues_github_path = "rmi-electricity/dispatch"
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable", None),
+    "pandera": ("https://pandera.readthedocs.io/en/stable/index.html", None),
     "pytest": ("https://docs.pytest.org/en/latest/", None),
     "python": ("https://docs.python.org/3", None),
     "scipy": ("https://docs.scipy.org/doc/scipy/", None),
