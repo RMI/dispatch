@@ -13,7 +13,7 @@ DT_SCHEMA = pa.Index(pa.Timestamp, name="datetime")
 PID_SCHEMA = pa.Index(int, name="plant_id_eia")
 GID_SCHEMA = pa.Index(str, name="generator_id")
 
-FOSSIL_SPECS_SCHEMA = pa.DataFrameSchema(
+DISPATCHABLE_SPECS_SCHEMA = pa.DataFrameSchema(
     index=pa.MultiIndex(
         [PID_SCHEMA, GID_SCHEMA],
         unique=["plant_id_eia", "generator_id"],
@@ -29,7 +29,7 @@ FOSSIL_SPECS_SCHEMA = pa.DataFrameSchema(
     },
     coerce=True,
 )
-FOSSIL_COST_SCHEMA = pa.DataFrameSchema(
+DISPATCHABLE_COST_SCHEMA = pa.DataFrameSchema(
     index=pa.MultiIndex(
         [PID_SCHEMA, GID_SCHEMA, DT_SCHEMA],
         unique=["plant_id_eia", "generator_id", "datetime"],
@@ -65,51 +65,56 @@ class Validator:
     def __init__(self, obj: Any):
         """Init Validator."""
         self.obj = obj
-        self.gen_set = obj.fossil_plant_specs.index
+        self.gen_set = obj.dispatchable_specs.index
         self.net_load_profile = obj.net_load_profile
 
-    def fossil_profiles(self, fossil_profiles: pd.DataFrame) -> pd.DataFrame:
-        """Validate fossil_profiles."""
-        fossil_profiles = pa.DataFrameSchema(
+    def dispatchable_profiles(
+        self, dispatchable_profiles: pd.DataFrame
+    ) -> pd.DataFrame:
+        """Validate dispatchable_profiles."""
+        dispatchable_profiles = pa.DataFrameSchema(
             index=DT_SCHEMA,
             columns={x: pa.Column(float) for x in self.gen_set},
             coerce=True,
-        ).validate(fossil_profiles)
-        if not np.all(fossil_profiles.index == self.net_load_profile.index):
+            strict=True,
+        ).validate(dispatchable_profiles)
+        if not np.all(dispatchable_profiles.index == self.net_load_profile.index):
             raise AssertionError(
-                "`fossil_profiles` and `net_load_profile` must be the same length"
+                "`dispatchable_profiles` and `net_load_profile` must be the same length"
             )
 
-        return fossil_profiles
+        return dispatchable_profiles
 
-    def fossil_cost(self, fossil_cost: pd.DataFrame) -> pd.DataFrame:
-        """Validate fossil_cost."""
-        fossil_cost = FOSSIL_COST_SCHEMA.validate(fossil_cost)
+    def dispatchable_cost(self, dispatchable_cost: pd.DataFrame) -> pd.DataFrame:
+        """Validate dispatchable_cost."""
+        dispatchable_cost = DISPATCHABLE_COST_SCHEMA.validate(dispatchable_cost)
         # make sure al
         if not np.all(
-            fossil_cost.reset_index(level="datetime", drop=True).index.drop_duplicates()
+            dispatchable_cost.reset_index(
+                level="datetime", drop=True
+            ).index.drop_duplicates()
             == self.gen_set
         ):
             raise AssertionError(
-                "generators in `fossil_marginal_cost` do not match generators in `fossil_plant_specs`"
+                "generators in `dispatchable_cost` do not match generators in `dispatchable_specs`"
             )
-        marg_freq = pd.infer_freq(fossil_cost.index.get_level_values(2).unique())
+        marg_freq = pd.infer_freq(dispatchable_cost.index.get_level_values(2).unique())
         self.obj.__meta__["marginal_cost_freq"] = marg_freq
         if "YS" not in marg_freq and "AS" not in marg_freq:
             raise AssertionError("Cost data must be `YS`")
-        marg_dts = fossil_cost.index.get_level_values("datetime")
+        marg_dts = dispatchable_cost.index.get_level_values("datetime")
         missing_prds = [
             d
             for d in self.net_load_profile.resample(marg_freq).first().index
             if d not in marg_dts
         ]
         if missing_prds:
-            raise AssertionError(f"{missing_prds} not in `fossil_marginal_cost`")
-        if "total_var_mwh" not in fossil_cost:
-            fossil_cost = fossil_cost.assign(
+            raise AssertionError(f"{missing_prds} not in `dispatchable_cost`")
+        if "total_var_mwh" not in dispatchable_cost:
+            dispatchable_cost = dispatchable_cost.assign(
                 total_var_mwh=lambda x: x[["vom_per_mwh", "fuel_per_mwh"]].sum(axis=1)
             )
-        return fossil_cost
+        return dispatchable_cost
 
     def storage_specs(self, storage_specs: pd.DataFrame) -> pd.DataFrame:
         """Validate storage_specs."""
