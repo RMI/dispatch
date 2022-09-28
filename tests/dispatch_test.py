@@ -2,15 +2,18 @@
 import numpy as np
 import pandas as pd
 
-from dispatch import DispatchModel
+from dispatch import DispatchModel, apply_op_ret_date
 
 
 def setup_dm(fossil_profiles, fossil_specs, fossil_cost, re_profiles, re, storage):
     """Setup `DispatchModel`."""
     fossil_profiles.columns = fossil_specs.index
+    fossil_profiles = apply_op_ret_date(
+        fossil_profiles, fossil_specs.operating_date, fossil_specs.retirement_date
+    )
     dm = DispatchModel.from_patio(
         fossil_profiles.sum(axis=1) - re_profiles @ re,
-        fossil_profiles=fossil_profiles,
+        dispatchable_profiles=fossil_profiles,
         cost_data=fossil_cost,
         plant_data=fossil_specs,
         storage_specs=storage,
@@ -41,8 +44,8 @@ def test_new(fossil_profiles, re_profiles, fossil_specs, fossil_cost):
     ] = fossil_profiles.index.max() - pd.Timedelta(weeks=15)
     self = DispatchModel.from_fresh(
         net_load_profile=fossil_profiles.sum(axis=1),
-        fossil_plant_specs=fossil_specs,
-        fossil_marginal_cost=fossil_cost,
+        dispatchable_specs=fossil_specs,
+        dispatchable_cost=fossil_cost,
         storage_specs=pd.DataFrame(
             [(5000, 4, 0.9), (2000, 8760, 0.5)],
             columns=["capacity_mw", "duration_hrs", "roundtrip_eff"],
@@ -63,8 +66,8 @@ def test_new_with_dates(fossil_profiles, re_profiles, fossil_specs, fossil_cost)
     )
     self = DispatchModel.from_fresh(
         net_load_profile=fossil_profiles.sum(axis=1),
-        fossil_plant_specs=fossil_specs,
-        fossil_marginal_cost=fossil_cost,
+        dispatchable_specs=fossil_specs,
+        dispatchable_cost=fossil_cost,
         storage_specs=pd.DataFrame(
             [
                 (5000, 4, 0.9, pd.Timestamp(year=2016, month=1, day=1)),
@@ -93,7 +96,7 @@ def test_low_lost_load(fossil_profiles, re_profiles, fossil_specs, fossil_cost):
         ),
     )
     dm()
-    assert (dm.lost_load() / dm.lost_load().sum()).iloc[0] > 0.9999
+    assert (dm.lost_load() / dm.lost_load().sum()).iloc[0] > 0.998
 
 
 def test_write_and_read(
@@ -117,7 +120,7 @@ def test_write_and_read(
         dm.to_file(file)
         x = DispatchModel.from_file(file)
         x()
-        x.to_file(file, clobber=True)
+        x.to_file(file, clobber=True, include_output=True)
     except Exception as exc:
         raise exc
     else:
@@ -142,4 +145,23 @@ def test_marginal_cost(fossil_profiles, re_profiles, fossil_specs, fossil_cost):
         ),
     )
     x = self.grouper(self.historical_cost, "technology_description")
+    assert not x.empty
+
+
+def test_operations_summary(fossil_profiles, re_profiles, fossil_specs, fossil_cost):
+    """Setup for testing cost and grouper methods."""
+    fossil_profiles.columns = fossil_specs.index
+    self = setup_dm(
+        fossil_profiles,
+        fossil_specs,
+        fossil_cost,
+        re_profiles,
+        np.array([5000.0, 5000.0, 0.0, 0.0]),
+        pd.DataFrame(
+            [(5000, 4, 0.9), (2000, 8760, 0.5)],
+            columns=["capacity_mw", "duration_hrs", "roundtrip_eff"],
+        ),
+    )
+    self()
+    x = self.operations_summary(by=None)
     assert not x.empty

@@ -2,6 +2,26 @@
 Dispatch Release Notes
 =======================================================================================
 
+.. _release-v0-3-0:
+
+---------------------------------------------------------------------------------------
+0.3.0 (2022-XX-XX)
+---------------------------------------------------------------------------------------
+
+What's New?
+^^^^^^^^^^^
+*   :meth:`.DispatchModel.to_file` can create an output with summary
+    outputs.
+*   Adopting :mod:`.pandera` for metadata and validation using
+    :class:`.Validator` to organize and specialize data input
+    checking.
+*   Adding cost component details and capacity data to
+    :meth:`.DispatchModel.operations_summary`.
+*   We now automatically apply ``operating_date`` and ``retirement_date`` from
+    :attr:`.DispatchModel.dispatchable_plant_specs` to
+    :attr:`.DispatchModel.dispatchable_profiles` using
+    :func:`.apply_op_ret_date`.
+
 .. _release-v0-2-0:
 
 ---------------------------------------------------------------------------------------
@@ -10,9 +30,9 @@ Dispatch Release Notes
 
 What's New?
 ^^^^^^^^^^^
-*   :class:`dispatch.model.DispatchModel` now uses ``__slots__``
-*   New ``to_disk`` and ``from_disk`` methods that allow a
-    :class:`DispatchModel` object to be saved to disk and recreated
+*   :class:`.DispatchModel` now uses ``__slots__``
+*   New :meth:`.DispatchModel.to_file` and :meth:`.DispatchModel.from_file` methods
+    that allow a :class:`.DispatchModel` object to be saved to disk and recreated
     from a file. This uses a ``zip`` of many ``parquet`` files for size and to avoid
     ``pickle`` being tied to a particular module layout.
 *   Methods to calculate hourly cost for historical and redispatch.
@@ -20,22 +40,22 @@ What's New?
     frequencies and asset specificity.
 *   Storage resources can now be added to the portfolio over time based on their
     ``operating_date`` in ``storage_specs``.
-*   When using :meth:`dispatch.model.DispatchModel.new`, ``operating_date`` and
-    ``retirement_date`` columns in ``fossil_plant_specs`` determine the period during
-    dispatch that a generator may operate. This provides a straightforward method for
-    having the portfolio you wish to dispatch change over time.
-*   Cleanup and rationalization of :meth:`dispatch.model.DispatchModel.to_file` and
-    :meth:`dispatch.model.DispatchModel.from_file` methods.
+*   When using :meth:`.DispatchModel.from_fresh`, ``operating_date`` and
+    ``retirement_date`` columns in ``dispatchable_plant_specs`` determine the period
+    during dispatch that a generator may operate. This provides a straightforward
+    method for having the portfolio you wish to dispatch change over time.
+*   Cleanup and rationalization of :meth:`.DispatchModel.to_file` and
+    :meth:`.DispatchModel.from_file` methods.
 *   Updates to system for storing and processing marginal cost data. This is now a
-    separate argument to :meth:`dispatch.model.DispatchModel.__init__` rather than a
-    messy confusing part of ``fossil_plant_specs``. This is now consistent with how
-    ``patio`` prepares and stores the data.
+    separate argument to :meth:`.DispatchModel.__init__` rather than a
+    messy confusing part of ``dispatchable_plant_specs``. This is now consistent with
+    how ``patio`` prepares and stores the data.
 
 Bug Fixes
 ^^^^^^^^^
-*   :meth:`dispatch.model.DispatchModel.to_file` and
-    :meth:`dispatch.model.DispatchModel.from_file` now properly deal with
-    internal data stored in both :class:`pd.DataFrame` and :class:`pd.Series`.
+*   :meth:`.DispatchModel.to_file` and
+    :meth:`.DispatchModel.from_file` now properly deal with
+    internal data stored in both :class:`pandas.DataFrame` and :class:`pandas.Series`.
 
 Known Issues
 ^^^^^^^^^^^^
@@ -56,11 +76,12 @@ What's New?
 
 Bug Fixes
 ^^^^^^^^^
-*   `mypy <https://github.com/python/mypy>`_ is disabled because of error described in :issue:`1`.
+*   `mypy <https://github.com/python/mypy>`_ is disabled because of error described
+    in :issue:`1`.
 
 Known Issues
 ^^^^^^^^^^^^
-*   :py:class:`dispatch.model.DispatchModel` only set up to work properly with
+*   :py:class:`.DispatchModel` only set up to work properly with
     `patio-model <https://github.com/rmi-electricity/patio-model>`_.
 *   Test thoroughness is lacking.
 *   No substantive readme or documentation.

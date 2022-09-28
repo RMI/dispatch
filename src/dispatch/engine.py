@@ -10,18 +10,19 @@ __all__ = ["dispatch_engine_compiled", "dispatch_engine"]
 def dispatch_engine(
     net_load: np.ndarray,
     hr_to_cost_idx: np.ndarray,
-    fossil_profiles: np.ndarray,
-    fossil_ramp_mw: np.ndarray,
-    fossil_startup_cost: np.ndarray,
-    fossil_marginal_cost: np.ndarray,
+    historical_dispatch: np.ndarray,
+    dispatchable_ramp_mw: np.ndarray,
+    dispatchable_startup_cost: np.ndarray,
+    dispatchable_marginal_cost: np.ndarray,
     storage_mw: np.ndarray,
     storage_hrs: np.ndarray,
     storage_eff: np.ndarray = np.array((0.9, 0.5)),
     storage_op_hour: np.ndarray = np.array((0, 0)),
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """Numba-ready dispatch engine.
+    """Dispatch engine that can be compiled with :func:`numba.jit`.
 
     For each hour...
+
     1.  first iterate through operating plants
     2.  then charge/discharge storage
     3.  if there is still a deficit, iterate through non-operating plants
@@ -31,11 +32,12 @@ def dispatch_engine(
         net_load: net load, as in net of RE generation, negative net load means
             excess renewables
         hr_to_cost_idx: an array that contains for each hour, the index of the correct
-            column in ``fossil_marginal_cost`` that contains cost data for that hour
-        fossil_profiles: historic plant dispatch, acts as an hourly upper constraint
+            column in ``dispatchable_marginal_cost`` that contains cost data for that hour
+        historical_dispatch: historic plant dispatch, acts as an hourly upper constraint
             on this dispatch
-        fossil_startup_cost: startup cost in $ for each fossil generator
-        fossil_marginal_cost: annual marginal cost for each fossil generator in $/MWh
+        dispatchable_ramp_mw: max one hour ramp in MW
+        dispatchable_startup_cost: startup cost in $ for each dispatchable generator
+        dispatchable_marginal_cost: annual marginal cost for each dispatchable generator in $/MWh
             rows are generators and columns are years
         storage_mw: max charge/discharge rate for storage in MW
         storage_hrs: duration of storage
@@ -45,55 +47,62 @@ def dispatch_engine(
 
 
     Returns:
-        fossil_redispatch: new hourly fossil dispatch
+        redispatch: new hourly dispatch
         storage: hourly charge, discharge, and state of charge data
         system_level: hourly deficit, dirty charge, and total curtailment data
         starts: count of starts for each plant in each year
     """
-    assert (
-        len(storage_mw) == len(storage_hrs) == len(storage_eff)
-    ), "storage data does not match"
+    _validate_inputs(
+        net_load,
+        hr_to_cost_idx,
+        historical_dispatch,
+        dispatchable_ramp_mw,
+        dispatchable_startup_cost,
+        dispatchable_marginal_cost,
+        storage_mw,
+        storage_hrs,
+        storage_eff,
+    )
+
     storage_soc_max: np.ndarray = storage_mw * storage_hrs
 
-    assert (
-        fossil_ramp_mw.shape[0]
-        == fossil_startup_cost.shape[0]
-        == fossil_marginal_cost.shape[0]
-        == fossil_profiles.shape[1]
-    ), "fossil plant data does not match"
-
-    assert (
-        len(net_load) == len(hr_to_cost_idx) == len(fossil_profiles)
-    ), "profile lengths do not match"
-
-    # internal fossil data we need to track; (0) current run op_hours
+    # internal dispatch data we need to track; (0) current run op_hours
     # (1) whether we touched the plant in the first round of dispatch
-    fossil_op_data: np.ndarray = np.zeros((fossil_ramp_mw.shape[0], 2), dtype=np.int64)
+    op_data: np.ndarray = np.zeros((dispatchable_ramp_mw.shape[0], 2), dtype=np.int64)
     # need to set op_hours to 1 for plants that we are starting off as operating
-    fossil_op_data[:, 0] = np.where(fossil_profiles[0, :] > 0.0, 1, 0)
+    op_data[:, 0] = np.where(historical_dispatch[0, :] > 0.0, 1, 0)
 
     # create an array to keep track of re-dispatch
-    fossil_redispatch: np.ndarray = np.zeros_like(fossil_profiles)
+    redispatch: np.ndarray = np.zeros_like(historical_dispatch)
     # to avoid having to do the first hour differently, we just assume original
     # dispatch in that hour and then skip it
-    fossil_redispatch[0, :] = fossil_profiles[0, :]
+    redispatch[0, :] = historical_dispatch[0, :]
 
     # create an array to determine the marginal cost dispatch order for each year
     # the values in each column represent the canonical indexes for each resource
     # and they are in the order of increasing marginal cost for that year (column)
     marginal_ranks: np.ndarray = np.hstack(
-        (np.arange(fossil_marginal_cost.shape[0]).reshape(-1, 1), fossil_marginal_cost)
+        (
+            np.arange(dispatchable_marginal_cost.shape[0]).reshape(-1, 1),
+            dispatchable_marginal_cost,
+        )
     )
-    for i in range(1, 1 + fossil_marginal_cost[0, :].shape[0]):
+    for i in range(1, 1 + dispatchable_marginal_cost[0, :].shape[0]):
         marginal_ranks[:, i] = marginal_ranks[marginal_ranks[:, i].argsort()][:, 0]
     marginal_ranks = marginal_ranks[:, 1:].astype(np.int64)
 
-    # create an array in the order of startup rank whose elements are the canonical
-    # resource index for that startup rank
-    start_ranks: np.ndarray = np.vstack(
-        (np.arange(fossil_startup_cost.shape[0]), fossil_startup_cost)
-    ).T
-    start_ranks = start_ranks[start_ranks[:, 1].argsort()][:, 0].astype(np.int64)
+    # create an array to determine the startup cost order for each year
+    # the values in each column represent the canonical indexes for each resource
+    # and they are in the order of increasing startup cost for that year (column)
+    start_ranks: np.ndarray = np.hstack(
+        (
+            np.arange(dispatchable_startup_cost.shape[0]).reshape(-1, 1),
+            dispatchable_startup_cost,
+        )
+    )
+    for i in range(1, 1 + dispatchable_startup_cost[0, :].shape[0]):
+        start_ranks[:, i] = start_ranks[start_ranks[:, i].argsort()][:, 0]
+    start_ranks = start_ranks[:, 1:].astype(np.int64)
 
     # array to keep track of starts by year
     starts: np.ndarray = np.zeros_like(marginal_ranks)
@@ -138,31 +147,31 @@ def dispatch_engine(
         prov_deficit = max(0.0, deficit - max_discharge)
 
         # new hour so reset where we keep track if we've touched a plant for this hour
-        fossil_op_data[:, 1] = 0
+        op_data[:, 1] = 0
 
         # dispatch plants in the order of their marginal cost for year yr
         for r in marginal_ranks[:, yr]:
-            op_hours = fossil_op_data[r, 0]
+            op_hours = op_data[r, 0]
             # we are only dealing with plants already operating here
             if op_hours == 0:
                 continue
-            ramp = fossil_ramp_mw[r]
-            previous = fossil_redispatch[hr - 1, r]
+            ramp = dispatchable_ramp_mw[r]
+            previous = redispatch[hr - 1, r]
             # a plant's output is the lesser of historical, max hour output based on
             # ramping constraints and then the greater of actual need and the min hour
             # output based on ramping constraints
             r_out = min(
-                fossil_profiles[hr, r],
+                historical_dispatch[hr, r],
                 previous + ramp,
                 max(prov_deficit, previous - ramp),
             )
 
             # if we ran this hour, update op_hours col, if not set to 0
-            fossil_op_data[r, 0] = op_hours + 1 if r_out > 0.0 else 0
+            op_data[r, 0] = op_hours + 1 if r_out > 0.0 else 0
             # we took care of this plant for this hour so don't want to touch
             # it again in start-up loop
-            fossil_op_data[r, 1] = 1
-            fossil_redispatch[hr, r] = r_out
+            op_data[r, 1] = 1
+            redispatch[hr, r] = r_out
             # keep a running total of remaining deficit, having this value be negative
             # just makes the loop code more complicated, if it actually should be
             # negative we capture that below
@@ -170,7 +179,7 @@ def dispatch_engine(
 
         # calculate the true deficit as the hour's net load less actual dispatch
         # of fossil plants in hr that were also operating in hr - 1
-        deficit -= np.sum(fossil_redispatch[hr, :])
+        deficit -= np.sum(redispatch[hr, :])
 
         # # negative deficit means excess generation, so we charge the battery
         # # and move on to the next hour
@@ -225,22 +234,22 @@ def dispatch_engine(
             continue
 
         # TODO check that this start_ranks ordering system is working properly
-        for r in start_ranks:
+        for r in start_ranks[:, yr]:
             # we are only dealing with plants not already operating here
-            if fossil_op_data[r, 1]:
+            if op_data[r, 1]:
                 continue
-            ramp = fossil_ramp_mw[r]
+            ramp = dispatchable_ramp_mw[r]
 
             # a fossil plant's output during an hour is the lesser of the deficit,
             # the plant's historical output, and the plant's re-dispatch output
             # in the previous hour + the plant's one hour max ramp
             r_out = min(
-                deficit, fossil_profiles[hr, r], fossil_redispatch[hr - 1, r] + ramp
+                deficit, historical_dispatch[hr, r], redispatch[hr - 1, r] + ramp
             )
             if r_out > 0.0:
-                fossil_op_data[r, 0] = 1
+                op_data[r, 0] = 1
                 starts[r, yr] = starts[r, yr] + 1
-                fossil_redispatch[hr, r] = r_out
+                redispatch[hr, r] = r_out
                 deficit -= r_out
 
                 if deficit == 0.0:
@@ -260,10 +269,44 @@ def dispatch_engine(
         storage[storage[:, 1, 1] > np.roll(storage[:, 2, 1], 1)]
     ), "discharge exceeded previous state of charge in at least 1 hour for es1"
     assert np.all(
-        fossil_redispatch <= fossil_profiles * (1 + 1e-4)
+        redispatch <= historical_dispatch * (1 + 1e-4)
     ), "redispatch exceeded historical dispatch in at least 1 hour"
 
-    return fossil_redispatch, storage, system_level, starts
+    return redispatch, storage, system_level, starts
+
+
+@njit
+def _validate_inputs(
+    net_load,
+    hr_to_cost_idx,
+    historical_dispatch,
+    ramp_mw,
+    startup_cost,
+    marginal_cost,
+    storage_mw,
+    storage_hrs,
+    storage_eff,
+):
+    if not (len(storage_mw) == len(storage_hrs) == len(storage_eff)):
+        raise AssertionError("storage data does not match")
+    if not (
+        ramp_mw.shape[0]
+        == startup_cost.shape[0]
+        == marginal_cost.shape[0]
+        == historical_dispatch.shape[1]
+    ):
+        raise AssertionError("shapes of dispatchable plant data do not match")
+    if not (len(net_load) == len(hr_to_cost_idx) == len(historical_dispatch)):
+        raise AssertionError("profile lengths do not match")
+    if not (
+        len(np.unique(hr_to_cost_idx))
+        == marginal_cost.shape[1]
+        == startup_cost.shape[1]
+    ):
+        raise AssertionError(
+            "# of unique values in `hr_to_cost_idx` does not match # of columns "
+            "in `dispatchable_marginal_cost` and `dispatchable_startup_cost`"
+        )
 
 
 dispatch_engine_compiled = njit(dispatch_engine, error_model="numpy")

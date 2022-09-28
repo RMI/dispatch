@@ -68,7 +68,9 @@ issues_github_path = "rmi-electricity/dispatch"
 # we need to define these package to URL mappings:
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
+    "numba": ("https://numba.readthedocs.io/en/stable", None),
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable", None),
+    "pandera": ("https://pandera.readthedocs.io/en/stable", None),
     "pytest": ("https://docs.pytest.org/en/latest/", None),
     "python": ("https://docs.python.org/3", None),
     "scipy": ("https://docs.scipy.org/doc/scipy/", None),
