@@ -18,8 +18,8 @@ What's New?
 *   Adding cost component details and capacity data to
     :meth:`.DispatchModel.operations_summary`.
 *   We now automatically apply ``operating_date`` and ``retirement_date`` from
-    :attr:`.DispatchModel.fossil_plant_specs` to
-    :attr:`.DispatchModel.fossil_profiles` using
+    :attr:`.DispatchModel.dispatchable_plant_specs` to
+    :attr:`.DispatchModel.dispatchable_profiles` using
     :func:`.apply_op_ret_date`.
 
 .. _release-v0-2-0:
@@ -41,15 +41,15 @@ What's New?
 *   Storage resources can now be added to the portfolio over time based on their
     ``operating_date`` in ``storage_specs``.
 *   When using :meth:`.DispatchModel.from_fresh`, ``operating_date`` and
-    ``retirement_date`` columns in ``fossil_plant_specs`` determine the period during
-    dispatch that a generator may operate. This provides a straightforward method for
-    having the portfolio you wish to dispatch change over time.
+    ``retirement_date`` columns in ``dispatchable_plant_specs`` determine the period
+    during dispatch that a generator may operate. This provides a straightforward
+    method for having the portfolio you wish to dispatch change over time.
 *   Cleanup and rationalization of :meth:`.DispatchModel.to_file` and
     :meth:`.DispatchModel.from_file` methods.
 *   Updates to system for storing and processing marginal cost data. This is now a
     separate argument to :meth:`.DispatchModel.__init__` rather than a
-    messy confusing part of ``fossil_plant_specs``. This is now consistent with how
-    ``patio`` prepares and stores the data.
+    messy confusing part of ``dispatchable_plant_specs``. This is now consistent with
+    how ``patio`` prepares and stores the data.
 
 Bug Fixes
 ^^^^^^^^^
@@ -76,7 +76,8 @@ What's New?
 
 Bug Fixes
 ^^^^^^^^^
-*   `mypy <https://github.com/python/mypy>`_ is disabled because of error described in :issue:`1`.
+*   `mypy <https://github.com/python/mypy>`_ is disabled because of error described
+    in :issue:`1`.
 
 Known Issues
 ^^^^^^^^^^^^

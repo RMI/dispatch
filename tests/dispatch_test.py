@@ -13,7 +13,7 @@ def setup_dm(fossil_profiles, fossil_specs, fossil_cost, re_profiles, re, storag
     )
     dm = DispatchModel.from_patio(
         fossil_profiles.sum(axis=1) - re_profiles @ re,
-        fossil_profiles=fossil_profiles,
+        dispatchable_profiles=fossil_profiles,
         cost_data=fossil_cost,
         plant_data=fossil_specs,
         storage_specs=storage,
@@ -44,8 +44,8 @@ def test_new(fossil_profiles, re_profiles, fossil_specs, fossil_cost):
     ] = fossil_profiles.index.max() - pd.Timedelta(weeks=15)
     self = DispatchModel.from_fresh(
         net_load_profile=fossil_profiles.sum(axis=1),
-        fossil_plant_specs=fossil_specs,
-        fossil_marginal_cost=fossil_cost,
+        dispatchable_specs=fossil_specs,
+        dispatchable_cost=fossil_cost,
         storage_specs=pd.DataFrame(
             [(5000, 4, 0.9), (2000, 8760, 0.5)],
             columns=["capacity_mw", "duration_hrs", "roundtrip_eff"],
@@ -66,8 +66,8 @@ def test_new_with_dates(fossil_profiles, re_profiles, fossil_specs, fossil_cost)
     )
     self = DispatchModel.from_fresh(
         net_load_profile=fossil_profiles.sum(axis=1),
-        fossil_plant_specs=fossil_specs,
-        fossil_marginal_cost=fossil_cost,
+        dispatchable_specs=fossil_specs,
+        dispatchable_cost=fossil_cost,
         storage_specs=pd.DataFrame(
             [
                 (5000, 4, 0.9, pd.Timestamp(year=2016, month=1, day=1)),
