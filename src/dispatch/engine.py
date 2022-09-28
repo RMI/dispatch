@@ -19,9 +19,10 @@ def dispatch_engine(
     storage_eff: np.ndarray = np.array((0.9, 0.5)),
     storage_op_hour: np.ndarray = np.array((0, 0)),
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """Numba-ready dispatch engine.
+    """Dispatch engine that can be compiled with :func:`numba.jit`.
 
     For each hour...
+
     1.  first iterate through operating plants
     2.  then charge/discharge storage
     3.  if there is still a deficit, iterate through non-operating plants
@@ -34,6 +35,7 @@ def dispatch_engine(
             column in ``fossil_marginal_cost`` that contains cost data for that hour
         fossil_profiles: historic plant dispatch, acts as an hourly upper constraint
             on this dispatch
+        fossil_ramp_mw: max one hour ramp in MW
         fossil_startup_cost: startup cost in $ for each fossil generator
         fossil_marginal_cost: annual marginal cost for each fossil generator in $/MWh
             rows are generators and columns are years
@@ -50,21 +52,19 @@ def dispatch_engine(
         system_level: hourly deficit, dirty charge, and total curtailment data
         starts: count of starts for each plant in each year
     """
-    assert (
-        len(storage_mw) == len(storage_hrs) == len(storage_eff)
-    ), "storage data does not match"
+    _validate_inputs(
+        net_load,
+        hr_to_cost_idx,
+        fossil_profiles,
+        fossil_ramp_mw,
+        fossil_startup_cost,
+        fossil_marginal_cost,
+        storage_mw,
+        storage_hrs,
+        storage_eff,
+    )
+
     storage_soc_max: np.ndarray = storage_mw * storage_hrs
-
-    assert (
-        fossil_ramp_mw.shape[0]
-        == fossil_startup_cost.shape[0]
-        == fossil_marginal_cost.shape[0]
-        == fossil_profiles.shape[1]
-    ), "fossil plant data does not match"
-
-    assert (
-        len(net_load) == len(hr_to_cost_idx) == len(fossil_profiles)
-    ), "profile lengths do not match"
 
     # internal fossil data we need to track; (0) current run op_hours
     # (1) whether we touched the plant in the first round of dispatch
@@ -90,10 +90,17 @@ def dispatch_engine(
 
     # create an array in the order of startup rank whose elements are the canonical
     # resource index for that startup rank
-    start_ranks: np.ndarray = np.vstack(
-        (np.arange(fossil_startup_cost.shape[0]), fossil_startup_cost)
-    ).T
-    start_ranks = start_ranks[start_ranks[:, 1].argsort()][:, 0].astype(np.int64)
+    # start_ranks: np.ndarray = np.vstack(
+    #     (np.arange(fossil_startup_cost.shape[0]), fossil_startup_cost)
+    # ).T
+    # start_ranks = start_ranks[start_ranks[:, 1].argsort()][:, 0].astype(np.int64)
+
+    start_ranks: np.ndarray = np.hstack(
+        (np.arange(fossil_startup_cost.shape[0]).reshape(-1, 1), fossil_startup_cost)
+    )
+    for i in range(1, 1 + fossil_startup_cost[0, :].shape[0]):
+        start_ranks[:, i] = start_ranks[start_ranks[:, i].argsort()][:, 0]
+    start_ranks = start_ranks[:, 1:].astype(np.int64)
 
     # array to keep track of starts by year
     starts: np.ndarray = np.zeros_like(marginal_ranks)
@@ -225,7 +232,7 @@ def dispatch_engine(
             continue
 
         # TODO check that this start_ranks ordering system is working properly
-        for r in start_ranks:
+        for r in start_ranks[:, yr]:
             # we are only dealing with plants not already operating here
             if fossil_op_data[r, 1]:
                 continue
@@ -264,6 +271,40 @@ def dispatch_engine(
     ), "redispatch exceeded historical dispatch in at least 1 hour"
 
     return fossil_redispatch, storage, system_level, starts
+
+
+@njit
+def _validate_inputs(
+    net_load,
+    hr_to_cost_idx,
+    fossil_profiles,
+    fossil_ramp_mw,
+    fossil_startup_cost,
+    fossil_marginal_cost,
+    storage_mw,
+    storage_hrs,
+    storage_eff,
+):
+    if not (len(storage_mw) == len(storage_hrs) == len(storage_eff)):
+        raise AssertionError("storage data does not match")
+    if not (
+        fossil_ramp_mw.shape[0]
+        == fossil_startup_cost.shape[0]
+        == fossil_marginal_cost.shape[0]
+        == fossil_profiles.shape[1]
+    ):
+        raise AssertionError("shapes of fossil plant data do not match")
+    if not (len(net_load) == len(hr_to_cost_idx) == len(fossil_profiles)):
+        raise AssertionError("profile lengths do not match")
+    if not (
+        len(np.unique(hr_to_cost_idx))
+        == fossil_marginal_cost.shape[1]
+        == fossil_startup_cost.shape[1]
+    ):
+        raise AssertionError(
+            "# of unique values in `hr_to_cost_idx` does not match # of columns "
+            "in `fossil_marginal_cost` and `fossil_startup_cost`"
+        )
 
 
 dispatch_engine_compiled = njit(dispatch_engine, error_model="numpy")
