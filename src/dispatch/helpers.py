@@ -13,7 +13,7 @@ def copy_profile(
     Args:
         profiles: the profile to make copies of
         years: the years, each of which will be a copy
-            of `profile`.
+            of ``profile``.
 
     Returns: Copied profiles.
 
@@ -46,7 +46,8 @@ def apply_op_ret_date(
         operating_date: in service date for each plant, the index of operating date is
             used throughout
         retirement_date: retirement date for each plant
-        capacity_mw: capacity of each plant (only used when `profiles` are normalized)
+        capacity_mw: capacity of each plant (only used when ``profiles`` are
+            normalized)
 
     Returns: Profiles reflecting operating and retirement dates.
 
@@ -58,7 +59,8 @@ def apply_op_ret_date(
         pass
     else:
         raise AssertionError(
-            "`profiles` must have same number of columns as lengths of `op_date` and `ret_date`"
+            "`profiles` must have same number of columns as lengths of "
+            "`op_date` and `ret_date`"
         )
     # duplicate the DatetimeIndex so it is the same shape as `profiles`
     dt_idx = pd.concat(

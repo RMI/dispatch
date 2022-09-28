@@ -2,12 +2,15 @@
 import numpy as np
 import pandas as pd
 
-from dispatch import DispatchModel
+from dispatch import DispatchModel, apply_op_ret_date
 
 
 def setup_dm(fossil_profiles, fossil_specs, fossil_cost, re_profiles, re, storage):
     """Setup `DispatchModel`."""
     fossil_profiles.columns = fossil_specs.index
+    fossil_profiles = apply_op_ret_date(
+        fossil_profiles, fossil_specs.operating_date, fossil_specs.retirement_date
+    )
     dm = DispatchModel.from_patio(
         fossil_profiles.sum(axis=1) - re_profiles @ re,
         fossil_profiles=fossil_profiles,
@@ -93,7 +96,7 @@ def test_low_lost_load(fossil_profiles, re_profiles, fossil_specs, fossil_cost):
         ),
     )
     dm()
-    assert (dm.lost_load() / dm.lost_load().sum()).iloc[0] > 0.9999
+    assert (dm.lost_load() / dm.lost_load().sum()).iloc[0] > 0.998
 
 
 def test_write_and_read(
@@ -142,4 +145,23 @@ def test_marginal_cost(fossil_profiles, re_profiles, fossil_specs, fossil_cost):
         ),
     )
     x = self.grouper(self.historical_cost, "technology_description")
+    assert not x.empty
+
+
+def test_operations_summary(fossil_profiles, re_profiles, fossil_specs, fossil_cost):
+    """Setup for testing cost and grouper methods."""
+    fossil_profiles.columns = fossil_specs.index
+    self = setup_dm(
+        fossil_profiles,
+        fossil_specs,
+        fossil_cost,
+        re_profiles,
+        np.array([5000.0, 5000.0, 0.0, 0.0]),
+        pd.DataFrame(
+            [(5000, 4, 0.9), (2000, 8760, 0.5)],
+            columns=["capacity_mw", "duration_hrs", "roundtrip_eff"],
+        ),
+    )
+    self()
+    x = self.operations_summary(by=None)
     assert not x.empty
