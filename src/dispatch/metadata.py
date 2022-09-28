@@ -23,7 +23,6 @@ DISPATCHABLE_SPECS_SCHEMA = pa.DataFrameSchema(
     columns={
         "capacity_mw": pa.Column(float),
         "ramp_rate": pa.Column(float),
-        "startup_cost": pa.Column(float),
         "operating_date": pa.Column(pa.Timestamp),
         "retirement_date": pa.Column(pa.Timestamp, nullable=True),
     },
