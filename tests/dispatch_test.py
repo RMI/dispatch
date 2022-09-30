@@ -163,5 +163,5 @@ def test_operations_summary(fossil_profiles, re_profiles, fossil_specs, fossil_c
         ),
     )
     self()
-    x = self.operations_summary(by=None)
+    x = self.dispatchable_summary(by=None)
     assert not x.empty
