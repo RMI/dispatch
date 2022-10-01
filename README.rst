@@ -31,7 +31,7 @@ Dispatch can be installed and used in it's own environment or installed into ano
 environment using pip. To create an environment for Dispatch, navigate to the repo
 folder in terminal and run:
 
-.. code-block:: console
+.. code-block:: bash
 
    $ mamba update mamba
    $ mamba env create --name dispatch --file environment.yml
@@ -40,7 +40,7 @@ If you get a ``CondaValueError`` that the prefix already exists, that means an
 environment with the same name already exists. You must remove the old one before
 creating the new one:
 
-.. code-block:: console
+.. code-block:: bash
 
    $ mamba update mamba
    $ mamba env remove --name dispatch
