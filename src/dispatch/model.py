@@ -4,6 +4,7 @@ from __future__ import annotations
 import inspect
 import json
 import logging
+from collections.abc import Callable
 from datetime import datetime
 from importlib.metadata import version
 from io import BytesIO
@@ -155,7 +156,7 @@ class DispatchModel:
         )
         self.starts = MTDF.reindex(columns=self.dispatchable_specs.index)
 
-    def add_total_costs(self, df):
+    def add_total_costs(self, df: pd.DataFrame) -> pd.DataFrame:
         """Add columns for total FOM and total startup from respective unit costs."""
         df = (
             df.reset_index()
@@ -172,7 +173,7 @@ class DispatchModel:
         return df.drop(columns=["capacity_mw"])
 
     @classmethod
-    def from_file(cls, path: Path | str):
+    def from_file(cls, path: Path | str) -> DispatchModel:
         """Recreate an instance of :class:`.DispatchModel` from disk."""
         if not isinstance(path, Path):
             path = Path(path)
@@ -289,12 +290,12 @@ class DispatchModel:
         )
 
     @property
-    def dispatch_func(self):
+    def dispatch_func(self) -> Callable:
         """Appropriate dispatch engine depending on ``jit`` setting."""
         return dispatch_engine_compiled if self._metadata["jit"] else dispatch_engine
 
     @property
-    def is_redispatch(self):
+    def is_redispatch(self) -> bool:
         """True if this is redispatch, i.e. has meaningful historical dispatch."""
         # more than 2 unique values are required because any plant that begins
         # operation during the period will have both 0 and its capacity
@@ -589,7 +590,7 @@ class DispatchModel:
             axis=1,
         )
 
-    def system_level_summary(self, freq="YS", **kwargs):
+    def system_level_summary(self, freq: str = "YS", **kwargs) -> pd.DataFrame:
         """Create system and storage summary metrics."""
         out = pd.concat(
             [
@@ -648,9 +649,9 @@ class DispatchModel:
     def re_summary(
         self,
         by: str | None = "technology_description",
-        freq="YS",
+        freq: str = "YS",
         **kwargs,
-    ):
+    ) -> pd.DataFrame:
         """Create granular summary of renewable plant metrics."""
         if self.re_profiles is None or self.re_plant_specs is None:
             raise AssertionError(
@@ -681,12 +682,12 @@ class DispatchModel:
     def storage_summary(
         self,
         by: str | None = "technology_description",
-        freq="YS",
+        freq: str = "YS",
         **kwargs,
-    ):
+    ) -> pd.DataFrame:
         """Create granular summary of storage plant metrics."""
         out = (
-            self.storage_dispatch.groupby([pd.Grouper(freq="YS")])
+            self.storage_dispatch.groupby([pd.Grouper(freq=freq)])
             .sum()
             .stack()
             .reset_index()
@@ -716,7 +717,7 @@ class DispatchModel:
             return out.set_index(["plant_id_eia", "generator_id", "datetime"])
         return out.groupby([by, "datetime"]).sum()
 
-    def full_output(self, freq="YS"):
+    def full_output(self, freq: str = "YS") -> pd.DataFrame:
         """Create full operations output."""
         cols = [
             "plant_name_eia",
@@ -758,9 +759,9 @@ class DispatchModel:
     def dispatchable_summary(
         self,
         by: str | None = "technology_description",
-        freq="YS",
+        freq: str = "YS",
         **kwargs,
-    ):
+    ) -> pd.DataFrame:
         """Create granular summary of dispatchable plant metrics.
 
         Args:
@@ -841,7 +842,7 @@ class DispatchModel:
         compression=ZIP_DEFLATED,
         clobber=False,
         **kwargs,
-    ):
+    ) -> None:
         """Save :class:`.DispatchModel` to disk.
 
         A very ugly process at the moment because of our goal not to use pickle
