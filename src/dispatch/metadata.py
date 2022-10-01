@@ -28,38 +28,56 @@ DISPATCHABLE_SPECS_SCHEMA = pa.DataFrameSchema(
     },
     coerce=True,
 )
-DISPATCHABLE_COST_SCHEMA = pa.DataFrameSchema(
-    index=pa.MultiIndex(
-        [PID_SCHEMA, GID_SCHEMA, DT_SCHEMA],
-        unique=["plant_id_eia", "generator_id", "datetime"],
-        strict=True,
-        coerce=True,
-    ),
-    columns={
-        "vom_per_mwh": pa.Column(float),
-        "fuel_per_mwh": pa.Column(float),
-        "total_var_mwh": pa.Column(float, required=False),
-        "fom_per_kw": pa.Column(float),
-        "start_per_kw": pa.Column(float),
-    },
-    coerce=True,
-)
+
 NET_LOAD_SCHEMA = pa.SeriesSchema(pa.Float, index=DT_SCHEMA, coerce=True)
-STORAGE_SPECS_SCHEMA = pa.DataFrameSchema(
-    columns={
-        "capacity_mw": pa.Column(float),
-        "duration_hrs": pa.Column(int),
-        "roundtrip_eff": pa.Column(float),
-        "operating_date": pa.Column(pa.Timestamp),
-    },
-    index=pa.Index(int, unique=True),
-    strict=True,
-    coerce=True,
-)
 
 
 class Validator:
     """Validator for :class:`.DispatchModel` inputs."""
+
+    dispatchable_cost_schema = pa.DataFrameSchema(
+        index=pa.MultiIndex(
+            [PID_SCHEMA, GID_SCHEMA, DT_SCHEMA],
+            unique=["plant_id_eia", "generator_id", "datetime"],
+            strict=True,
+            coerce=True,
+        ),
+        columns={
+            "vom_per_mwh": pa.Column(float),
+            "fuel_per_mwh": pa.Column(float),
+            "total_var_mwh": pa.Column(float, required=False),
+            "fom_per_kw": pa.Column(float),
+            "start_per_kw": pa.Column(float),
+        },
+        coerce=True,
+    )
+    storage_specs_schema = pa.DataFrameSchema(
+        columns={
+            "plant_id_eia": pa.Column(int, required=False),
+            "generator_id": pa.Column(str, required=False),
+            "capacity_mw": pa.Column(float),
+            "duration_hrs": pa.Column(int),
+            "roundtrip_eff": pa.Column(float),
+            "operating_date": pa.Column(pa.Timestamp),
+        },
+        index=pa.Index(int, unique=True),
+        # strict=True,
+        coerce=True,
+    )
+    renewable_specs_schema = pa.DataFrameSchema(
+        index=pa.MultiIndex(
+            [PID_SCHEMA, GID_SCHEMA],
+            unique=["plant_id_eia", "generator_id"],
+            strict=True,
+            coerce=True,
+        ),
+        columns={
+            "capacity_mw": pa.Column(float),
+            "operating_date": pa.Column(pa.Timestamp),
+            "retirement_date": pa.Column(pa.Timestamp, nullable=True),
+        },
+        coerce=True,
+    )
 
     def __init__(self, obj: Any):
         """Init Validator."""
@@ -74,6 +92,7 @@ class Validator:
         dispatchable_profiles = pa.DataFrameSchema(
             index=DT_SCHEMA,
             columns={x: pa.Column(float) for x in self.gen_set},
+            ordered=True,
             coerce=True,
             strict=True,
         ).validate(dispatchable_profiles)
@@ -86,7 +105,7 @@ class Validator:
 
     def dispatchable_cost(self, dispatchable_cost: pd.DataFrame) -> pd.DataFrame:
         """Validate dispatchable_cost."""
-        dispatchable_cost = DISPATCHABLE_COST_SCHEMA.validate(dispatchable_cost)
+        dispatchable_cost = self.dispatchable_cost_schema.validate(dispatchable_cost)
         # make sure al
         if not np.all(
             dispatchable_cost.reset_index(
@@ -98,7 +117,7 @@ class Validator:
                 "generators in `dispatchable_cost` do not match generators in `dispatchable_specs`"
             )
         marg_freq = pd.infer_freq(dispatchable_cost.index.get_level_values(2).unique())
-        self.obj.__meta__["marginal_cost_freq"] = marg_freq
+        self.obj._metadata["marginal_cost_freq"] = marg_freq
         if "YS" not in marg_freq and "AS" not in marg_freq:
             raise AssertionError("Cost data must be `YS`")
         marg_dts = dispatchable_cost.index.get_level_values("datetime")
@@ -128,4 +147,20 @@ class Validator:
                     "operating_date",
                 ],
             )
-        return STORAGE_SPECS_SCHEMA.validate(storage_specs)
+        return self.storage_specs_schema.validate(storage_specs)
+
+    def renewables(
+        self, re_plant_specs: pd.DataFrame | None, re_profiles: pd.DataFrame | None
+    ) -> tuple[pd.DataFrame | None, pd.DataFrame | None]:
+        """Validate renewable specs and profiles."""
+        if re_plant_specs is None or re_profiles is None:
+            return re_plant_specs, re_profiles
+        re_plant_specs = self.renewable_specs_schema.validate(re_plant_specs)
+        re_profiles = pa.DataFrameSchema(
+            index=DT_SCHEMA,
+            columns={x: pa.Column(float) for x in re_plant_specs.index},
+            ordered=True,
+            coerce=True,
+            strict=True,
+        ).validate(re_profiles)
+        return re_plant_specs, re_profiles

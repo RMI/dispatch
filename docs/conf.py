@@ -90,8 +90,8 @@ exclude_patterns = ["_build"]
 
 # The theme to use for HTML and HTML Help pages.
 master_doc = "index"
-html_theme = "pydata_sphinx_theme"
-html_logo = "_static/Small_PNG-RMI_logo_PrimaryUse.PNG"
+html_theme = "furo"
+# html_logo = "_static/Small_PNG-RMI_logo_PrimaryUse.PNG"
 html_icon = "_static/favicon-16x16.png"
 
 # Theme options are theme-specific and customize the look and feel of a theme
@@ -99,10 +99,12 @@ html_icon = "_static/favicon-16x16.png"
 # documentation.
 html_theme_options = {
     "navigation_with_keys": True,
-    "logo": {
-        "image_light": "Small_PNG-RMI_logo_PrimaryUse.PNG",
-        "image_dark": "Small_PNG-RMI_logo_PrimaryUse_White_Horizontal.PNG",
-    },
+    # "logo": {
+    #     "image_light": "Small_PNG-RMI_logo_PrimaryUse.PNG",
+    #     "image_dark": "Small_PNG-RMI_logo_PrimaryUse_White_Horizontal.PNG",
+    # },
+    "light_logo": "Small_PNG-RMI_logo_PrimaryUse.PNG",
+    "dark_logo": "Small_PNG-RMI_logo_PrimaryUse_White_Horizontal.PNG",
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,

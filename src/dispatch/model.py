@@ -48,7 +48,7 @@ class DispatchModel:
         "storage_dispatch",
         "system_data",
         "starts",
-        "__meta__",
+        "_metadata",
     )
     _parquet_out = {
         "re_profiles": _null,
@@ -112,7 +112,7 @@ class DispatchModel:
         """
         if not name and "balancing_authority_code_eia" in dispatchable_specs:
             name = dispatchable_specs.balancing_authority_code_eia.mode().iloc[0]
-        self.__meta__: dict[str, str] = {
+        self._metadata: dict[str, str] = {
             "name": name,
             "version": version("rmi.dispatch"),
             "created": datetime.now().strftime("%c"),
@@ -137,9 +137,9 @@ class DispatchModel:
             self.dispatchable_specs.operating_date,
             self.dispatchable_specs.retirement_date,
         )
-
-        self.re_plant_specs = re_plant_specs
-        self.re_profiles = re_profiles
+        self.re_plant_specs, self.re_profiles = validator.renewables(
+            re_plant_specs, re_profiles
+        )
 
         # create vars with correct column names that will be replaced after dispatch
         self.redispatch = MTDF.reindex(columns=self.dispatchable_specs.index)
@@ -206,7 +206,7 @@ class DispatchModel:
         for k, v in data_dict.items():
             if k not in sig:
                 setattr(self, k, v)
-        self.__meta__.update({k: v for k, v in metadata.items() if k not in sig})
+        self._metadata.update({k: v for k, v in metadata.items() if k not in sig})
         return self
 
     @classmethod
@@ -291,7 +291,7 @@ class DispatchModel:
     @property
     def dispatch_func(self):
         """Appropriate dispatch engine depending on ``jit`` setting."""
-        return dispatch_engine_compiled if self.__meta__["jit"] else dispatch_engine
+        return dispatch_engine_compiled if self._metadata["jit"] else dispatch_engine
 
     @property
     def is_redispatch(self):
@@ -645,7 +645,117 @@ class DispatchModel:
             },
         )
 
-    def operations_summary(
+    def re_summary(
+        self,
+        by: str | None = "technology_description",
+        freq="YS",
+        **kwargs,
+    ):
+        """Create granular summary of renewable plant metrics."""
+        if self.re_profiles is None or self.re_plant_specs is None:
+            raise AssertionError(
+                "at least one of `re_profiles` and `re_plant_specs` is `None`"
+            )
+        out = (
+            self.re_profiles.groupby([pd.Grouper(freq=freq)])
+            .sum()
+            .stack(["plant_id_eia", "generator_id"])
+            .to_frame(name="redispatch_mwh")
+            # .assign(redispatch_mwh=lambda x: x.historical_mwh)
+            .reset_index()
+            .merge(
+                self.re_plant_specs,
+                on=["plant_id_eia", "generator_id"],
+                validate="m:1",
+            )
+            .assign(
+                capacity_mw=lambda x: x.capacity_mw.where(
+                    x.operating_date <= x.datetime, 0
+                )
+            )
+        )
+        if by is None:
+            return out.set_index(["plant_id_eia", "generator_id", "datetime"])
+        return out.groupby([by, "datetime"]).sum()
+
+    def storage_summary(
+        self,
+        by: str | None = "technology_description",
+        freq="YS",
+        **kwargs,
+    ):
+        """Create granular summary of storage plant metrics."""
+        out = (
+            self.storage_dispatch.groupby([pd.Grouper(freq="YS")])
+            .sum()
+            .stack()
+            .reset_index()
+            .rename(columns={0: "redispatch_mwh"})
+        )
+
+        out[["kind", "index"]] = out.level_1.str.split("_", expand=True)
+        out = (
+            out.query("kind != 'soc'")
+            .assign(
+                redispatch_mwh=lambda x: x.redispatch_mwh.mask(
+                    x.kind == "charge", x.redispatch_mwh * -1
+                )
+            )
+            .groupby(["index", "datetime"])
+            .redispatch_mwh.sum()
+            .reset_index()
+            .astype({"index": int})
+            .merge(self.storage_specs.reset_index(), on="index", validate="m:1")
+            .assign(
+                capacity_mw=lambda x: x.capacity_mw.where(
+                    x.operating_date <= x.datetime, 0
+                )
+            )
+        )
+        if by is None:
+            return out.set_index(["plant_id_eia", "generator_id", "datetime"])
+        return out.groupby([by, "datetime"]).sum()
+
+    def full_output(self, freq="YS"):
+        """Create full operations output."""
+        cols = [
+            "plant_name_eia",
+            "technology_description",
+            "utility_id_eia",
+            "final_ba_code",
+            "final_respondent_id",
+            "respondent_name",
+            "balancing_authority_code_eia",
+            "prime_mover_code",
+            "operating_date",
+            "retirement_date",
+            "status",
+            "owned_pct",
+        ]
+        a = self.dispatchable_summary(by=None, freq=freq)
+
+        dispatchable = (
+            a.reset_index()
+            .merge(
+                self.dispatchable_specs,
+                on=["plant_id_eia", "generator_id"],
+                validate="m:1",
+                suffixes=(None, "_l"),
+            )
+            .set_index(a.index.names)[
+                list(a.columns)
+                + [col for col in cols if col in self.dispatchable_specs]
+            ]
+        )
+        return pd.concat(
+            [
+                dispatchable,
+                self.re_summary(by=None, freq=freq),
+                self.storage_summary(by=None, freq=freq),
+            ]
+        ).sort_index()
+
+    def dispatchable_summary(
         self,
         by: str | None = "technology_description",
         freq="YS",
@@ -745,7 +855,7 @@ class DispatchModel:
             raise FileExistsError(f"{path} exists, to overwrite set `clobber=True`")
 
         metadata = {
-            **self.__meta__,
+            **self._metadata,
             "__qualname__": self.__class__.__qualname__,
             "plant_index": list(self.dispatchable_specs.index),
         }
@@ -761,7 +871,7 @@ class DispatchModel:
                 except Exception as exc:
                     raise RuntimeError(f"{df_name} {exc!r}") from exc
             if include_output and not self.redispatch.empty:
-                for df_name in ("system_level_summary", "operations_summary"):
+                for df_name in ("system_level_summary", "dispatchable_summary"):
                     z.writestr(
                         f"{df_name}.parquet",
                         getattr(self, df_name)(**kwargs).to_parquet(),
@@ -773,6 +883,6 @@ class DispatchModel:
     def __repr__(self) -> str:
         return (
             self.__class__.__qualname__
-            + f"({', '.join(f'{k}={v}' for k, v in self.__meta__.items())}, "
+            + f"({', '.join(f'{k}={v}' for k, v in self._metadata.items())}, "
             f"n_plants={len(self.dispatchable_specs)})".replace("self.", "")
         )

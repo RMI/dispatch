@@ -1,5 +1,5 @@
 =======================================================================================
-Dispatch Release Notes
+Release Notes
 =======================================================================================
 
 .. _release-v0-3-0:
@@ -21,6 +21,23 @@ What's New?
     :attr:`.DispatchModel.dispatchable_plant_specs` to
     :attr:`.DispatchModel.dispatchable_profiles` using
     :func:`.apply_op_ret_date`.
+*   Added validation and processing for :attr:`.DispatchModel.re_plant_specs` and
+    :attr:`.DispatchModel.re_profiles`, as well as :meth:`.DispatchModel.re_summary`
+    to, when the data is provided create a summary of renewable operations analogous
+    to :meth:`.DispatchModel.operations_summary`.
+*   Added :meth:`.DispatchModel.storage_summary` to create a summary of storage
+    operations analogous to :meth:`.DispatchModel.operations_summary`.
+*   Added :meth:`.DispatchModel.full_output` to create the kind of outputs needed by
+    Optimus and other post-dispatch analysis tools built on the three
+
+Known Issues
+^^^^^^^^^^^^
+*   :meth:`.DispatchModel.re_summary` and :meth:`.DispatchModel.storage_summary` have
+    operations cost data.
+*   :meth:`.DispatchModel.re_summary` and :meth:`.DispatchModel.storage_summary` have
+    no tests.
+*   There is still no nice way to include nuclear and hydro resources.
+
 
 .. _release-v0-2-0:
 
@@ -81,7 +98,7 @@ Bug Fixes
 
 Known Issues
 ^^^^^^^^^^^^
-*   :py:class:`.DispatchModel` only set up to work properly with
+*   :class:`.DispatchModel` only set up to work properly with
     `patio-model <https://github.com/rmi-electricity/patio-model>`_.
 *   Test thoroughness is lacking.
 *   No substantive readme or documentation.
