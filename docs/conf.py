@@ -10,9 +10,9 @@
 
 import shutil
 from datetime import datetime
-from importlib.metadata import version
 from pathlib import Path
 
+import pkg_resources
 from sphinx.application import Sphinx
 
 DOCS_DIR = Path(__file__).parent.resolve()
@@ -24,7 +24,7 @@ DOCS_DIR = Path(__file__).parent.resolve()
 # importable path.
 
 # The full version, including alpha/beta/rc tags
-release = version("rmi.dispatch")
+release = pkg_resources.get_distribution("rmi.dispatch").version
 
 # -- Project information -----------------------------------------------------
 
