@@ -19,7 +19,7 @@ __all__ = ["DispatchModel"]
 
 from dispatch.engine import dispatch_engine, dispatch_engine_compiled
 from dispatch.helpers import _null, _str_cols, _to_frame, apply_op_ret_date
-from dispatch.metadata import DISPATCHABLE_SPECS_SCHEMA, NET_LOAD_SCHEMA, Validator
+from dispatch.metadata import NET_LOAD_SCHEMA, Validator
 
 LOGGER = logging.getLogger(__name__)
 
@@ -121,14 +121,14 @@ class DispatchModel:
         }
 
         self.net_load_profile: pd.Series = NET_LOAD_SCHEMA.validate(net_load_profile)
-        self.dispatchable_specs: pd.DataFrame = DISPATCHABLE_SPECS_SCHEMA.validate(
-            dispatchable_specs
-        )
 
         self.dt_idx = self.net_load_profile.index
         self.yrs_idx = self.dt_idx.to_series().groupby([pd.Grouper(freq="YS")]).first()
 
-        validator = Validator(self)
+        validator = Validator(self, gen_set=dispatchable_specs.index)
+        self.dispatchable_specs: pd.DataFrame = validator.dispatchable_specs(
+            dispatchable_specs
+        )
         self.dispatchable_cost: pd.DataFrame = validator.dispatchable_cost(
             dispatchable_cost
         ).pipe(self.add_total_costs)
