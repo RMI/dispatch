@@ -12,23 +12,6 @@ LOGGER = logging.getLogger(__name__)
 DT_SCHEMA = pa.Index(pa.Timestamp, name="datetime")
 PID_SCHEMA = pa.Index(int, name="plant_id_eia")
 GID_SCHEMA = pa.Index(str, name="generator_id")
-
-DISPATCHABLE_SPECS_SCHEMA = pa.DataFrameSchema(
-    index=pa.MultiIndex(
-        [PID_SCHEMA, GID_SCHEMA],
-        unique=["plant_id_eia", "generator_id"],
-        strict=True,
-        coerce=True,
-    ),
-    columns={
-        "capacity_mw": pa.Column(float),
-        "ramp_rate": pa.Column(float),
-        "operating_date": pa.Column(pa.Timestamp),
-        "retirement_date": pa.Column(pa.Timestamp, nullable=True),
-    },
-    coerce=True,
-)
-
 NET_LOAD_SCHEMA = pa.SeriesSchema(pa.Float, index=DT_SCHEMA, coerce=True)
 
 
@@ -51,39 +34,71 @@ class Validator:
         },
         coerce=True,
     )
-    storage_specs_schema = pa.DataFrameSchema(
-        columns={
-            "plant_id_eia": pa.Column(int, required=False),
-            "generator_id": pa.Column(str, required=False),
-            "capacity_mw": pa.Column(float),
-            "duration_hrs": pa.Column(int),
-            "roundtrip_eff": pa.Column(float),
-            "operating_date": pa.Column(pa.Timestamp),
-        },
-        index=pa.Index(int, unique=True),
-        # strict=True,
-        coerce=True,
-    )
-    renewable_specs_schema = pa.DataFrameSchema(
-        index=pa.MultiIndex(
-            [PID_SCHEMA, GID_SCHEMA],
-            unique=["plant_id_eia", "generator_id"],
-            strict=True,
-            coerce=True,
-        ),
-        columns={
-            "capacity_mw": pa.Column(float),
-            "operating_date": pa.Column(pa.Timestamp),
-            "retirement_date": pa.Column(pa.Timestamp, nullable=True),
-        },
-        coerce=True,
-    )
 
-    def __init__(self, obj: Any):
+    def __init__(self, obj: Any, gen_set: pd.Index):
         """Init Validator."""
         self.obj = obj
-        self.gen_set = obj.dispatchable_specs.index
+        self.gen_set = gen_set
         self.net_load_profile = obj.net_load_profile
+        self.storage_specs_schema = pa.DataFrameSchema(
+            columns={
+                "plant_id_eia": pa.Column(int, required=False),
+                "generator_id": pa.Column(str, required=False),
+                "capacity_mw": pa.Column(float),
+                "duration_hrs": pa.Column(int),
+                "roundtrip_eff": pa.Column(float),
+                "operating_date": pa.Column(
+                    pa.Timestamp,
+                    pa.Check.less_than(self.net_load_profile.index.max()),
+                    description="operating_date in storage_specs",
+                ),
+            },
+            index=pa.Index(int, unique=True),
+            # strict=True,
+            coerce=True,
+            title="storage_specs",
+        )
+        self.renewable_specs_schema = pa.DataFrameSchema(
+            index=pa.MultiIndex(
+                [PID_SCHEMA, GID_SCHEMA],
+                unique=["plant_id_eia", "generator_id"],
+                strict=True,
+                coerce=True,
+            ),
+            columns={
+                "capacity_mw": pa.Column(float),
+                "operating_date": pa.Column(
+                    pa.Timestamp,
+                    pa.Check.less_than(self.net_load_profile.index.max()),
+                    description="operating_date in renewable_specs",
+                ),
+                "retirement_date": pa.Column(pa.Timestamp, nullable=True),
+            },
+            coerce=True,
+        )
+        self.dispatchable_specs_schema = pa.DataFrameSchema(
+            index=pa.MultiIndex(
+                [PID_SCHEMA, GID_SCHEMA],
+                unique=["plant_id_eia", "generator_id"],
+                strict=True,
+                coerce=True,
+            ),
+            columns={
+                "capacity_mw": pa.Column(float),
+                "ramp_rate": pa.Column(float),
+                "operating_date": pa.Column(
+                    pa.Timestamp,
+                    pa.Check.less_than(self.net_load_profile.index.max()),
+                    description="operating_date in dispatchable_specs",
+                ),
+                "retirement_date": pa.Column(pa.Timestamp, nullable=True),
+            },
+            coerce=True,
+        )
+
+    def dispatchable_specs(self, dispatchable_specs: pd.DataFrame) -> pd.DataFrame:
+        """Validate dispatchable_specs."""
+        return self.dispatchable_specs_schema.validate(dispatchable_specs)
 
     def dispatchable_profiles(
         self, dispatchable_profiles: pd.DataFrame
@@ -91,14 +106,16 @@ class Validator:
         """Validate dispatchable_profiles."""
         dispatchable_profiles = pa.DataFrameSchema(
             index=DT_SCHEMA,
-            columns={x: pa.Column(float) for x in self.gen_set},
+            columns={
+                x: pa.Column(float, pa.Check.in_range(0.0, 1e4)) for x in self.gen_set
+            },
             ordered=True,
             coerce=True,
             strict=True,
         ).validate(dispatchable_profiles)
         if not np.all(dispatchable_profiles.index == self.net_load_profile.index):
             raise AssertionError(
-                "`dispatchable_profiles` and `net_load_profile` must be the same length"
+                "`dispatchable_profiles` and `net_load_profile` indexes must match"
             )
 
         return dispatchable_profiles

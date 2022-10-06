@@ -28,7 +28,10 @@ What's New?
 *   Added :meth:`.DispatchModel.storage_summary` to create a summary of storage
     operations analogous to :meth:`.DispatchModel.operations_summary`.
 *   Added :meth:`.DispatchModel.full_output` to create the kind of outputs needed by
-    Optimus and other post-dispatch analysis tools built on the three
+    Optimus and other post-dispatch analysis tools.
+*   Added validation steps for each type of specs that raise an error when an
+    operating_date is after the dispatch period which would otherwise result in
+    dispatch errors.
 
 Known Issues
 ^^^^^^^^^^^^
