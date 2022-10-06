@@ -9,7 +9,8 @@ Dispatch: A simple and efficient electricity dispatch model
   :hidden:
   :maxdepth: 2
 
-  Licensing <LICENSE>
-  Code of Conduct <code_of_conduct>
+  Approach <approach>
   Release Notes <release_notes>
   autoapi/index
+  Licensing <LICENSE>
+  Code of Conduct <code_of_conduct>
