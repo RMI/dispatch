@@ -50,6 +50,7 @@ htmlcov/
 .cache
 nosetests.xml
 coverage.xml
+coverage.info
 *.cover
 *.py,cover
 .hypothesis/
@@ -150,4 +151,6 @@ Thumbs.db
 # Dispatch
 *.zip
 *.ipynb
+!tests/data/*.zip
+
 /src/dispatch/_version.py

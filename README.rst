@@ -6,6 +6,13 @@ Dispatch: A simple and efficient electricity dispatch model
    :target: https://github.com/rmi-electricity/dispatch/actions?query=workflow%3Atox-pytest
    :alt: Tox-PyTest Status
 
+.. image:: https://img.shields.io/coveralls/github/rmi-electricity/dispatch?style=plastic
+   :alt: Coveralls
+
+.. image:: https://github.com/rmi-electricity/dispatch/workflows/docs/badge.svg
+   :target: https://rmi-electricity.github.io/dispatch/
+   :alt: GitHub Pages Status
+
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
    :target: https://github.com/psf/black>
    :alt: Any color you want, so long as it's black.
