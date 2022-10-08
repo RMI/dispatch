@@ -43,9 +43,22 @@ For more information about how the model works and how to use it, please see the
 
 Installation
 =======================================================================================
+
 Dispatch can be installed and used in it's own environment or installed into another
-environment using pip. To create an environment for Dispatch, navigate to the repo
-folder in terminal and run:
+environment using pip. To install it using pip:
+
+.. code-block:: bash
+
+   $ pip install git+https://github.com/rmi-electricity/dispatch.git
+
+Or from the dev branch:
+
+.. code-block:: bash
+
+   $ pip install git+https://github.com/rmi-electricity/dispatch.git@dev
+
+
+To create an environment for Dispatch, navigate to the repo folder in terminal and run:
 
 .. code-block:: bash
 
