@@ -10,9 +10,8 @@ Dispatch: A simple and efficient electricity dispatch model
    :target: https://rmi-electricity.github.io/dispatch/
    :alt: GitHub Pages Status
 
-.. image:: https://img.shields.io/coveralls/github/rmi-electricity/dispatch
-   :target: https://coveralls.io/github/rmi-electricity/dispatch
-   :alt: Coveralls
+.. image:: https://coveralls.io/repos/github/rmi-electricity/dispatch/badge.svg?branch=dev
+   :target: https://coveralls.io/github/rmi-electricity/dispatch?branch=dev
 
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
    :target: https://github.com/psf/black>
