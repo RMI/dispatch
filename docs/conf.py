@@ -10,7 +10,7 @@
 
 import shutil
 from datetime import datetime
-from importlib.metadata import version
+from importlib.metadata import version as version_func
 from pathlib import Path
 
 # import pkg_resources
@@ -25,7 +25,8 @@ DOCS_DIR = Path(__file__).parent.resolve()
 # importable path.
 
 # The full version, including alpha/beta/rc tags
-release = ".".join(version("rmi.dispatch").split(".")[:2])
+release = version_func("rmi.dispatch")
+version = ".".join(release.split(".")[:2])
 
 # -- Project information -----------------------------------------------------
 
