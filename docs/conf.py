@@ -26,7 +26,7 @@ DOCS_DIR = Path(__file__).parent.resolve()
 # importable path.
 
 # The full version, including alpha/beta/rc tags
-release = ".".join(version.split(".")[:3])
+release = ".".join(version.split(".")[:2])
 
 # -- Project information -----------------------------------------------------
 
