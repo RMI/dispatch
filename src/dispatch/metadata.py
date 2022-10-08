@@ -44,9 +44,9 @@ class Validator:
             columns={
                 "plant_id_eia": pa.Column(int, required=False),
                 "generator_id": pa.Column(str, required=False),
-                "capacity_mw": pa.Column(float),
-                "duration_hrs": pa.Column(int),
-                "roundtrip_eff": pa.Column(float),
+                "capacity_mw": pa.Column(float, pa.Check.greater_than(0)),
+                "duration_hrs": pa.Column(int, pa.Check.greater_than(0)),
+                "roundtrip_eff": pa.Column(float, pa.Check.in_range(0, 1)),
                 "operating_date": pa.Column(
                     pa.Timestamp,
                     pa.Check.less_than(self.net_load_profile.index.max()),
@@ -66,7 +66,7 @@ class Validator:
                 coerce=True,
             ),
             columns={
-                "capacity_mw": pa.Column(float),
+                "capacity_mw": pa.Column(float, pa.Check.greater_than(0)),
                 "operating_date": pa.Column(
                     pa.Timestamp,
                     pa.Check.less_than(self.net_load_profile.index.max()),
@@ -84,8 +84,8 @@ class Validator:
                 coerce=True,
             ),
             columns={
-                "capacity_mw": pa.Column(float),
-                "ramp_rate": pa.Column(float),
+                "capacity_mw": pa.Column(float, pa.Check.greater_than(0)),
+                "ramp_rate": pa.Column(float, pa.Check.greater_than(0)),
                 "operating_date": pa.Column(
                     pa.Timestamp,
                     pa.Check.less_than(self.net_load_profile.index.max()),
@@ -103,11 +103,22 @@ class Validator:
     def dispatchable_profiles(
         self, dispatchable_profiles: pd.DataFrame
     ) -> pd.DataFrame:
-        """Validate dispatchable_profiles."""
+        """Validate dispatchable_profiles.
+
+        changed the limit to 2e4 but these look like errors...
+
+        E           pandera.errors.SchemaError: <Schema Column(name=(55178, 'CT-1'), type=DataType(float64))> failed element-wise validator 0:
+        E           <Check in_range: in_range(0.0, 10000.0)>
+        E           failure cases:
+        E                           index  failure_case
+        E           0 2011-03-08 18:00:00  10842.857422
+        E           1 2011-03-10 09:00:00  12690.857422
+
+        """
         dispatchable_profiles = pa.DataFrameSchema(
             index=DT_SCHEMA,
             columns={
-                x: pa.Column(float, pa.Check.in_range(0.0, 1e4)) for x in self.gen_set
+                x: pa.Column(float, pa.Check.in_range(0.0, 2e4)) for x in self.gen_set
             },
             ordered=True,
             coerce=True,

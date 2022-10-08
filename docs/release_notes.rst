@@ -5,7 +5,7 @@ Release Notes
 .. _release-v0-3-0:
 
 ---------------------------------------------------------------------------------------
-0.3.0 (2022-XX-XX)
+0.3.0 (2022-10-08)
 ---------------------------------------------------------------------------------------
 
 What's New?
@@ -32,15 +32,26 @@ What's New?
 *   Added validation steps for each type of specs that raise an error when an
     operating_date is after the dispatch period which would otherwise result in
     dispatch errors.
+*   New helpers (:func:`.dfs_to_zip` and :func:`.dfs_from_zip`) that simplify saving
+    and reading in groups of :class:`pandas.DataFrame`.
+*   Added plotting functions :meth:`.DispatchModel.plot_period` and
+    :meth:`.DispatchModel.plot_year`.
 
 Known Issues
 ^^^^^^^^^^^^
 *   :meth:`.DispatchModel.re_summary` and :meth:`.DispatchModel.storage_summary` have
-    operations cost data.
-*   :meth:`.DispatchModel.re_summary` and :meth:`.DispatchModel.storage_summary` have
-    no tests.
+    null operations cost data.
 *   There is still no nice way to include nuclear and hydro resources.
+*   :meth:`.DispatchModel.plot_year` doesn't seem to really work. At all.
 
+
+Bug Fixes
+^^^^^^^^^
+*   A validation check throws an error when ramp rates are zero which otherwise would
+    prevent plant output from ever changing on a fresh dispatch.
+*   Fixed a :exc:`TypeError` issue in :func:`.apply_op_ret_date` when some dates were
+    inexplicably converted to :class:`int` rather than :class:`numpy.datetime64` by
+    :meth:`pandas.DataFrame.to_numpy`.
 
 .. _release-v0-2-0:
 

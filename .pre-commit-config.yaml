@@ -124,15 +124,15 @@ repos:
     rev: v1.0.0
     hooks:
       - id: doc8
-        args: ["--config", "tox.ini"]
+        args: ["--config", "pyproject.toml"]
 
   # Lint any RST files and embedded code blocks for syntax / formatting errors
   - repo: https://github.com/myint/rstcheck
     rev: v6.1.0
     hooks:
       - id: rstcheck
-        additional_dependencies: [sphinx]
-        args: ["--config", "tox.ini"]
+        additional_dependencies: ["rstcheck[toml, sphinx]"]
+        args: ["--config", "pyproject.toml"]
 
   ########################################################################################
   # Custom local hooks
