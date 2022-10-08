@@ -6,7 +6,6 @@ import json
 import logging
 from collections.abc import Callable
 from datetime import datetime
-from importlib.metadata import version
 from io import BytesIO
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -14,9 +13,16 @@ from zipfile import ZIP_DEFLATED, ZipFile
 import numpy as np
 import pandas as pd
 
+try:
+    import plotly.express as px
+
+    PLOTLY_INSTALLED = True
+except ModuleNotFoundError:
+    PLOTLY_INSTALLED = False
+
 __all__ = ["DispatchModel"]
 
-
+from dispatch import __version__
 from dispatch.engine import dispatch_engine, dispatch_engine_compiled
 from dispatch.helpers import _null, _str_cols, _to_frame, apply_op_ret_date
 from dispatch.metadata import NET_LOAD_SCHEMA, Validator
@@ -25,6 +31,48 @@ LOGGER = logging.getLogger(__name__)
 
 MTDF = pd.DataFrame()
 """An empty :class:`pandas.DataFrame`."""
+COLOR_MAP = {
+    "Gas CC": "#c85c19",
+    "Gas CT": "#f58228",
+    "Gas RICE": "#fbbb7d",
+    "Gas ST": "#ffdaab",
+    "Coal": "#5f2803",
+    "Other Fossil": "#7d492c",
+    "Biomass": "#556940",
+    "Solar": "#ffcb05",
+    "Onshore Wind": "#005d7f",
+    "Offshore Wind": "#529cba",
+    "Storage": "#7b76ad",
+    "Charge": "#7b76ad",
+    "Discharge": "#7b76ad",
+    "Curtailment": "#eec7b7",
+    "Deficit": "#df897b",
+    "Net Load": "#58585b",
+    "Grossed Load": "#58585b",
+}
+PLOT_MAP = {
+    "Petroleum Liquids": "Other Fossil",
+    "Natural Gas Steam Turbine": "Gas ST",
+    "Conventional Steam Coal": "Coal",
+    "Natural Gas Fired Combined Cycle": "Gas CC",
+    "Natural Gas Fired Combustion Turbine": "Gas CT",
+    "Natural Gas Internal Combustion Engine": "Gas RICE",
+    "Coal Integrated Gasification Combined Cycle": "Coal",
+    "Other Gases": "Other Fossil",
+    "Petroleum Coke": "Other Fossil",
+    "Wood/Wood Waste Biomass": "Biomass",
+    "Other Waste Biomass": "Biomass",
+    "Landfill Gas": "Biomass",
+    "Municipal Solid Waste": "Biomass",
+    "All Other": "Other Fossil",
+    "solar": "Solar",
+    "onshore_wind": "Onshore Wind",
+    "offshore_wind": "Offshore Wind",
+    "curtailment": "Curtailment",
+    "deficit": "Deficit",
+    "charge": "Storage",
+    "discharge": "Storage",
+}
 
 
 class DispatchModel:
@@ -50,6 +98,7 @@ class DispatchModel:
         "system_data",
         "starts",
         "_metadata",
+        "_cached",
     )
     _parquet_out = {
         "re_profiles": _null,
@@ -115,7 +164,7 @@ class DispatchModel:
             name = dispatchable_specs.balancing_authority_code_eia.mode().iloc[0]
         self._metadata: dict[str, str] = {
             "name": name,
-            "version": version("rmi.dispatch"),
+            "version": __version__,
             "created": datetime.now().strftime("%c"),
             "jit": jit,
         }
@@ -155,6 +204,7 @@ class DispatchModel:
             columns=["deficit", "dirty_charge", "curtailment"]
         )
         self.starts = MTDF.reindex(columns=self.dispatchable_specs.index)
+        self._cached = {}
 
     def add_total_costs(self, df: pd.DataFrame) -> pd.DataFrame:
         """Add columns for total FOM and total startup from respective unit costs."""
@@ -714,7 +764,14 @@ class DispatchModel:
             )
         )
         if by is None:
-            return out.set_index(["plant_id_eia", "generator_id", "datetime"])
+            if (
+                None in self.storage_specs.index.names
+                and len(self.storage_specs.index.names) == 1
+            ):
+                col = ["index"]
+            else:
+                col = self.storage_specs.index.names
+            return out.set_index(col + ["datetime"])
         return out.groupby([by, "datetime"]).sum()
 
     def full_output(self, freq: str = "YS") -> pd.DataFrame:
@@ -880,6 +937,88 @@ class DispatchModel:
             z.writestr(
                 "metadata.json", json.dumps(metadata, ensure_ascii=False, indent=4)
             )
+
+    def _plot_prep(self):
+        if "plot_prep" not in self._cached:
+            storage = self.storage_dispatch.assign(
+                charge=lambda x: -1 * x.filter(regex="^charge").sum(axis=1),
+                discharge=lambda x: x.filter(regex="^discharge").sum(axis=1),
+            )
+            try:
+                re = self.re_summary(freq="H").redispatch_mwh.unstack(level=0)
+            except AssertionError:
+                re = MTDF.reindex(index=self.net_load_profile.index)
+
+            def _grp(df):
+                return df.rename(columns=PLOT_MAP).groupby(level=0, axis=1).sum()
+
+            self._cached["plot_prep"] = (
+                pd.concat(
+                    [
+                        self.grouper(self.redispatch, freq="H").pipe(_grp),
+                        re.pipe(_grp),
+                        storage[["charge", "discharge"]].pipe(_grp),
+                    ],
+                    axis=1,
+                )
+                .assign(
+                    Curtailment=self.system_data.curtailment * -1,
+                    Deficit=self.system_data.deficit,
+                )
+                .rename_axis("resource", axis=1)
+                .stack()
+                .to_frame(name="net_generation_mwh")
+            )
+        return self._cached["plot_prep"]
+
+    def plot_period(self, begin, end):
+        """Plot hourly dispatch."""
+        net_load = self.net_load_profile.loc[begin:end]
+        out = px.bar(
+            self._plot_prep().loc[net_load.index, :].reset_index(),
+            x="datetime",
+            y="net_generation_mwh",
+            color="resource",
+            color_discrete_map=COLOR_MAP,
+        ).add_scatter(
+            x=net_load.index,
+            y=net_load,
+            name="Net Load",
+            mode="lines",
+            line_color=COLOR_MAP["Net Load"],
+            line_dash="dot",
+        )
+        if self.re_profiles is None or self.re_plant_specs is None:
+            return out
+        gross = self.re_profiles.loc[net_load.index, :].sum(axis=1) + net_load
+        return out.add_scatter(
+            x=gross.index,
+            y=gross,
+            name="Grossed Load",
+            mode="lines",
+            line_color=COLOR_MAP["Grossed Load"],
+        )
+
+    def plot_year(self, year):
+        """Monthly facet plot of daily dispatch for a year."""
+        out = (
+            self._plot_prep()
+            .reset_index()
+            .groupby([pd.Grouper(freq="D", key="datetime"), "resource"])
+            .sum()
+            .assign(
+                year=lambda x: x.index.get_level_values("datetime").year,
+                month=lambda x: x.index.get_level_values("datetime").month,
+            )
+        )
+        return px.bar(
+            out.loc[str(year), :].reset_index(),
+            x="datetime",
+            y="net_generation_mwh",
+            color="resource",
+            facet_col="month",
+            facet_col_wrap=4,
+        )
 
     def __repr__(self) -> str:
         return (

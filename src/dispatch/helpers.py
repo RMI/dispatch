@@ -1,7 +1,13 @@
 """Some helpers for profiles and such."""
-
 from __future__ import annotations
 
+import json
+from collections.abc import Generator
+from io import BytesIO
+from pathlib import Path
+from zipfile import ZipFile
+
+import numpy as np
 import pandas as pd
 
 
@@ -66,11 +72,21 @@ def apply_op_ret_date(
     dt_idx = pd.concat(
         [profiles.index.to_series()] * profiles.shape[1],
         axis=1,
-    ).to_numpy()
+    ).to_numpy(dtype=np.datetime64)
     return pd.DataFrame(
         (
-            (dt_idx <= retirement_date.fillna(profiles.index.max()).to_numpy())
-            & (dt_idx >= operating_date.fillna(profiles.index.min()).to_numpy())
+            (
+                dt_idx
+                <= retirement_date.fillna(profiles.index.max()).to_numpy(
+                    dtype=np.datetime64
+                )
+            )
+            & (
+                dt_idx
+                >= operating_date.fillna(profiles.index.min()).to_numpy(
+                    dtype=np.datetime64
+                )
+            )
         )
         * profiles.to_numpy()
         * capacity_mw.to_numpy(),
@@ -89,3 +105,100 @@ def _to_frame(df, n):
 
 def _null(df, *args):
     return df
+
+
+def dfs_to_zip(df_dict: dict[str, pd.DataFrame], path: Path, clobber=False) -> None:
+    """Create a zip of parquets.
+
+    Args:
+        df_dict: dict of dfs to put into a zip
+        path: path for the zip
+        clobber: if True, overwrite exiting file with same path
+
+    Returns: None
+
+    """
+    bad_cols = {}
+    other_stuff = {}
+    path = path.with_suffix(".zip")
+    if path.exists():
+        if not clobber:
+            raise FileExistsError(f"{path} exists, to overwrite set `clobber=True`")
+        path.unlink()
+    with ZipFile(path, "w") as z:
+        for key, val in df_dict.items():
+            if isinstance(val, pd.DataFrame) and not val.empty:
+                try:
+                    z.writestr(f"{key}.parquet", val.to_parquet())
+                except ValueError:
+                    bad_cols.update({key: (list(val.columns), list(val.columns.names))})
+                    z.writestr(f"{key}.parquet", _str_cols(val).to_parquet())
+            elif isinstance(val, pd.Series) and not val.empty:
+                z.writestr(f"{key}.parquet", val.to_frame(name=key).to_parquet())
+            elif isinstance(val, (float, int, str, tuple, dict, list)):
+                other_stuff.update({key: val})
+        z.writestr(
+            "other_stuff.json", json.dumps(other_stuff, ensure_ascii=False, indent=4)
+        )
+        z.writestr("bad_cols.json", json.dumps(bad_cols, ensure_ascii=False, indent=4))
+
+
+def dfs_from_zip(path: Path, lazy=False) -> dict | Generator:
+    """Dict of dfs from a zip of parquets.
+
+    Args:
+        path: path of the zip to load
+        lazy: if True, return a generator rather than a dict
+
+    Returns: dict of dfs or Generator of name, df pairs
+
+    """
+    if lazy:
+        return _lazy_load(path)
+    out_dict = {}
+    with ZipFile(path.with_suffix(".zip"), "r") as z:
+        bad_cols = json.loads(z.read("bad_cols.json"))
+        for name in z.namelist():
+            if "parquet" in name:
+                out_dict.update(
+                    {
+                        name.removesuffix(".parquet"): pd.read_parquet(
+                            BytesIO(z.read(name))
+                        ).squeeze()
+                    }
+                )
+        out_dict = out_dict | json.loads(z.read("other_stuff.json"))
+
+    for df_name, (cols, names) in bad_cols.items():
+        if isinstance(names, (tuple, list)) and len(names) > 1:
+            cols = pd.MultiIndex.from_tuples(cols, names=names)
+        else:
+            cols = pd.Index(cols, name=names[0])
+        out_dict[df_name].columns = cols
+
+    return out_dict
+
+
+def _lazy_load(path: Path) -> Generator[tuple[str, pd.DataFrame]]:
+    with ZipFile(path.with_suffix(".zip"), "r") as z:
+        bad_cols = json.loads(z.read("bad_cols.json"))
+        for name in z.namelist():
+            if "parquet" in name:
+                key = name.removesuffix(".parquet")
+                df = pd.read_parquet(BytesIO(z.read(name))).squeeze()
+                if key in bad_cols:
+                    cols, names = bad_cols[key]
+                    if isinstance(names, (tuple, list)) and len(names) > 1:
+                        cols = pd.MultiIndex.from_tuples(cols, names=names)
+                    else:
+                        cols = pd.Index(cols, name=names[0])
+                    df.columns = cols
+
+                yield name, df
+
+
+def idfn(val):
+    """ID function for pytest parameterization."""
+    if isinstance(val, float):
+        return None
+    return str(val)
