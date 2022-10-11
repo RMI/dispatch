@@ -34,7 +34,7 @@ author = "RMI"
 # The full version, including alpha/beta/rc tags
 release = version_func("rmi.dispatch")
 version = ".".join(release.split(".")[:2])
-html_title = "<project> <version> documentation"
+html_title = f"{project} {version} documentation"
 
 
 # -- General configuration ---------------------------------------------------
