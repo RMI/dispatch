@@ -24,15 +24,18 @@ DOCS_DIR = Path(__file__).parent.resolve()
 # number via pkg_resources.get_distribution() so we need more than just an
 # importable path.
 
-# The full version, including alpha/beta/rc tags
-release = version_func("rmi.dispatch")
-version = ".".join(release.split(".")[:2])
 
 # -- Project information -----------------------------------------------------
 
 project = "Dispatch"
 copyright = f"{datetime.today().year}, RMI, CC-BY-4.0"  # noqa: A001
 author = "RMI"
+
+# The full version, including alpha/beta/rc tags
+release = version_func("rmi.dispatch")
+version = ".".join(release.split(".")[:2])
+html_title = "<project> <version> documentation"
+
 
 # -- General configuration ---------------------------------------------------
 
