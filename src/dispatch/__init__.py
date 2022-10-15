@@ -21,7 +21,7 @@ except ImportError:
 #     pass
 
 from dispatch.engine import dispatch_engine, dispatch_engine_compiled
-from dispatch.helpers import apply_op_ret_date, copy_profile, dfs_from_zip, dfs_to_zip
+from dispatch.helpers import DataZip, apply_op_ret_date, copy_profile
 from dispatch.model import DispatchModel
 
 __all__ = [
@@ -30,8 +30,7 @@ __all__ = [
     "dispatch_engine_compiled",
     "copy_profile",
     "apply_op_ret_date",
-    "dfs_to_zip",
-    "dfs_from_zip",
+    "DataZip",
     "__version__",
 ]
 

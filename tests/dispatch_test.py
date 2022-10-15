@@ -3,8 +3,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from dispatch import DispatchModel, apply_op_ret_date, dfs_from_zip
-from dispatch.helpers import dfs_to_zip, idfn
+from dispatch import DispatchModel
+from dispatch.helpers import apply_op_ret_date, idfn
 
 
 def setup_dm(fossil_profiles, fossil_specs, fossil_cost, re_profiles, re, storage):
@@ -51,6 +51,9 @@ def test_new(fossil_profiles, re_profiles, fossil_specs, fossil_cost):
         storage_specs=pd.DataFrame(
             [(5000, 4, 0.9), (2000, 8760, 0.5)],
             columns=["capacity_mw", "duration_hrs", "roundtrip_eff"],
+            index=pd.MultiIndex.from_tuples(
+                [(-99, "es"), (-98, "es")], names=["plant_id_eia", "generator_id"]
+            ),
         ),
         jit=True,
     )
@@ -76,6 +79,9 @@ def test_new_with_dates(fossil_profiles, re_profiles, fossil_specs, fossil_cost)
                 (2000, 8760, 0.5, pd.Timestamp(year=2019, month=1, day=1)),
             ],
             columns=["capacity_mw", "duration_hrs", "roundtrip_eff", "operating_date"],
+            index=pd.MultiIndex.from_tuples(
+                [(-99, "es"), (-98, "es")], names=["plant_id_eia", "generator_id"]
+            ),
         ),
         jit=True,
     )
@@ -117,6 +123,23 @@ def test_write_and_read(
             columns=["capacity_mw", "duration_hrs", "roundtrip_eff"],
         ),
     )
+    file = test_dir / "test_obj.zip"
+    try:
+        dm.to_file(file)
+        x = DispatchModel.from_file(file)
+        x()
+        x.to_file(file, clobber=True, include_output=False)
+    except Exception as exc:
+        raise exc
+    else:
+        assert True
+    finally:
+        file.unlink(missing_ok=True)
+
+
+def test_write_and_read_full(test_dir, ent_fresh):
+    """Test that DispatchModel can be written and read."""
+    dm = DispatchModel(**ent_fresh)
     file = test_dir / "test_obj.zip"
     try:
         dm.to_file(file)
@@ -187,12 +210,26 @@ def test_storage_summary(fossil_profiles, re_profiles, fossil_specs, fossil_cost
     assert not x.empty
 
 
-def test_full_output(test_dir):
+def test_dc_charge(ent_fresh):
     """Test full_output."""
-    patio = dfs_from_zip(test_dir / "data/8fresh.zip")
-    self = DispatchModel(**patio)
+    self = DispatchModel(**ent_fresh)
+    df = self.dc_charge()
+    assert not df.empty
+
+
+def test_full_output(ent_fresh):
+    """Test full_output."""
+    self = DispatchModel(**ent_fresh)
     self()
     df = self.full_output()
+    assert not df.empty
+
+
+def test_load_summary(ent_fresh):
+    """Test full_output."""
+    self = DispatchModel(**ent_fresh)
+    self()
+    df = self.load_summary()
     assert not df.empty
 
 
@@ -222,31 +259,10 @@ def test_plotting(fossil_profiles, re_profiles, fossil_specs, fossil_cost, test_
         img_path.unlink(missing_ok=True)
 
 
-def test_dfs_to_from_zip(test_dir):
-    """Dfs are same after being written and read back."""
-    df_dict = {
-        "a": pd.DataFrame(
-            [[0, 1], [2, 3]],
-            columns=pd.MultiIndex.from_tuples([(0, "a"), (1, "b")]),
-        ),
-        "b": pd.Series([1, 2, 3, 4]),
-    }
-    try:
-        dfs_to_zip(df_dict, test_dir / "df_test")
-        df_load = dfs_from_zip(test_dir / "df_test")
-        for a, b in zip(df_dict.values(), df_load.values()):
-            assert a.compare(b).empty
-    except Exception as exc:
-        raise AssertionError("Something broke") from exc
-    finally:
-        (test_dir / "df_test.zip").unlink(missing_ok=True)
-
-
 @pytest.mark.parametrize("existing", ["existing", "additions"], ids=idfn)
-def test_redispatch_different(test_dir, existing):
+def test_redispatch_different(ent_redispatch, existing):
     """Test that redispatch and historical are not the same."""
-    patio = dfs_from_zip(test_dir / "data/8redispatch.zip")
-    self = DispatchModel(**patio)
+    self = DispatchModel(**ent_redispatch)
     self()
     if existing == "existing":
         cols = [tup for tup in self.dispatchable_profiles.columns if tup[0] > 0]
@@ -261,10 +277,9 @@ def test_redispatch_different(test_dir, existing):
 
 
 @pytest.mark.parametrize("existing", ["existing", "additions"], ids=idfn)
-def test_fresh_different(test_dir, existing):
+def test_fresh_different(ent_fresh, existing):
     """Test that dispatch and full capacity profiles (fresh) are not the same."""
-    patio = dfs_from_zip(test_dir / "data/8fresh.zip")
-    self = DispatchModel(**patio)
+    self = DispatchModel(**ent_fresh)
     self()
     if existing == "existing":
         cols = [tup for tup in self.dispatchable_profiles.columns if tup[0] > 0]
@@ -278,10 +293,17 @@ def test_fresh_different(test_dir, existing):
     assert not comp.empty, f"dispatch of {existing} failed"
 
 
-@pytest.mark.skip(reason="for debugging only")
-def test_ent(test_dir):
+def test_hourly_data_check(ent_redispatch):
     """Harness for testing dispatch."""
-    patio = dfs_from_zip(test_dir / "data/8fresh.zip")
-    self = DispatchModel(**patio, jit=False)
+    self = DispatchModel(**ent_redispatch)
+    self()
+    df = self.hourly_data_check()
+    assert not df.empty
+
+
+@pytest.mark.skip(reason="for debugging only")
+def test_ent(ent_fresh):
+    """Harness for testing dispatch."""
+    self = DispatchModel(**ent_fresh, jit=False)
     self()
     assert False

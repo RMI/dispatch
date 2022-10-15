@@ -11,7 +11,23 @@ Release Notes
 
 What's New?
 ^^^^^^^^^^^
-*   Test for :func:`.dispatch_engine`.
+*   Tests for :func:`.dispatch_engine`, :func:`.copy_profile`.
+*   :meth:`.DispatchModel.hourly_data_check` to help in checking for dispatch errors,
+    and running down why deficits are occuring.
+*   :class:`.DispatchModel` now takes ``load_profile`` that resources will be
+    dispatched against. If ``re_profiles`` and ``re_plant_specs`` are not provided,
+    this should be a net load profile. If they are provided, this *must* be a gross
+    load profile, or at least, gross of those RE resources. These calculations are done
+    by :meth:`.DispatchModel.re_and_net_load`.
+*   :class:`.DispatchModel` now accepts (and requires) raw DC ``re_profiles``, it
+    determines actual renewable output using capacity data and ilr provided in
+    ``re_plant_specs``. This will allow :class:`.DispatchModel` to model DC-coupled
+    RE+Storage facilities that can charge from otherwise clipped generation. The
+    beginnings of this are in :meth:`.DispatchModel.dc_charge`.
+*   :class:`.DataZip`, a subclass of :class:`ZipFile` that has methods for easily
+    reading and writing :class:`pd.DataFrame` as ``parquet`` and :class:`dict` as
+    ``json``. This includes storing column names separately that cannot be included in
+    a ``parquet``.
 
 
 .. _release-v0-3-0:

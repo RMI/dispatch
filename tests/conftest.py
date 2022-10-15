@@ -5,6 +5,8 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from dispatch import DataZip
+
 logger = logging.getLogger(__name__)
 
 
@@ -63,3 +65,23 @@ def fossil_cost(test_dir) -> pd.DataFrame:
     # df.columns.name = "datetime"
     # return df.stack()
     return pd.read_parquet(test_dir / "data/fossil_cost.parquet")
+
+
+@pytest.fixture
+def ent_fresh(test_dir) -> dict:
+    """Fossil Profiles."""
+    # df = pd.read_parquet(test_dir / "data/plant_specs.parquet").filter(like="20")
+    # df.columns = df.columns.map(lambda x: pd.Timestamp(x))
+    # df.columns.name = "datetime"
+    # return df.stack()
+    return DataZip.dfs_from_zip(test_dir / "data/8fresh.zip")
+
+
+@pytest.fixture
+def ent_redispatch(test_dir) -> dict:
+    """Fossil Profiles."""
+    # df = pd.read_parquet(test_dir / "data/plant_specs.parquet").filter(like="20")
+    # df.columns = df.columns.map(lambda x: pd.Timestamp(x))
+    # df.columns.name = "datetime"
+    # return df.stack()
+    return DataZip.dfs_from_zip(test_dir / "data/8redispatch.zip")

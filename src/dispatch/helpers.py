@@ -2,13 +2,16 @@
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import Generator
 from io import BytesIO
 from pathlib import Path
-from zipfile import ZipFile
+from zipfile import ZipFile, ZipInfo
 
 import numpy as np
 import pandas as pd
+
+LOGGER = logging.getLogger(__name__)
 
 
 def copy_profile(
@@ -107,94 +110,166 @@ def _null(df, *args):
     return df
 
 
-def dfs_to_zip(df_dict: dict[str, pd.DataFrame], path: Path, clobber=False) -> None:
-    """Create a zip of parquets.
+class DataZip(ZipFile):
+    """SubClass of :class:`ZipFile` with methods for easier use with :mod:`pandas`.
 
-    Args:
-        df_dict: dict of dfs to put into a zip
-        path: path for the zip
-        clobber: if True, overwrite exiting file with same path
-
-    Returns: None
+    z = DataZip(file, mode="r", compression=ZIP_STORED, allowZip64=True,
+                compresslevel=None)
 
     """
-    bad_cols = {}
-    other_stuff = {}
-    path = path.with_suffix(".zip")
-    if path.exists():
-        if not clobber:
-            raise FileExistsError(f"{path} exists, to overwrite set `clobber=True`")
-        path.unlink()
-    with ZipFile(path, "w") as z:
-        for key, val in df_dict.items():
-            if isinstance(val, pd.DataFrame) and not val.empty:
-                try:
-                    z.writestr(f"{key}.parquet", val.to_parquet())
-                except ValueError:
-                    bad_cols.update({key: (list(val.columns), list(val.columns.names))})
-                    z.writestr(f"{key}.parquet", _str_cols(val).to_parquet())
-            elif isinstance(val, pd.Series) and not val.empty:
-                z.writestr(f"{key}.parquet", val.to_frame(name=key).to_parquet())
-            elif isinstance(val, (float, int, str, tuple, dict, list)):
-                other_stuff.update({key: val})
-        z.writestr(
-            "other_stuff.json", json.dumps(other_stuff, ensure_ascii=False, indent=4)
-        )
-        z.writestr("bad_cols.json", json.dumps(bad_cols, ensure_ascii=False, indent=4))
 
+    def __init__(self, file: str | Path, mode="r", *args, **kwargs):
+        """Open the ZIP file.
 
-def dfs_from_zip(path: Path, lazy=False) -> dict | Generator:
-    """Dict of dfs from a zip of parquets.
+        Args:
+            file: Either the path to the file, or a file-like object.
+                  If it is a path, the file will be opened and closed by ZipFile.
+            mode: The mode can be either read 'r', write 'w', exclusive create 'x',
+                  or append 'a'.
+            compression: ZIP_STORED (no compression), ZIP_DEFLATED (requires zlib),
+                         ZIP_BZIP2 (requires bz2) or ZIP_LZMA (requires lzma).
+            allowZip64: if True ZipFile will create files with ZIP64 extensions when
+                        needed, otherwise it will raise an exception when this would
+                        be necessary.
+            compresslevel: None (default for the given compression type) or an integer
+                           specifying the level to pass to the compressor.
+                           When using ZIP_STORED or ZIP_LZMA this keyword has no effect.
+                           When using ZIP_DEFLATED integers 0 through 9 are accepted.
+                           When using ZIP_BZIP2 integers 1 through 9 are accepted.
+        """
+        if not isinstance(file, Path):
+            file = Path(file)
+        super().__init__(file.with_suffix(".zip"), mode, *args, **kwargs)
+        try:
+            self.bad_cols = self._read_dict("bad_cols")
+        except KeyError:
+            self.bad_cols = {}
 
-    Args:
-        path: path of the zip to load
-        lazy: if True, return a generator rather than a dict
+    def read(
+        self, name: str | ZipInfo, pwd: bytes | None = ...
+    ) -> bytes | pd.DataFrame | pd.Series | dict:
+        """Return obj or bytes for name."""
+        if "parquet" in name or f"{name}.parquet" in self.namelist():
+            return self._read_df(name)
+        if "json" in name or f"{name}.json" in self.namelist():
+            return self._read_dict(name)
+        return super().read(name)
 
-    Returns: dict of dfs or Generator of name, df pairs
+    def read_dfs(self) -> Generator[tuple[str, pd.DataFrame | pd.Series]]:
+        """Read all dfs lazily."""
+        for name, *suffix in map(lambda x: x.split("."), self.namelist()):
+            if "parquet" in suffix:
+                yield name, self.read(name)
 
-    """
-    if lazy:
-        return _lazy_load(path)
-    out_dict = {}
-    with ZipFile(path.with_suffix(".zip"), "r") as z:
-        bad_cols = json.loads(z.read("bad_cols.json"))
-        for name in z.namelist():
-            if "parquet" in name:
-                out_dict.update(
-                    {
-                        name.removesuffix(".parquet"): pd.read_parquet(
-                            BytesIO(z.read(name))
-                        ).squeeze()
-                    }
-                )
-        out_dict = out_dict | json.loads(z.read("other_stuff.json"))
+    def _read_df(self, name) -> pd.DataFrame | pd.Series:
+        name = name.removesuffix(".parquet")
+        out = pd.read_parquet(BytesIO(super().read(name + ".parquet")))
 
-    for df_name, (cols, names) in bad_cols.items():
-        if isinstance(names, (tuple, list)) and len(names) > 1:
-            cols = pd.MultiIndex.from_tuples(cols, names=names)
+        if name in self.bad_cols:
+            cols, names = self.bad_cols[name]
+            if isinstance(names, (tuple, list)) and len(names) > 1:
+                cols = pd.MultiIndex.from_tuples(cols, names=names)
+            else:
+                cols = pd.Index(cols, name=names[0])
+            out.columns = cols
+        return out.squeeze()
+
+    def _read_dict(self, name) -> dict:
+        return json.loads(super().read(name.removesuffix(".json") + ".json"))
+
+    def writed(
+        self,
+        name: str,
+        data: str | dict | pd.DataFrame | pd.Series,
+    ) -> None:
+        """Write dict, df, str, to name."""
+        if data is None:
+            LOGGER.info("Unable to write data %s because it is None.", name)
+            return None
+        if isinstance(data, dict):
+            self._write_dict(name, data)
+        elif isinstance(data, (pd.DataFrame, pd.Series)):
+            self._write_df(name, data)
         else:
-            cols = pd.Index(cols, name=names[0])
-        out_dict[df_name].columns = cols
+            self.writestr(name, data)
 
-    return out_dict
+    def _write_df(self, name: str, df: pd.DataFrame | pd.Series) -> None:
+        """Write a df in the ZIP as parquet."""
+        if df.empty:
+            LOGGER.info("Unable to write df %s because it is empty.", name)
+            return None
+        if f"{name}.parquet" not in self.namelist():
+            if isinstance(df, pd.Series):
+                df = df.to_frame(name=name)
+            try:
+                self.writestr(f"{name}.parquet", df.to_parquet())
+            except ValueError:
+                self.bad_cols.update({name: (list(df.columns), list(df.columns.names))})
+                self.writestr(f"{name}.parquet", _str_cols(df).to_parquet())
+        else:
+            raise FileExistsError(f"{name}.parquet already in {self.filename}")
 
+    def _write_dict(
+        self, name, dct: dict[int | str, list | tuple | dict | str | float | int]
+    ) -> None:
+        """Write a dict in the ZIP as json."""
+        if f"{name}.json" not in self.namelist():
+            self.writestr(f"{name}.json", json.dumps(dct, ensure_ascii=False, indent=4))
+        else:
+            raise FileExistsError(f"{name}.json already in {self.filename}")
 
-def _lazy_load(path: Path) -> Generator[tuple[str, pd.DataFrame]]:
-    with ZipFile(path.with_suffix(".zip"), "r") as z:
-        bad_cols = json.loads(z.read("bad_cols.json"))
-        for name in z.namelist():
-            if "parquet" in name:
-                key = name.removesuffix(".parquet")
-                df = pd.read_parquet(BytesIO(z.read(name))).squeeze()
-                if key in bad_cols:
-                    cols, names = bad_cols[key]
-                    if isinstance(names, (tuple, list)) and len(names) > 1:
-                        cols = pd.MultiIndex.from_tuples(cols, names=names)
-                    else:
-                        cols = pd.Index(cols, name=names[0])
-                    df.columns = cols
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        try:
+            self._write_dict("bad_cols", self.bad_cols)
+        except FileExistsError:
+            pass
+        super().__exit__(exc_type, exc_val, exc_tb)
 
-                yield name, df
+    @classmethod
+    def dfs_to_zip(cls, path: Path, df_dict: dict[str, pd.DataFrame], clobber=False):
+        """Create a zip of parquets.
+
+        Args:
+            df_dict: dict of dfs to put into a zip
+            path: path for the zip
+            clobber: if True, overwrite exiting file with same path
+
+        Returns: None
+
+        """
+        path = path.with_suffix(".zip")
+        if path.exists():
+            if not clobber:
+                raise FileExistsError(f"{path} exists, to overwrite set `clobber=True`")
+            path.unlink()
+        with cls(path, "w") as z:
+            other_stuff = {}
+            for key, val in df_dict.items():
+                if isinstance(val, (pd.Series, pd.DataFrame, dict)):
+                    z.writed(key, val)
+                elif isinstance(val, (float, int, str, tuple, dict, list)):
+                    other_stuff.update({key: val})
+            z.writed("other_stuff", other_stuff)
+
+    @classmethod
+    def dfs_from_zip(cls, path: Path) -> dict:
+        """Dict of dfs from a zip of parquets.
+
+        Args:
+            path: path of the zip to load
+
+        Returns: dict of dfs
+
+        """
+        with cls(path, "r") as z:
+            out_dict = dict(z.read_dfs())
+            try:
+                other = z.read("other_stuff")
+            except KeyError:
+                other = {}
+            out_dict = out_dict | other
+
+        return out_dict
 
 
 def idfn(val):
