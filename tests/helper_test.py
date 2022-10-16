@@ -51,12 +51,47 @@ def test_datazip(test_dir):
             z.writed("a", df_dict["a"])
             z.writed("b", df_dict["b"])
             z.writed("c", {1: 3, "3": "fifteen", 5: (0, 1)})
+            with pytest.raises(TypeError):
+                z.writed("d", "hello world")
             with pytest.raises(FileExistsError):
                 z.writed("c", {1: 3, "3": "fifteen", 5: (0, 1)})
             with pytest.raises(FileExistsError):
                 z.writed("b", df_dict["b"])
+    except Exception as exc:
+        raise AssertionError("Something broke") from exc
+    else:
+        with DataZip(test_dir / "obj.zip", "r") as z1:
+            for n in ("a.parquet", "b.parquet", "c.json"):
+                assert n in z1.namelist()
+            assert "a" in z1.bad_cols
+    finally:
+        (test_dir / "obj.zip").unlink(missing_ok=True)
 
-        with DataZip(test_dir / "obj.zip", "r") as z:
-            z.namelist()
+
+def test_datazip_w(test_dir):
+    """Test writing to existing :class:`.DataZip`."""
+    df_dict = {
+        "a": pd.DataFrame(
+            [[0, 1], [2, 3]],
+            columns=pd.MultiIndex.from_tuples([(0, "a"), (1, "b")]),
+        ),
+    }
+    try:
+        with DataZip(test_dir / "obj.zip", "w") as z0:
+            z0.writed("a", df_dict["a"])
+    except Exception as exc:
+        raise AssertionError("Something broke") from exc
+    else:
+        with DataZip(test_dir / "obj.zip", "r") as z1:
+            assert "a" in z1.bad_cols
+        with pytest.raises(ValueError):
+            with DataZip(test_dir / "obj.zip", "a") as z2a:
+                z2a.namelist()
+        with pytest.raises(ValueError):
+            with DataZip(test_dir / "obj.zip", "x") as z2x:
+                z2x.namelist()
+        with pytest.raises(FileExistsError):
+            with DataZip(test_dir / "obj.zip", "w") as z3:
+                z3.namelist()
     finally:
         (test_dir / "obj.zip").unlink(missing_ok=True)

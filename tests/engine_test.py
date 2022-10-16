@@ -41,5 +41,6 @@ def test_engine():
         storage_hrs=np.array([4, 12]),
         storage_eff=np.array((0.9, 0.9)),
         storage_op_hour=np.array((0, 0)),
+        storage_dc_charge=np.zeros((len(NL), 2)),
     )
     assert True

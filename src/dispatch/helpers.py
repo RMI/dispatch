@@ -102,14 +102,6 @@ def _str_cols(df, *args):
     return df.set_axis(list(map(str, range(df.shape[1]))), axis="columns")
 
 
-def _to_frame(df, n):
-    return df.to_frame(name=n)
-
-
-def _null(df, *args):
-    return df
-
-
 class DataZip(ZipFile):
     """SubClass of :class:`ZipFile` with methods for easier use with :mod:`pandas`.
 
@@ -139,7 +131,14 @@ class DataZip(ZipFile):
         """
         if not isinstance(file, Path):
             file = Path(file)
-        super().__init__(file.with_suffix(".zip"), mode, *args, **kwargs)
+        file = file.with_suffix(".zip")
+        if mode in ("a", "x"):
+            raise ValueError("DataZip does not support modes 'a' or 'x'")
+        if file.exists() and mode == "w":
+            raise FileExistsError(
+                f"{file} exists, you cannot write or append to an existing DataZip."
+            )
+        super().__init__(file, mode, *args, **kwargs)
         try:
             self.bad_cols = self._read_dict("bad_cols")
         except KeyError:
@@ -186,12 +185,13 @@ class DataZip(ZipFile):
         if data is None:
             LOGGER.info("Unable to write data %s because it is None.", name)
             return None
+        name = name.removesuffix(".json").removesuffix(".parquet")
         if isinstance(data, dict):
             self._write_dict(name, data)
         elif isinstance(data, (pd.DataFrame, pd.Series)):
             self._write_df(name, data)
         else:
-            self.writestr(name, data)
+            raise TypeError("`data` must be a dict, pd.DataFrame, or pd.Series")
 
     def _write_df(self, name: str, df: pd.DataFrame | pd.Series) -> None:
         """Write a df in the ZIP as parquet."""
@@ -219,10 +219,8 @@ class DataZip(ZipFile):
             raise FileExistsError(f"{name}.json already in {self.filename}")
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        try:
+        if self.mode == "w":
             self._write_dict("bad_cols", self.bad_cols)
-        except FileExistsError:
-            pass
         super().__exit__(exc_type, exc_val, exc_tb)
 
     @classmethod

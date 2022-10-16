@@ -21,63 +21,20 @@ except ModuleNotFoundError:
 __all__ = ["DispatchModel"]
 
 from dispatch import __version__
+from dispatch.constants import COLOR_MAP, MTDF, PLOT_MAP
 from dispatch.engine import dispatch_engine, dispatch_engine_compiled
 from dispatch.helpers import DataZip, apply_op_ret_date
 from dispatch.metadata import LOAD_PROFILE_SCHEMA, Validator
 
 LOGGER = logging.getLogger(__name__)
 
-MTDF = pd.DataFrame()
-"""An empty :class:`pandas.DataFrame`."""
-COLOR_MAP = {
-    "Gas CC": "#c85c19",
-    "Gas CT": "#f58228",
-    "Gas RICE": "#fbbb7d",
-    "Gas ST": "#ffdaab",
-    "Coal": "#5f2803",
-    "Other Fossil": "#7d492c",
-    "Biomass": "#556940",
-    "Solar": "#ffcb05",
-    "Onshore Wind": "#005d7f",
-    "Offshore Wind": "#529cba",
-    "Storage": "#7b76ad",
-    "Charge": "#7b76ad",
-    "Discharge": "#7b76ad",
-    "Curtailment": "#eec7b7",
-    "Deficit": "#df897b",
-    "Net Load": "#58585b",
-    "Grossed Load": "#58585b",
-}
-PLOT_MAP = {
-    "Petroleum Liquids": "Other Fossil",
-    "Natural Gas Steam Turbine": "Gas ST",
-    "Conventional Steam Coal": "Coal",
-    "Natural Gas Fired Combined Cycle": "Gas CC",
-    "Natural Gas Fired Combustion Turbine": "Gas CT",
-    "Natural Gas Internal Combustion Engine": "Gas RICE",
-    "Coal Integrated Gasification Combined Cycle": "Coal",
-    "Other Gases": "Other Fossil",
-    "Petroleum Coke": "Other Fossil",
-    "Wood/Wood Waste Biomass": "Biomass",
-    "Other Waste Biomass": "Biomass",
-    "Landfill Gas": "Biomass",
-    "Municipal Solid Waste": "Biomass",
-    "All Other": "Other Fossil",
-    "solar": "Solar",
-    "onshore_wind": "Onshore Wind",
-    "offshore_wind": "Offshore Wind",
-    "curtailment": "Curtailment",
-    "deficit": "Deficit",
-    "charge": "Storage",
-    "discharge": "Storage",
-}
-
 
 class DispatchModel:
     """Class to contain the core dispatch model functionality.
 
     - allow the core dispatch model to accept data set up for different uses
-    - provide a nicer API that accepts pandas objects on top of :func:`.dispatch_engine`
+    - provide a nicer API on top of :func:`.dispatch_engine` that accepts
+      :mod:`pandas` objects
     - methods for common analysis of dispatch results
     """
 
@@ -131,8 +88,8 @@ class DispatchModel:
 
         Args:
             load_profile: load profile that resources will be dispatched against. If
-                ``re_profiles`` and ``re_plant_specs`` are not provided, this should be
-                a net load profile. If they are provided, this *must* be a gross
+                ``re_profiles`` and ``re_plant_specs`` are not provided, this should
+                be a net load profile. If they are provided, this *must* be a gross
                 profile, or at least, gross of those RE resources.
             dispatchable_specs: rows are dispatchable generators, columns must include:
 
@@ -141,9 +98,10 @@ class DispatchModel:
                 -   operating_date: the date the plant entered or will enter service
                 -   retirement_date: the date the plant will retire
 
-            dispatchable_profiles: set the maximum output of each generator in each hour.
-            dispatchable_cost: cost metrics for each dispatchable generator in each year
-                must be tidy with :class:`pandas.MultiIndex` of
+            dispatchable_profiles: set the maximum output of each generator in
+                each hour.
+            dispatchable_cost: cost metrics for each dispatchable generator in
+                each year must be tidy with :class:`pandas.MultiIndex` of
                 ``['plant_id_eia', 'generator_id', 'datetime']``, columns must
                 include:
 
@@ -171,8 +129,8 @@ class DispatchModel:
                 Columns must include:
 
                 -   capacity_mw: AC capacity of the generator
-                -   ilr: inverter loading ratio, if ilr != 1, the corresponding profile
-                    must be a DC profile.
+                -   ilr: inverter loading ratio, if ilr != 1, the corresponding
+                    profile must be a DC profile.
                 -   operating_date: datetime unit starts operating
 
             jit: if ``True``, use numba to compile the dispatch engine, ``False`` is
@@ -221,7 +179,12 @@ class DispatchModel:
             columns=[
                 col
                 for i in self.storage_specs.index.get_level_values("plant_id_eia")
-                for col in (f"charge_{i}", f"discharge_{i}", f"soc_{i}")
+                for col in (
+                    f"charge_{i}",
+                    f"discharge_{i}",
+                    f"soc_{i}",
+                    f"gridcharge_{i}",
+                )
             ]
         )
         self.system_data = MTDF.reindex(
@@ -457,6 +420,7 @@ class DispatchModel:
                 >= self.storage_specs.operating_date.to_numpy(),
                 axis=0,
             ),
+            storage_dc_charge=self.dc_charge().to_numpy(dtype=np.float_),
         )
         self.redispatch = pd.DataFrame(
             fos_prof.astype(np.float32),
@@ -471,7 +435,12 @@ class DispatchModel:
             columns=[
                 col
                 for i in self.storage_specs.index.get_level_values("plant_id_eia")
-                for col in (f"charge_{i}", f"discharge_{i}", f"soc_{i}")
+                for col in (
+                    f"charge_{i}",
+                    f"discharge_{i}",
+                    f"soc_{i}",
+                    f"gridcharge_{i}",
+                )
             ],
         )
         self.system_data = pd.DataFrame(
@@ -677,7 +646,7 @@ class DispatchModel:
                 "historical_dispatch": self.dispatchable_profiles.sum(axis=1),
                 "net_storage": (
                     self.storage_dispatch.filter(regex="^discharge").sum(axis=1)
-                    - self.storage_dispatch.filter(regex="^charge").sum(axis=1)
+                    - self.storage_dispatch.filter(regex="^gridcharge").sum(axis=1)
                 ),
                 "state_of_charge": self.storage_dispatch.filter(regex="^soc").sum(
                     axis=1
@@ -817,7 +786,8 @@ class DispatchModel:
     ) -> pd.DataFrame:
         """Create granular summary of storage plant metrics."""
         out = (
-            self.storage_dispatch.groupby([pd.Grouper(freq=freq)])
+            self.storage_dispatch.filter(regex="^dis|^grid")
+            .groupby([pd.Grouper(freq=freq)])
             .sum()
             .stack()
             .reset_index()
@@ -826,11 +796,10 @@ class DispatchModel:
 
         out[["kind", "plant_id_eia"]] = out.level_1.str.split("_", expand=True)
         out = (
-            out.query("kind != 'soc'")
-            .astype({"plant_id_eia": int})
+            out.astype({"plant_id_eia": int})
             .assign(
                 redispatch_mwh=lambda x: x.redispatch_mwh.mask(
-                    x.kind == "charge", x.redispatch_mwh * -1
+                    x.kind == "gridcharge", x.redispatch_mwh * -1
                 ),
                 generator_id=lambda x: x.plant_id_eia.replace(
                     self.storage_specs.reset_index(
@@ -1035,6 +1004,8 @@ class DispatchModel:
         """Save :class:`.DispatchModel` to disk."""
         if Path(path).with_suffix(".zip").exists() and not clobber:
             raise FileExistsError(f"{path} exists, to overwrite set `clobber=True`")
+        if clobber:
+            Path(path).with_suffix(".zip").unlink(missing_ok=True)
 
         with DataZip(path, "w", compression=compression) as z:
             for df_name in self._parquet_out:
@@ -1056,7 +1027,7 @@ class DispatchModel:
     def _plot_prep(self):
         if "plot_prep" not in self._cached:
             storage = self.storage_dispatch.assign(
-                charge=lambda x: -1 * x.filter(regex="^charge").sum(axis=1),
+                charge=lambda x: -1 * x.filter(regex="^gridcharge").sum(axis=1),
                 discharge=lambda x: x.filter(regex="^discharge").sum(axis=1),
             )
             try:

@@ -23,12 +23,41 @@ What's New?
     determines actual renewable output using capacity data and ilr provided in
     ``re_plant_specs``. This will allow :class:`.DispatchModel` to model DC-coupled
     RE+Storage facilities that can charge from otherwise clipped generation. The
-    beginnings of this are in :meth:`.DispatchModel.dc_charge`.
-*   :class:`.DataZip`, a subclass of :class:`ZipFile` that has methods for easily
+    calculations for the amount of charging from DC-coupled RE is in
+    :meth:`.DispatchModel.dc_charge`.
+*   Updates to :func:`.dispatch_engine` and :func:`.engine._validate_inputs` to
+    accommodate DC-coupled RE charging data. Storage can now be charged from
+    DC-coupled RE in addition to the grid. This includes tracking ``gridcharge``
+    in addition to ``charge``, where the latter includes charging from the grid
+    and DC-coupled RE.
+*   All output charging metrics use the ``gridcharge`` data because from the grid's
+    perspective, this is what matters. ``discharge`` data does not distinguish,
+    so in some cases net charge data may be positive, this reflects RE generation
+    run through the battery that otherwise would have been curtailed.
+*   :class:`.DataZip`, a subclass of :class:`zipfile.ZipFile` that has methods for easily
     reading and writing :class:`pd.DataFrame` as ``parquet`` and :class:`dict` as
     ``json``. This includes storing column names separately that cannot be included in
     a ``parquet``.
 
+Known Issues
+^^^^^^^^^^^^
+*   The storage in DC-coupled RE+Storage system can be charged by either the grid or
+    excess RE that would have been curtailed because of the size of the inverter. It is
+    not possible to restrict grid charging in these systems. It is also not possible to
+    charge storage rather than export to the grid when RE output can fit through the
+    inverter.
+*   It is possible that output from DC-coupled RE+Storage facilities during some hours
+    will exceed the system's inverter capacity because when we discharge these storage
+    facilities, we do not know how much 'room' there is in the inverter because we do
+    not know the RE-side's output.
+*   There are no tests for the DC charging system.
+*   :class:`.DataZip` are effectively immutable once they are created so the ``a`` mode
+    is not allowed and the ``w`` mode is not allowed on existing files. This is because
+    it is not possible to overwrite or remove a file already in a
+    :class:`zipfile.ZipFile`. That fact prevents us from updating metadata about
+    :class:`pandas.DataFrame` that cannot be stored in the ``parquet`` itself. Ways of
+    addressing this get messy and still wouldn't allow updating existing data without
+    copying everything which can be done with the existing system.
 
 .. _release-v0-3-0:
 

@@ -130,7 +130,7 @@ def test_write_and_read(
         x()
         x.to_file(file, clobber=True, include_output=False)
     except Exception as exc:
-        raise exc
+        raise AssertionError(f"{exc!r}") from exc
     else:
         assert True
     finally:
@@ -147,7 +147,7 @@ def test_write_and_read_full(test_dir, ent_fresh):
         x()
         x.to_file(file, clobber=True, include_output=True)
     except Exception as exc:
-        raise exc
+        raise AssertionError(f"{exc!r}") from exc
     else:
         assert True
     finally:

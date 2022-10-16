@@ -16,8 +16,9 @@ def dispatch_engine(
     dispatchable_marginal_cost: np.ndarray,
     storage_mw: np.ndarray,
     storage_hrs: np.ndarray,
-    storage_eff: np.ndarray = np.array((0.9, 0.5)),
-    storage_op_hour: np.ndarray = np.array((0, 0)),
+    storage_eff: np.ndarray,
+    storage_op_hour: np.ndarray,
+    storage_dc_charge: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Dispatch engine that can be compiled with :func:`numba.jit`.
 
@@ -32,18 +33,24 @@ def dispatch_engine(
         net_load: net load, as in net of RE generation, negative net load means
             excess renewables
         hr_to_cost_idx: an array that contains for each hour, the index of the correct
-            column in ``dispatchable_marginal_cost`` that contains cost data for that hour
-        historical_dispatch: historic plant dispatch, acts as an hourly upper constraint
-            on this dispatch
+            column in ``dispatchable_marginal_cost`` that contains cost data for that
+            hour
+        historical_dispatch: historic plant dispatch, acts as an hourly upper
+            constraint on this dispatch
         dispatchable_ramp_mw: max one hour ramp in MW
         dispatchable_startup_cost: startup cost in $ for each dispatchable generator
-        dispatchable_marginal_cost: annual marginal cost for each dispatchable generator in $/MWh
-            rows are generators and columns are years
+        dispatchable_marginal_cost: annual marginal cost for each dispatchable
+            generator in $/MWh rows are generators and columns are years
         storage_mw: max charge/discharge rate for storage in MW
         storage_hrs: duration of storage
         storage_eff: storage round-trip efficiency
         storage_op_hour: first hour in which storage is available, i.e. the index of
             the operating date
+        storage_dc_charge: an array whose columns match each storage facility, and a
+            row for each hour representing how much energy would be curtailed at an
+            attached renewable facility because it exceeds the system's inverter. This
+            then represents how much the storage in an RE+Storage facility could be
+            charged by otherwise curtailed energy when ilr>1.
 
 
     Returns:
@@ -62,6 +69,7 @@ def dispatch_engine(
         storage_mw,
         storage_hrs,
         storage_eff,
+        storage_dc_charge,
     )
 
     storage_soc_max: np.ndarray = storage_mw * storage_hrs
@@ -108,12 +116,12 @@ def dispatch_engine(
     starts: np.ndarray = np.zeros_like(marginal_ranks)
 
     # array to keep track of hourly storage data. rows are hours, columns
-    # (0) charge, (1) discharge, (2) state of charge
-    storage: np.ndarray = np.zeros((len(net_load), 3, len(storage_mw)))
+    # (0) charge, (1) discharge, (2) state of charge, (3) grid charge
+    storage: np.ndarray = np.zeros((len(net_load), 4, len(storage_mw)))
 
     # array to keep track of system level data (0) deficits, (1) dirty charge,
     # (2) curtailment
-    system_level: np.ndarray = np.zeros_like(storage[:, :, 0])
+    system_level: np.ndarray = np.zeros((len(net_load), 3))
 
     # the big loop where we iterate through all the hours
     for hr, (deficit, yr) in enumerate(zip(net_load, hr_to_cost_idx)):
@@ -174,16 +182,18 @@ def dispatch_engine(
             redispatch[hr, r] = r_out
             # keep a running total of remaining deficit, having this value be negative
             # just makes the loop code more complicated, if it actually should be
-            # negative we capture that below
+            # negative we capture that when we calculate the actual deficit based
+            # on redispatch below
             prov_deficit = max(0, prov_deficit - r_out)
 
         # calculate the true deficit as the hour's net load less actual dispatch
         # of fossil plants in hr that were also operating in hr - 1
         deficit -= np.sum(redispatch[hr, :])
 
-        # # negative deficit means excess generation, so we charge the battery
-        # # and move on to the next hour
-        if deficit < 0.0:
+        # negative deficit means excess generation, so we charge the battery
+        # if there is DC-coupled storage, we also charge that storage if there is
+        # RE generation that would otherwise be curtailed
+        if deficit < 0.0 or np.sum(storage_dc_charge[hr, :]) > 0.0:
             for es_i in range(storage.shape[2]):
                 # skip the `es_i` storage resource if it is not yet in operation
                 if storage_op_hour[es_i] > hr:
@@ -191,24 +201,45 @@ def dispatch_engine(
                 # calculate the amount of charging, to account for battery capacity, we
                 # make sure that `charge` would not put `soc` over `storage_soc_max`
                 soc = storage[hr - 1, 2, es_i]
+                # because we can now end up in this loop when deficit is positive,
+                # we need to prevent that positive deficit from mucking up our
+                # calculations
+                _grid_charge = -deficit if deficit < 0.0 else 0.0
                 charge = min(
-                    -deficit,
+                    # _grid_charge represents grid charging,
+                    # storage_dc_charge[hr, es_i] represents charging from a DC-coupled
+                    # RE facility
+                    _grid_charge + storage_dc_charge[hr, es_i],
+                    storage_mw[es_i],
+                    (storage_soc_max[es_i] - soc) / storage_eff[es_i],
+                )
+                grid_charge = min(
+                    _grid_charge,
                     storage_mw[es_i],
                     (storage_soc_max[es_i] - soc) / storage_eff[es_i],
                 )
                 # calculate new `soc` and check that it makes sense
                 soc = soc + charge * storage_eff[es_i]
                 assert soc <= storage_soc_max[es_i]
-                # store charge and new soc
+                # store charge, new soc, and grid charge
                 storage[hr, 0, es_i], storage[hr, 2, es_i] = charge, soc
+                storage[hr, 3, es_i] = grid_charge
                 # calculate the amount of charging that was dirty
                 # TODO check that this calculation is actually correct
-                system_level[hr, 1] += min(max(0, charge - net_load[hr] * -1), charge)
+                system_level[hr, 1] += min(
+                    max(0, grid_charge - net_load[hr] * -1), grid_charge
+                )
                 # calculate the amount of total curtailment
                 # system_level[hr, 2] += -deficit - charge
-                deficit += charge
+                if _grid_charge != 0.0:
+                    deficit += grid_charge
             # store the amount of total curtailment
             # TODO check that this calculation is actually correct
+
+        # this 'continue' and storing of the deficit needs an extra check because
+        # sometimes we charge storage direct from DC-coupled RE even when there
+        # is a positive deficit
+        if deficit <= 0.0:
             system_level[hr, 2] = -deficit
             continue
 
@@ -217,8 +248,9 @@ def dispatch_engine(
         # or discharge every hour whether there is a deficit or not to propagate
         # state of charge forward
         for es_i in range(storage.shape[2]):
-            # skip the `es_i` storage resource if it is not yet in operation
-            if storage_op_hour[es_i] > hr:
+            # skip the `es_i` storage resource if it is not yet in operation or
+            # there was excess generation from a DC-coupled RE facility
+            if storage_op_hour[es_i] > hr or storage_dc_charge[hr, es_i] > 0.0:
                 continue
             discharge = min(storage[hr - 1, 2, es_i], deficit, storage_mw[es_i])
             storage[hr, 1, es_i] = discharge
@@ -286,8 +318,14 @@ def _validate_inputs(
     storage_mw,
     storage_hrs,
     storage_eff,
+    storage_dc_charge,
 ):
-    if not (len(storage_mw) == len(storage_hrs) == len(storage_eff)):
+    if not (
+        len(storage_mw)
+        == len(storage_hrs)
+        == len(storage_eff)
+        == storage_dc_charge.shape[1]
+    ):
         raise AssertionError("storage data does not match")
     if not (
         ramp_mw.shape[0]
@@ -296,7 +334,12 @@ def _validate_inputs(
         == historical_dispatch.shape[1]
     ):
         raise AssertionError("shapes of dispatchable plant data do not match")
-    if not (len(net_load) == len(hr_to_cost_idx) == len(historical_dispatch)):
+    if not (
+        len(net_load)
+        == len(hr_to_cost_idx)
+        == len(historical_dispatch)
+        == len(storage_dc_charge)
+    ):
         raise AssertionError("profile lengths do not match")
     if not (
         len(np.unique(hr_to_cost_idx))
