@@ -423,30 +423,19 @@ class DispatchModel:
             storage_dc_charge=self.dc_charge().to_numpy(dtype=np.float_),
         )
         self.redispatch = pd.DataFrame(
-            fos_prof.astype(np.float32),
+            fos_prof,
             index=self.dt_idx,
             columns=self.dispatchable_profiles.columns,
         )
         self.storage_dispatch = pd.DataFrame(
-            np.hstack([storage[:, :, x] for x in range(storage.shape[2])]).astype(
-                np.float32
-            ),
+            np.hstack([storage[:, :, x] for x in range(storage.shape[2])]),
             index=self.dt_idx,
-            columns=[
-                col
-                for i in self.storage_specs.index.get_level_values("plant_id_eia")
-                for col in (
-                    f"charge_{i}",
-                    f"discharge_{i}",
-                    f"soc_{i}",
-                    f"gridcharge_{i}",
-                )
-            ],
+            columns=self.storage_dispatch.columns,
         )
         self.system_data = pd.DataFrame(
-            deficits.astype(np.float32),
+            deficits,
             index=self.dt_idx,
-            columns=["deficit", "dirty_charge", "curtailment"],
+            columns=self.system_data.columns,
         )
         self.starts = (
             pd.DataFrame(

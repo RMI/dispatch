@@ -38,6 +38,10 @@ What's New?
     reading and writing :class:`pd.DataFrame` as ``parquet`` and :class:`dict` as
     ``json``. This includes storing column names separately that cannot be included in
     a ``parquet``.
+*   Extracted :func:`dispatch.engine.charge_storage` and
+    :func:`dispatch.engine.make_rank_arrays` from :func:`.dispatch_engine`. This allows
+    easier unit testing and, in the former case, makes sure all charging is implemented
+    consistently.
 
 Known Issues
 ^^^^^^^^^^^^
@@ -50,14 +54,13 @@ Known Issues
     will exceed the system's inverter capacity because when we discharge these storage
     facilities, we do not know how much 'room' there is in the inverter because we do
     not know the RE-side's output.
-*   There are no tests for the DC charging system.
 *   :class:`.DataZip` are effectively immutable once they are created so the ``a`` mode
     is not allowed and the ``w`` mode is not allowed on existing files. This is because
     it is not possible to overwrite or remove a file already in a
     :class:`zipfile.ZipFile`. That fact prevents us from updating metadata about
     :class:`pandas.DataFrame` that cannot be stored in the ``parquet`` itself. Ways of
     addressing this get messy and still wouldn't allow updating existing data without
-    copying everything which can be done with the existing system.
+    copying everything which a user can do if that is needed.
 
 .. _release-v0-3-0:
 

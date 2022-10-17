@@ -74,54 +74,31 @@ def dispatch_engine(
 
     storage_soc_max: np.ndarray = storage_mw * storage_hrs
 
-    # internal dispatch data we need to track; (0) current run op_hours
-    # (1) whether we touched the plant in the first round of dispatch
-    op_data: np.ndarray = np.zeros((dispatchable_ramp_mw.shape[0], 2), dtype=np.int64)
-    # need to set op_hours to 1 for plants that we are starting off as operating
-    op_data[:, 0] = np.where(historical_dispatch[0, :] > 0.0, 1, 0)
+    marginal_ranks, start_ranks = make_rank_arrays(
+        dispatchable_marginal_cost, dispatchable_startup_cost
+    )
 
     # create an array to keep track of re-dispatch
     redispatch: np.ndarray = np.zeros_like(historical_dispatch)
-    # to avoid having to do the first hour differently, we just assume original
-    # dispatch in that hour and then skip it
-    redispatch[0, :] = historical_dispatch[0, :]
-
-    # create an array to determine the marginal cost dispatch order for each year
-    # the values in each column represent the canonical indexes for each resource
-    # and they are in the order of increasing marginal cost for that year (column)
-    marginal_ranks: np.ndarray = np.hstack(
-        (
-            np.arange(dispatchable_marginal_cost.shape[0]).reshape(-1, 1),
-            dispatchable_marginal_cost,
-        )
-    )
-    for i in range(1, 1 + dispatchable_marginal_cost[0, :].shape[0]):
-        marginal_ranks[:, i] = marginal_ranks[marginal_ranks[:, i].argsort()][:, 0]
-    marginal_ranks = marginal_ranks[:, 1:].astype(np.int64)
-
-    # create an array to determine the startup cost order for each year
-    # the values in each column represent the canonical indexes for each resource
-    # and they are in the order of increasing startup cost for that year (column)
-    start_ranks: np.ndarray = np.hstack(
-        (
-            np.arange(dispatchable_startup_cost.shape[0]).reshape(-1, 1),
-            dispatchable_startup_cost,
-        )
-    )
-    for i in range(1, 1 + dispatchable_startup_cost[0, :].shape[0]):
-        start_ranks[:, i] = start_ranks[start_ranks[:, i].argsort()][:, 0]
-    start_ranks = start_ranks[:, 1:].astype(np.int64)
-
     # array to keep track of starts by year
     starts: np.ndarray = np.zeros_like(marginal_ranks)
-
     # array to keep track of hourly storage data. rows are hours, columns
     # (0) charge, (1) discharge, (2) state of charge, (3) grid charge
     storage: np.ndarray = np.zeros((len(net_load), 4, len(storage_mw)))
-
     # array to keep track of system level data (0) deficits, (1) dirty charge,
     # (2) curtailment
     system_level: np.ndarray = np.zeros((len(net_load), 3))
+    # internal dispatch data we need to track; (0) current run op_hours
+    # (1) whether we touched the plant in the first round of dispatch
+    op_data: np.ndarray = np.zeros(
+        (dispatchable_marginal_cost.shape[0], 2), dtype=np.int64
+    )
+
+    # to avoid having to do the first hour differently, we just assume original
+    # dispatch in that hour and then skip it
+    redispatch[0, :] = historical_dispatch[0, :]
+    # need to set op_hours to 1 for plants that we are starting off as operating
+    op_data[:, 0] = np.where(historical_dispatch[0, :] > 0.0, 1, 0)
 
     # the big loop where we iterate through all the hours
     for hr, (deficit, yr) in enumerate(zip(net_load, hr_to_cost_idx)):
@@ -130,21 +107,24 @@ def dispatch_engine(
         # historical fossil dispatch
         if hr == 0:
             # if there is excess RE we charge the battery in the first hour
-            if deficit < 0.0:
+            if deficit < 0.0 or np.any(storage_dc_charge[hr, :] > 0.0):
                 for es_i in range(storage.shape[2]):
                     # skip the `es_i` storage resource if it is not yet in operation
                     if storage_op_hour[es_i] > hr:
                         continue
-                    # charge storage
-                    storage[hr, 0, es_i] = min(
-                        -deficit,
-                        storage_mw[es_i],
-                        storage_soc_max[es_i] / storage_eff[es_i],
+
+                    storage[hr, :, es_i] = charge_storage(
+                        deficit=deficit,
+                        soc=0.0,  # previous soc
+                        dc_charge=storage_dc_charge[hr, es_i],
+                        mw=storage_mw[es_i],
+                        soc_max=storage_soc_max[es_i],
+                        eff=storage_eff[es_i],
                     )
-                    storage[hr, 2, es_i] = storage[hr, 0, es_i] * storage_eff[es_i]
-                    deficit += storage[hr, 0, es_i]
-                    if deficit == 0.0:
-                        break
+
+                    # update the deficit if we are grid charging
+                    if deficit < 0.0:
+                        deficit += storage[hr, 3, es_i]
             continue
 
         # want to figure out how much we'd like to dispatch fossil given
@@ -193,45 +173,28 @@ def dispatch_engine(
         # negative deficit means excess generation, so we charge the battery
         # if there is DC-coupled storage, we also charge that storage if there is
         # RE generation that would otherwise be curtailed
-        if deficit < 0.0 or np.sum(storage_dc_charge[hr, :]) > 0.0:
+        if deficit < 0.0 or np.any(storage_dc_charge[hr, :] > 0.0):
             for es_i in range(storage.shape[2]):
                 # skip the `es_i` storage resource if it is not yet in operation
                 if storage_op_hour[es_i] > hr:
                     continue
-                # calculate the amount of charging, to account for battery capacity, we
-                # make sure that `charge` would not put `soc` over `storage_soc_max`
-                soc = storage[hr - 1, 2, es_i]
-                # because we can now end up in this loop when deficit is positive,
-                # we need to prevent that positive deficit from mucking up our
-                # calculations
-                _grid_charge = -deficit if deficit < 0.0 else 0.0
-                charge = min(
-                    # _grid_charge represents grid charging,
-                    # storage_dc_charge[hr, es_i] represents charging from a DC-coupled
-                    # RE facility
-                    _grid_charge + storage_dc_charge[hr, es_i],
-                    storage_mw[es_i],
-                    (storage_soc_max[es_i] - soc) / storage_eff[es_i],
+                storage[hr, :, es_i] = charge_storage(
+                    deficit=deficit,
+                    soc=storage[hr - 1, 2, es_i],  # previous soc
+                    dc_charge=storage_dc_charge[hr, es_i],
+                    mw=storage_mw[es_i],
+                    soc_max=storage_soc_max[es_i],
+                    eff=storage_eff[es_i],
                 )
-                grid_charge = min(
-                    _grid_charge,
-                    storage_mw[es_i],
-                    (storage_soc_max[es_i] - soc) / storage_eff[es_i],
-                )
-                # calculate new `soc` and check that it makes sense
-                soc = soc + charge * storage_eff[es_i]
-                assert soc <= storage_soc_max[es_i]
-                # store charge, new soc, and grid charge
-                storage[hr, 0, es_i], storage[hr, 2, es_i] = charge, soc
-                storage[hr, 3, es_i] = grid_charge
+                # alias grid_charge
+                grid_charge = storage[hr, 3, es_i]
                 # calculate the amount of charging that was dirty
                 # TODO check that this calculation is actually correct
                 system_level[hr, 1] += min(
                     max(0, grid_charge - net_load[hr] * -1), grid_charge
                 )
-                # calculate the amount of total curtailment
-                # system_level[hr, 2] += -deficit - charge
-                if _grid_charge != 0.0:
+                # if we are charging from the grid, need to update the deficit
+                if deficit < 0.0:
                     deficit += grid_charge
             # store the amount of total curtailment
             # TODO check that this calculation is actually correct
@@ -304,7 +267,110 @@ def dispatch_engine(
         redispatch <= historical_dispatch * (1 + 1e-4)
     ), "redispatch exceeded historical dispatch in at least 1 hour"
 
+    if np.all(storage_dc_charge == 0.0):
+        assert np.all(
+            storage[:, 0, :] == storage[:, 3, :]
+        ), "charge != gridcharge when storage_dc_charge is all 0.0"
+    else:
+        assert np.all(
+            storage[:, 0, :] >= storage[:, 3, :]
+        ), "gridcharge exceeded charge for at least one storage facility/hour"
+
+    # for es_i in range(storage.shape[2]):
+    #     if np.any(
+    #         storage[storage[:, 1, es_i] > np.roll(storage[:, 2, es_i], 1)]
+    #     ):
+    #         raise AssertionError(f"discharge exceeded previous state of charge in at least 1 hour for {es_i}")
+
     return redispatch, storage, system_level, starts
+
+
+@njit
+def make_rank_arrays(
+    marginal_cost: np.ndarray, startup_cost: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
+    """Turn cost arrays into rank arrays.
+
+    Args:
+        marginal_cost: array of marginal costs
+        startup_cost: array of startup cost
+
+    Returns:
+        marginal_ranks
+        start_ranks
+    """
+    # create an array to determine the marginal cost dispatch order for each year
+    # the values in each column represent the canonical indexes for each resource
+    # and they are in the order of increasing marginal cost for that year (column)
+    marginal_ranks: np.ndarray = np.hstack(
+        (
+            np.arange(marginal_cost.shape[0]).reshape(-1, 1),
+            marginal_cost,
+        )
+    )
+    for i in range(1, 1 + marginal_cost[0, :].shape[0]):
+        marginal_ranks[:, i] = marginal_ranks[marginal_ranks[:, i].argsort()][:, 0]
+    marginal_ranks = marginal_ranks[:, 1:].astype(np.int64)
+    # create an array to determine the startup cost order for each year
+    # the values in each column represent the canonical indexes for each resource
+    # and they are in the order of increasing startup cost for that year (column)
+    start_ranks: np.ndarray = np.hstack(
+        (
+            np.arange(startup_cost.shape[0]).reshape(-1, 1),
+            startup_cost,
+        )
+    )
+    for i in range(1, 1 + startup_cost[0, :].shape[0]):
+        start_ranks[:, i] = start_ranks[start_ranks[:, i].argsort()][:, 0]
+    start_ranks = start_ranks[:, 1:].astype(np.int64)
+    return marginal_ranks, start_ranks
+
+
+@njit
+def charge_storage(
+    deficit: float,
+    soc: float,
+    dc_charge: float,
+    mw: float,
+    soc_max: float,
+    eff: float,
+) -> tuple[float, float, float, float]:
+    """Calculations for charging storage.
+
+    Args:
+        deficit: amount of charging possible from the grid
+        soc: state of charge before charging
+        dc_charge: power available from DC-coupled RE
+        mw: storage power capacity
+        soc_max: storage energy capacity
+        eff: round-trip efficiency of storage
+
+    Returns:
+        charge: total charge in the hour
+        discharge: always 0.0, a placeholder
+        soc: state of charge after charging
+        grid_charge: portion of ``charge`` that came from the grid
+
+    """
+    # because we can now end up in this loop when deficit is positive,
+    # we need to prevent that positive deficit from mucking up our
+    # calculations
+    _grid_charge = -deficit if deficit < 0.0 else 0.0
+    charge = min(
+        # _grid_charge represents grid charging,
+        # dc_charge represents charging from a DC-coupled  RE facility
+        _grid_charge + dc_charge,
+        mw,
+        # calculate the amount of charging, to account for battery capacity, we
+        # make sure that `charge` would not put `soc` over `soc_max`
+        (soc_max - soc) / eff,
+    )
+    # we charge from DC-coupled RE before charging from the grid
+    grid_charge = max(0.0, charge - dc_charge)
+    # calculate new `soc` and check that it makes sense
+    soc = soc + charge * eff
+    assert soc <= soc_max
+    return charge, 0.0, soc, grid_charge
 
 
 @njit
