@@ -5,7 +5,12 @@ import numpy as np
 import pytest
 
 # noinspection PyProtectedMember
-from dispatch.engine import charge_storage, dispatch_engine, make_rank_arrays
+from dispatch.engine import (
+    charge_storage_py,
+    dispatch_engine_py,
+    make_rank_arrays_py,
+    validate_inputs_py,
+)
 from dispatch.helpers import idfn
 
 NL = [
@@ -33,7 +38,7 @@ CAP = [500, 400, 300]
 
 def test_engine():
     """Trivial test for the dispatch engine."""
-    redispatch, es, sl, st = dispatch_engine(
+    redispatch, es, sl, st = dispatch_engine_py(
         net_load=np.array(NL),
         hr_to_cost_idx=np.zeros(len(NL), dtype=int),
         historical_dispatch=np.array([CAP] * len(NL)),
@@ -47,6 +52,40 @@ def test_engine():
         storage_dc_charge=np.zeros((len(NL), 2)),
     )
     assert np.all(redispatch.sum(axis=1) + es[:, 1, :].sum(axis=1) >= NL)
+
+
+@pytest.mark.parametrize(
+    "override, expected",
+    [
+        ({"storage_mw": np.array([400, 200, 100])}, AssertionError),
+        ({"storage_dc_charge": np.zeros((len(NL), 5))}, AssertionError),
+        ({"startup_cost": np.array([[1000.0], [1000.0]])}, AssertionError),
+        ({"net_load": np.array(NL)[1:]}, AssertionError),
+        (
+            {"hr_to_cost_idx": np.append(np.zeros(len(NL) - 1, dtype=int), 1)},
+            AssertionError,
+        ),
+    ],
+    ids=idfn,
+)
+def test_validate_inputs(override, expected):
+    """Test input validator."""
+    base = dict(
+        net_load=np.array(NL),
+        hr_to_cost_idx=np.zeros(len(NL), dtype=int),
+        historical_dispatch=np.array([CAP] * len(NL)),
+        ramp_mw=np.array(CAP),
+        startup_cost=np.array([[1000.0], [1000.0], [100.0]]),
+        marginal_cost=np.array([[10.0], [20.0], [50.0]]),
+        storage_mw=np.array([400, 200]),
+        storage_hrs=np.array([4, 12]),
+        storage_eff=np.array((0.9, 0.9)),
+        storage_dc_charge=np.zeros((len(NL), 2)),
+    )
+    validate_inputs_py(**base)
+    over = base | override
+    with pytest.raises(expected):
+        validate_inputs_py(**over)
 
 
 @pytest.mark.parametrize(
@@ -75,13 +114,13 @@ def test_engine():
 )
 def test_charge_storage(deficit, soc, dc_charge, mw, soc_max, eff, expected):
     """Test storage charging calculations."""
-    assert charge_storage(deficit, soc, dc_charge, mw, soc_max, eff) == expected
+    assert charge_storage_py(deficit, soc, dc_charge, mw, soc_max, eff) == expected
 
 
 def test_make_rank_arrays():
     """Test cost rank setup."""
     m_cost = np.array([[50.0, 50.0], [25.0, 75.0]])
     s_cost = np.array([[250.0, 250.0], [500.0, 500.0]])
-    m, s = make_rank_arrays(m_cost, s_cost)
+    m, s = make_rank_arrays_py(m_cost, s_cost)
     assert np.all(m == np.array([[1, 0], [0, 1]]))
     assert np.all(s == np.array([[0, 0], [1, 1]]))

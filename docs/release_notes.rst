@@ -11,7 +11,7 @@ Release Notes
 
 What's New?
 ^^^^^^^^^^^
-*   Tests for :func:`.dispatch_engine`, :func:`.copy_profile`.
+*   Tests for :func:`.dispatch_engine_py`, :func:`.copy_profile`.
 *   :meth:`.DispatchModel.hourly_data_check` to help in checking for dispatch errors,
     and running down why deficits are occuring.
 *   :class:`.DispatchModel` now takes ``load_profile`` that resources will be
@@ -25,7 +25,7 @@ What's New?
     RE+Storage facilities that can charge from otherwise clipped generation. The
     calculations for the amount of charging from DC-coupled RE is in
     :meth:`.DispatchModel.dc_charge`.
-*   Updates to :func:`.dispatch_engine` and :func:`.engine._validate_inputs` to
+*   Updates to :func:`.dispatch_engine_py` and :func:`.engine.validate_inputs_py` to
     accommodate DC-coupled RE charging data. Storage can now be charged from
     DC-coupled RE in addition to the grid. This includes tracking ``gridcharge``
     in addition to ``charge``, where the latter includes charging from the grid
@@ -34,14 +34,20 @@ What's New?
     perspective, this is what matters. ``discharge`` data does not distinguish,
     so in some cases net charge data may be positive, this reflects RE generation
     run through the battery that otherwise would have been curtailed.
-*   :class:`.DataZip`, a subclass of :class:`zipfile.ZipFile` that has methods for easily
-    reading and writing :class:`pd.DataFrame` as ``parquet`` and :class:`dict` as
-    ``json``. This includes storing column names separately that cannot be included in
-    a ``parquet``.
-*   Extracted :func:`dispatch.engine.charge_storage` and
-    :func:`dispatch.engine.make_rank_arrays` from :func:`.dispatch_engine`. This allows
-    easier unit testing and, in the former case, makes sure all charging is implemented
-    consistently.
+*   :class:`.DataZip`, a subclass of :class:`zipfile.ZipFile` that has methods for
+    easily reading and writing :class:`pandas.DataFrame` as ``parquet`` and
+    :class:`dict` as ``json``. This includes storing column names separately that
+    cannot be included in a ``parquet``.
+*   Extracted :func:`dispatch.engine.charge_storage_py` and
+    :func:`dispatch.engine.make_rank_arrays_py` from :func:`.dispatch_engine_py`. This
+    allows easier unit testing and, in the former case, makes sure all charging is
+    implemented consistently.
+*   Added plotting functions :meth:`.DispatchModel.plot_output` to visualize columns
+    from :meth:`.DispatchModel.full_output` and updated
+    :meth:`.DispatchModel.plot_period` to display data by generator if ``by_gen=True``.
+    :meth:`.DispatchModel.plot_year` can now display the results with daily or hourly
+    frequency.
+
 
 Known Issues
 ^^^^^^^^^^^^
@@ -76,7 +82,7 @@ What's New?
     :class:`.Validator` to organize and specialize data input
     checking.
 *   Adding cost component details and capacity data to
-    :meth:`.DispatchModel.operations_summary`.
+    :meth:`.DispatchModel.dispatchable_summary`.
 *   We now automatically apply ``operating_date`` and ``retirement_date`` from
     :attr:`.DispatchModel.dispatchable_plant_specs` to
     :attr:`.DispatchModel.dispatchable_profiles` using
@@ -84,16 +90,16 @@ What's New?
 *   Added validation and processing for :attr:`.DispatchModel.re_plant_specs` and
     :attr:`.DispatchModel.re_profiles`, as well as :meth:`.DispatchModel.re_summary`
     to, when the data is provided create a summary of renewable operations analogous
-    to :meth:`.DispatchModel.operations_summary`.
+    to :meth:`.DispatchModel.dispatchable_summary`.
 *   Added :meth:`.DispatchModel.storage_summary` to create a summary of storage
-    operations analogous to :meth:`.DispatchModel.operations_summary`.
+    operations analogous to :meth:`.DispatchModel.dispatchable_summary`.
 *   Added :meth:`.DispatchModel.full_output` to create the kind of outputs needed by
     Optimus and other post-dispatch analysis tools.
 *   Added validation steps for each type of specs that raise an error when an
     operating_date is after the dispatch period which would otherwise result in
     dispatch errors.
-*   New helpers (:func:`.dfs_to_zip` and :func:`.dfs_from_zip`) that simplify saving
-    and reading in groups of :class:`pandas.DataFrame`.
+*   New helpers (:meth:`.DataZip.dfs_to_zip` and :meth:`.DataZip.dfs_from_zip`) that
+    simplify saving and reading in groups of :class:`pandas.DataFrame`.
 *   Added plotting functions :meth:`.DispatchModel.plot_period` and
     :meth:`.DispatchModel.plot_year`.
 

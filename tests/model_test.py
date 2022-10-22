@@ -61,6 +61,33 @@ def test_new(fossil_profiles, re_profiles, fossil_specs, fossil_cost):
     assert self
 
 
+def test_new_no_dates(fossil_profiles, re_profiles, fossil_specs, fossil_cost):
+    """Dummy test to quiet pytest."""
+    fossil_specs.iloc[
+        0, fossil_specs.columns.get_loc("retirement_date")
+    ] = fossil_profiles.index.max() - pd.Timedelta(weeks=15)
+    self = DispatchModel.from_fresh(
+        net_load_profile=fossil_profiles.sum(axis=1),
+        dispatchable_specs=fossil_specs.drop(
+            columns=["retirement_date", "operating_date"]
+        ),
+        dispatchable_cost=fossil_cost,
+        storage_specs=pd.DataFrame(
+            [(5000, 4, 0.9), (2000, 8760, 0.5)],
+            columns=["capacity_mw", "duration_hrs", "roundtrip_eff"],
+            index=pd.MultiIndex.from_tuples(
+                [(-99, "es"), (-98, "es")], names=["plant_id_eia", "generator_id"]
+            ),
+        ),
+        jit=True,
+    )
+    dates = self.dispatchable_specs[
+        ["operating_date", "retirement_date"]
+    ].drop_duplicates()
+    assert fossil_profiles.index.min() == dates.operating_date.item()
+    assert fossil_profiles.index.max() == dates.retirement_date.item()
+
+
 def test_new_with_dates(fossil_profiles, re_profiles, fossil_specs, fossil_cost):
     """Test operating and retirement dates for fossil and storage."""
     fossil_specs.iloc[
@@ -210,6 +237,27 @@ def test_storage_summary(fossil_profiles, re_profiles, fossil_specs, fossil_cost
     assert not x.empty
 
 
+def test_storage_capacity(ent_fresh):
+    """Test full_output."""
+    self = DispatchModel(**ent_fresh)()
+    df = self.storage_capacity()
+    assert not df.empty
+
+
+def test_storage_durations(ent_fresh):
+    """Test full_output."""
+    self = DispatchModel(**ent_fresh)()
+    df = self.storage_durations()
+    assert not df.empty
+
+
+def test_system_summary(ent_fresh):
+    """Test full_output."""
+    self = DispatchModel(**ent_fresh)()
+    df = self.system_level_summary()
+    assert not df.empty
+
+
 def test_dc_charge(ent_fresh):
     """Test full_output."""
     self = DispatchModel(**ent_fresh)
@@ -248,15 +296,66 @@ def test_plotting(fossil_profiles, re_profiles, fossil_specs, fossil_cost, test_
         ),
     )
     self()
-    self.plot_year(2015)
-    x = self.plot_period("2015-01-01", "2015-01-05")
+    y = self.plot_year(2015)
+    # x = self.plot_period("2015-01-01", "2015-01-05")
     img_path = test_dir / "plot.pdf"
     try:
-        x.write_image(str(img_path))
+        y.write_image(str(img_path))
     except Exception as exc:
         raise AssertionError("unable to write image") from exc
     finally:
         img_path.unlink(missing_ok=True)
+
+
+def test_plot_detail_ent(ent_fresh, test_dir):
+    """Testing plotting function."""
+    img_path = test_dir / "plot.pdf"
+    self = DispatchModel(**ent_fresh)()
+    x = self.plot_period("2034-01-01", "2034-01-05")
+    try:
+        x.write_image(img_path)
+    except Exception as exc:
+        raise AssertionError("unable to write image") from exc
+    else:
+        assert True
+    finally:
+        img_path.unlink(missing_ok=True)
+
+
+def test_plot_year_ent(ent_fresh, test_dir):
+    """Testing plotting function."""
+    img_path = test_dir / "plot.pdf"
+    self = DispatchModel(**ent_fresh)()
+    x = self.plot_year(2034)
+    try:
+        x.write_image(img_path)
+    except Exception as exc:
+        raise AssertionError("unable to write image") from exc
+    else:
+        assert True
+    finally:
+        img_path.unlink(missing_ok=True)
+
+
+def test_plot_output(ent_fresh, test_dir):
+    """Testing plotting function."""
+    img_path = test_dir / "plot.pdf"
+    self = DispatchModel(**ent_fresh)()
+    x = self.plot_output("redispatch_mwh")
+    try:
+        x.write_image(img_path)
+    except Exception as exc:
+        raise AssertionError("unable to write image") from exc
+    else:
+        assert True
+    finally:
+        img_path.unlink(missing_ok=True)
+
+
+def test_repr(ent_fresh):
+    """Test repr."""
+    self = DispatchModel(**ent_fresh)
+    assert "n_dispatchable=24" in repr(self)
 
 
 @pytest.mark.parametrize("existing", ["existing", "additions"], ids=idfn)

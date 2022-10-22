@@ -11,6 +11,8 @@ from zipfile import ZipFile, ZipInfo
 import numpy as np
 import pandas as pd
 
+from dispatch.constants import ORDERING
+
 LOGGER = logging.getLogger(__name__)
 
 
@@ -100,6 +102,15 @@ def apply_op_ret_date(
 
 def _str_cols(df, *args):
     return df.set_axis(list(map(str, range(df.shape[1]))), axis="columns")
+
+
+def dispatch_key(item):
+    """Key function for use sorting, including with :mod:`pandas` objects."""
+    if isinstance(item, pd.Series):
+        return item.str.casefold().replace(ORDERING)
+    if isinstance(item, pd.Index):
+        return pd.Index([ORDERING.get(x.casefold(), str(x)) for x in item])
+    return ORDERING.get(item.casefold(), str(item))
 
 
 class DataZip(ZipFile):

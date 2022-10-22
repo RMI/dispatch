@@ -168,20 +168,20 @@ class Validator:
 
     def storage_specs(self, storage_specs: pd.DataFrame) -> pd.DataFrame:
         """Validate storage_specs."""
-        if storage_specs is None:
-            LOGGER.warning("Careful, dispatch without storage is untested")
-            storage_specs = pd.DataFrame(
-                [0.0, 0, 1.0, self.load_profile.index.max()],
-                columns=[
-                    "capacity_mw",
-                    "duration_hrs",
-                    "roundtrip_eff",
-                    "operating_date",
-                ],
-                index=pd.MultiIndex.from_tuples(
-                    [(-99, "es")], names=["plant_id_eia", "generator_id"]
-                ),
-            )
+        # if storage_specs is None:
+        #     LOGGER.warning("Careful, dispatch without storage is untested")
+        #     storage_specs = pd.DataFrame(
+        #         [0.0, 0, 1.0, self.load_profile.index.max()],
+        #         columns=[
+        #             "capacity_mw",
+        #             "duration_hrs",
+        #             "roundtrip_eff",
+        #             "operating_date",
+        #         ],
+        #         index=pd.MultiIndex.from_tuples(
+        #             [(-99, "es")], names=["plant_id_eia", "generator_id"]
+        #         ),
+        #     )
         return self.storage_specs_schema.validate(storage_specs)
 
     def renewables(

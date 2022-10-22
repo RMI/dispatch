@@ -4,10 +4,17 @@ from __future__ import annotations
 import numpy as np
 from numba import njit
 
-__all__ = ["dispatch_engine_compiled", "dispatch_engine"]
+__all__ = [
+    "dispatch_engine",
+    "make_rank_arrays",
+    "charge_storage",
+    "dispatch_engine_py",
+    "make_rank_arrays_py",
+    "charge_storage_py",
+]
 
 
-def dispatch_engine(
+def dispatch_engine_py(
     net_load: np.ndarray,
     hr_to_cost_idx: np.ndarray,
     historical_dispatch: np.ndarray,
@@ -54,12 +61,16 @@ def dispatch_engine(
 
 
     Returns:
-        redispatch: new hourly dispatch
-        storage: hourly charge, discharge, and state of charge data
-        system_level: hourly deficit, dirty charge, and total curtailment data
-        starts: count of starts for each plant in each year
+        -   **redispatch** (:class:`numpy.ndarray`) - new hourly dispatch
+        -   **storage** (:class:`numpy.ndarray`) - hourly charge, discharge, and state
+            of charge data
+        -   **system_level** (:class:`numpy.ndarray`) - hourly deficit, dirty charge,
+            and total curtailment dat
+        -   **starts** (:class:`numpy.ndarray`) - count of starts for each plant in
+            each year
+
     """
-    _validate_inputs(
+    validate_inputs(
         net_load,
         hr_to_cost_idx,
         historical_dispatch,
@@ -285,8 +296,7 @@ def dispatch_engine(
     return redispatch, storage, system_level, starts
 
 
-@njit
-def make_rank_arrays(
+def make_rank_arrays_py(
     marginal_cost: np.ndarray, startup_cost: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray]:
     """Turn cost arrays into rank arrays.
@@ -296,8 +306,8 @@ def make_rank_arrays(
         startup_cost: array of startup cost
 
     Returns:
-        marginal_ranks
-        start_ranks
+        -   **marginal_ranks** (:class:`numpy.ndarray`) - marginal rank array
+        -   **start_ranks** (:class:`numpy.ndarray`) - start rank array
     """
     # create an array to determine the marginal cost dispatch order for each year
     # the values in each column represent the canonical indexes for each resource
@@ -326,8 +336,7 @@ def make_rank_arrays(
     return marginal_ranks, start_ranks
 
 
-@njit
-def charge_storage(
+def charge_storage_py(
     deficit: float,
     soc: float,
     dc_charge: float,
@@ -346,10 +355,14 @@ def charge_storage(
         eff: round-trip efficiency of storage
 
     Returns:
-        charge: total charge in the hour
-        discharge: always 0.0, a placeholder
-        soc: state of charge after charging
-        grid_charge: portion of ``charge`` that came from the grid
+        A tuple with the same organization of columns of internal ``storage`` in
+        :func:`.dispatch_engine_py`.
+
+        -   **charge** (:class:`float`) - total charge in the hour
+        -   **discharge** (:class:`float`) - always 0.0, a placeholder
+        -   **soc** (:class:`float`) - tate of charge after charging
+        -   **grid_charge** (:class:`float`) -  portion of ``charge`` that came from
+            the grid
 
     """
     # because we can now end up in this loop when deficit is positive,
@@ -373,8 +386,7 @@ def charge_storage(
     return charge, 0.0, soc, grid_charge
 
 
-@njit
-def _validate_inputs(
+def validate_inputs_py(
     net_load,
     hr_to_cost_idx,
     historical_dispatch,
@@ -386,6 +398,7 @@ def _validate_inputs(
     storage_eff,
     storage_dc_charge,
 ):
+    """Validate shape of inputs."""
     if not (
         len(storage_mw)
         == len(storage_hrs)
@@ -418,4 +431,14 @@ def _validate_inputs(
         )
 
 
-dispatch_engine_compiled = njit(dispatch_engine, error_model="numpy")
+validate_inputs = njit(validate_inputs_py)
+""":mod:`numba` compiled version of :func:`.validate_inputs_py`."""
+
+make_rank_arrays = njit(make_rank_arrays_py)
+""":mod:`numba` compiled version of :func:`.make_rank_arrays_py`."""
+
+charge_storage = njit(charge_storage_py)
+""":mod:`numba` compiled version of :func:`.charge_storage_py`."""
+
+dispatch_engine = njit(dispatch_engine_py, error_model="numpy")
+""":mod:`numba` compiled version of :func:`.dispatch_engine_py`."""
