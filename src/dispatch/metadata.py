@@ -12,7 +12,7 @@ LOGGER = logging.getLogger(__name__)
 DT_SCHEMA = pa.Index(pa.Timestamp, name="datetime")
 PID_SCHEMA = pa.Index(int, name="plant_id_eia")
 GID_SCHEMA = pa.Index(str, name="generator_id")
-NET_LOAD_SCHEMA = pa.SeriesSchema(pa.Float, index=DT_SCHEMA, coerce=True)
+LOAD_PROFILE_SCHEMA = pa.SeriesSchema(pa.Float, index=DT_SCHEMA, coerce=True)
 
 
 class Validator:
@@ -39,21 +39,24 @@ class Validator:
         """Init Validator."""
         self.obj = obj
         self.gen_set = gen_set
-        self.net_load_profile = obj.net_load_profile
+        self.load_profile = obj.load_profile
         self.storage_specs_schema = pa.DataFrameSchema(
+            index=pa.MultiIndex(
+                [PID_SCHEMA, GID_SCHEMA],
+                unique=["plant_id_eia"],
+                strict=True,
+                coerce=True,
+            ),
             columns={
-                "plant_id_eia": pa.Column(int, required=False),
-                "generator_id": pa.Column(str, required=False),
                 "capacity_mw": pa.Column(float, pa.Check.greater_than(0)),
                 "duration_hrs": pa.Column(int, pa.Check.greater_than(0)),
                 "roundtrip_eff": pa.Column(float, pa.Check.in_range(0, 1)),
                 "operating_date": pa.Column(
                     pa.Timestamp,
-                    pa.Check.less_than(self.net_load_profile.index.max()),
+                    pa.Check.less_than(self.load_profile.index.max()),
                     description="operating_date in storage_specs",
                 ),
             },
-            index=pa.Index(int, unique=True),
             # strict=True,
             coerce=True,
             title="storage_specs",
@@ -61,15 +64,16 @@ class Validator:
         self.renewable_specs_schema = pa.DataFrameSchema(
             index=pa.MultiIndex(
                 [PID_SCHEMA, GID_SCHEMA],
-                unique=["plant_id_eia", "generator_id"],
+                unique=["plant_id_eia"],
                 strict=True,
                 coerce=True,
             ),
             columns={
                 "capacity_mw": pa.Column(float, pa.Check.greater_than(0)),
+                "ilr": pa.Column(float, pa.Check.in_range(1.0, 10.0)),
                 "operating_date": pa.Column(
                     pa.Timestamp,
-                    pa.Check.less_than(self.net_load_profile.index.max()),
+                    pa.Check.less_than(self.load_profile.index.max()),
                     description="operating_date in renewable_specs",
                 ),
                 "retirement_date": pa.Column(pa.Timestamp, nullable=True),
@@ -88,7 +92,7 @@ class Validator:
                 "ramp_rate": pa.Column(float, pa.Check.greater_than(0)),
                 "operating_date": pa.Column(
                     pa.Timestamp,
-                    pa.Check.less_than(self.net_load_profile.index.max()),
+                    pa.Check.less_than(self.load_profile.index.max()),
                     description="operating_date in dispatchable_specs",
                 ),
                 "retirement_date": pa.Column(pa.Timestamp, nullable=True),
@@ -124,9 +128,9 @@ class Validator:
             coerce=True,
             strict=True,
         ).validate(dispatchable_profiles)
-        if not np.all(dispatchable_profiles.index == self.net_load_profile.index):
+        if not np.all(dispatchable_profiles.index == self.load_profile.index):
             raise AssertionError(
-                "`dispatchable_profiles` and `net_load_profile` indexes must match"
+                "`dispatchable_profiles` and `load_profile` indexes must match"
             )
 
         return dispatchable_profiles
@@ -151,7 +155,7 @@ class Validator:
         marg_dts = dispatchable_cost.index.get_level_values("datetime")
         missing_prds = [
             d
-            for d in self.net_load_profile.resample(marg_freq).first().index
+            for d in self.load_profile.resample(marg_freq).first().index
             if d not in marg_dts
         ]
         if missing_prds:
@@ -164,17 +168,20 @@ class Validator:
 
     def storage_specs(self, storage_specs: pd.DataFrame) -> pd.DataFrame:
         """Validate storage_specs."""
-        if storage_specs is None:
-            LOGGER.warning("Careful, dispatch without storage is untested")
-            storage_specs = pd.DataFrame(
-                [0.0, 0, 1.0, self.net_load_profile.index.max()],
-                columns=[
-                    "capacity_mw",
-                    "duration_hrs",
-                    "roundtrip_eff",
-                    "operating_date",
-                ],
-            )
+        # if storage_specs is None:
+        #     LOGGER.warning("Careful, dispatch without storage is untested")
+        #     storage_specs = pd.DataFrame(
+        #         [0.0, 0, 1.0, self.load_profile.index.max()],
+        #         columns=[
+        #             "capacity_mw",
+        #             "duration_hrs",
+        #             "roundtrip_eff",
+        #             "operating_date",
+        #         ],
+        #         index=pd.MultiIndex.from_tuples(
+        #             [(-99, "es")], names=["plant_id_eia", "generator_id"]
+        #         ),
+        #     )
         return self.storage_specs_schema.validate(storage_specs)
 
     def renewables(
@@ -186,7 +193,10 @@ class Validator:
         re_plant_specs = self.renewable_specs_schema.validate(re_plant_specs)
         re_profiles = pa.DataFrameSchema(
             index=DT_SCHEMA,
-            columns={x: pa.Column(float) for x in re_plant_specs.index},
+            columns={
+                x: pa.Column(float, pa.Check.in_range(0.0, 1.0))
+                for x in re_plant_specs.index
+            },
             ordered=True,
             coerce=True,
             strict=True,

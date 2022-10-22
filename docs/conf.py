@@ -24,15 +24,18 @@ DOCS_DIR = Path(__file__).parent.resolve()
 # number via pkg_resources.get_distribution() so we need more than just an
 # importable path.
 
-# The full version, including alpha/beta/rc tags
-release = version_func("rmi.dispatch")
-version = ".".join(release.split(".")[:2])
 
 # -- Project information -----------------------------------------------------
 
 project = "Dispatch"
 copyright = f"{datetime.today().year}, RMI, CC-BY-4.0"  # noqa: A001
 author = "RMI"
+
+# The full version, including alpha/beta/rc tags
+release = version_func("rmi.dispatch")
+version = ".".join(release.split(".")[:2])
+html_title = f"{project} {version} documentation"
+
 
 # -- General configuration ---------------------------------------------------
 
@@ -58,8 +61,19 @@ autoapi_dirs = [
 autoapi_ignore = [
     "*_test.py",
     "*/package_data/*",
+    "_*.py",
+    "*constants.py",
 ]
 autoapi_python_class_content = "both"
+autoapi_options = [
+    "members",
+    # "undoc-members",
+    # "private-members",
+    "show-inheritance",
+    "show-module-summary",
+    "special-members",
+    "imported-members",
+]
 autodoc_typehints = "description"
 # autoapi_keep_files = True
 
@@ -73,6 +87,7 @@ intersphinx_mapping = {
     "numba": ("https://numba.readthedocs.io/en/stable", None),
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable", None),
     "pandera": ("https://pandera.readthedocs.io/en/stable", None),
+    "plotly": ("https://plotly.com/python-api-reference/", None),
     "pytest": ("https://docs.pytest.org/en/latest/", None),
     "python": ("https://docs.python.org/3", None),
     "scipy": ("https://docs.scipy.org/doc/scipy/", None),
@@ -80,6 +95,8 @@ intersphinx_mapping = {
     "tox": ("https://tox.wiki/en/latest/", None),
 }
 
+"https://plotly.com/python-api-reference/generated/plotly.graph_objects.Figure.html"
+"https://plotly.com/python-api-reference/generated/plotly.graph_objs.Figure"
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 

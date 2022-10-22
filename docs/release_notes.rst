@@ -11,8 +11,62 @@ Release Notes
 
 What's New?
 ^^^^^^^^^^^
-*   Test for :func:`.dispatch_engine`.
+*   Tests for :func:`.dispatch_engine_py`, :func:`.copy_profile`.
+*   :meth:`.DispatchModel.hourly_data_check` to help in checking for dispatch errors,
+    and running down why deficits are occuring.
+*   :class:`.DispatchModel` now takes ``load_profile`` that resources will be
+    dispatched against. If ``re_profiles`` and ``re_plant_specs`` are not provided,
+    this should be a net load profile. If they are provided, this *must* be a gross
+    load profile, or at least, gross of those RE resources. These calculations are done
+    by :meth:`.DispatchModel.re_and_net_load`.
+*   :class:`.DispatchModel` now accepts (and requires) raw DC ``re_profiles``, it
+    determines actual renewable output using capacity data and ilr provided in
+    ``re_plant_specs``. This will allow :class:`.DispatchModel` to model DC-coupled
+    RE+Storage facilities that can charge from otherwise clipped generation. The
+    calculations for the amount of charging from DC-coupled RE is in
+    :meth:`.DispatchModel.dc_charge`.
+*   Updates to :func:`.dispatch_engine_py` and :func:`.engine.validate_inputs_py` to
+    accommodate DC-coupled RE charging data. Storage can now be charged from
+    DC-coupled RE in addition to the grid. This includes tracking ``gridcharge``
+    in addition to ``charge``, where the latter includes charging from the grid
+    and DC-coupled RE.
+*   All output charging metrics use the ``gridcharge`` data because from the grid's
+    perspective, this is what matters. ``discharge`` data does not distinguish,
+    so in some cases net charge data may be positive, this reflects RE generation
+    run through the battery that otherwise would have been curtailed.
+*   :class:`.DataZip`, a subclass of :class:`zipfile.ZipFile` that has methods for
+    easily reading and writing :class:`pandas.DataFrame` as ``parquet`` and
+    :class:`dict` as ``json``. This includes storing column names separately that
+    cannot be included in a ``parquet``.
+*   Extracted :func:`dispatch.engine.charge_storage_py` and
+    :func:`dispatch.engine.make_rank_arrays_py` from :func:`.dispatch_engine_py`. This
+    allows easier unit testing and, in the former case, makes sure all charging is
+    implemented consistently.
+*   Added plotting functions :meth:`.DispatchModel.plot_output` to visualize columns
+    from :meth:`.DispatchModel.full_output` and updated
+    :meth:`.DispatchModel.plot_period` to display data by generator if ``by_gen=True``.
+    :meth:`.DispatchModel.plot_year` can now display the results with daily or hourly
+    frequency.
 
+
+Known Issues
+^^^^^^^^^^^^
+*   The storage in DC-coupled RE+Storage system can be charged by either the grid or
+    excess RE that would have been curtailed because of the size of the inverter. It is
+    not possible to restrict grid charging in these systems. It is also not possible to
+    charge storage rather than export to the grid when RE output can fit through the
+    inverter.
+*   It is possible that output from DC-coupled RE+Storage facilities during some hours
+    will exceed the system's inverter capacity because when we discharge these storage
+    facilities, we do not know how much 'room' there is in the inverter because we do
+    not know the RE-side's output.
+*   :class:`.DataZip` are effectively immutable once they are created so the ``a`` mode
+    is not allowed and the ``w`` mode is not allowed on existing files. This is because
+    it is not possible to overwrite or remove a file already in a
+    :class:`zipfile.ZipFile`. That fact prevents us from updating metadata about
+    :class:`pandas.DataFrame` that cannot be stored in the ``parquet`` itself. Ways of
+    addressing this get messy and still wouldn't allow updating existing data without
+    copying everything which a user can do if that is needed.
 
 .. _release-v0-3-0:
 
@@ -28,7 +82,7 @@ What's New?
     :class:`.Validator` to organize and specialize data input
     checking.
 *   Adding cost component details and capacity data to
-    :meth:`.DispatchModel.operations_summary`.
+    :meth:`.DispatchModel.dispatchable_summary`.
 *   We now automatically apply ``operating_date`` and ``retirement_date`` from
     :attr:`.DispatchModel.dispatchable_plant_specs` to
     :attr:`.DispatchModel.dispatchable_profiles` using
@@ -36,16 +90,16 @@ What's New?
 *   Added validation and processing for :attr:`.DispatchModel.re_plant_specs` and
     :attr:`.DispatchModel.re_profiles`, as well as :meth:`.DispatchModel.re_summary`
     to, when the data is provided create a summary of renewable operations analogous
-    to :meth:`.DispatchModel.operations_summary`.
+    to :meth:`.DispatchModel.dispatchable_summary`.
 *   Added :meth:`.DispatchModel.storage_summary` to create a summary of storage
-    operations analogous to :meth:`.DispatchModel.operations_summary`.
+    operations analogous to :meth:`.DispatchModel.dispatchable_summary`.
 *   Added :meth:`.DispatchModel.full_output` to create the kind of outputs needed by
     Optimus and other post-dispatch analysis tools.
 *   Added validation steps for each type of specs that raise an error when an
     operating_date is after the dispatch period which would otherwise result in
     dispatch errors.
-*   New helpers (:func:`.dfs_to_zip` and :func:`.dfs_from_zip`) that simplify saving
-    and reading in groups of :class:`pandas.DataFrame`.
+*   New helpers (:meth:`.DataZip.dfs_to_zip` and :meth:`.DataZip.dfs_from_zip`) that
+    simplify saving and reading in groups of :class:`pandas.DataFrame`.
 *   Added plotting functions :meth:`.DispatchModel.plot_period` and
     :meth:`.DispatchModel.plot_year`.
 

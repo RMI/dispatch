@@ -2,119 +2,83 @@
 from __future__ import annotations
 
 import inspect
-import json
 import logging
 from collections.abc import Callable
 from datetime import datetime
-from io import BytesIO
 from pathlib import Path
-from zipfile import ZIP_DEFLATED, ZipFile
+from zipfile import ZIP_DEFLATED
 
 import numpy as np
 import pandas as pd
 
 try:
     import plotly.express as px
+    from plotly.graph_objects import Figure
 
     PLOTLY_INSTALLED = True
 except ModuleNotFoundError:
+    from typing import Any
+
+    Figure = Any
     PLOTLY_INSTALLED = False
 
 __all__ = ["DispatchModel"]
 
 from dispatch import __version__
-from dispatch.engine import dispatch_engine, dispatch_engine_compiled
-from dispatch.helpers import _null, _str_cols, _to_frame, apply_op_ret_date
-from dispatch.metadata import NET_LOAD_SCHEMA, Validator
+from dispatch.constants import COLOR_MAP, MTDF, PLOT_MAP
+from dispatch.engine import dispatch_engine, dispatch_engine_py
+from dispatch.helpers import DataZip, apply_op_ret_date, dispatch_key
+from dispatch.metadata import LOAD_PROFILE_SCHEMA, Validator
 
 LOGGER = logging.getLogger(__name__)
-
-MTDF = pd.DataFrame()
-"""An empty :class:`pandas.DataFrame`."""
-COLOR_MAP = {
-    "Gas CC": "#c85c19",
-    "Gas CT": "#f58228",
-    "Gas RICE": "#fbbb7d",
-    "Gas ST": "#ffdaab",
-    "Coal": "#5f2803",
-    "Other Fossil": "#7d492c",
-    "Biomass": "#556940",
-    "Solar": "#ffcb05",
-    "Onshore Wind": "#005d7f",
-    "Offshore Wind": "#529cba",
-    "Storage": "#7b76ad",
-    "Charge": "#7b76ad",
-    "Discharge": "#7b76ad",
-    "Curtailment": "#eec7b7",
-    "Deficit": "#df897b",
-    "Net Load": "#58585b",
-    "Grossed Load": "#58585b",
-}
-PLOT_MAP = {
-    "Petroleum Liquids": "Other Fossil",
-    "Natural Gas Steam Turbine": "Gas ST",
-    "Conventional Steam Coal": "Coal",
-    "Natural Gas Fired Combined Cycle": "Gas CC",
-    "Natural Gas Fired Combustion Turbine": "Gas CT",
-    "Natural Gas Internal Combustion Engine": "Gas RICE",
-    "Coal Integrated Gasification Combined Cycle": "Coal",
-    "Other Gases": "Other Fossil",
-    "Petroleum Coke": "Other Fossil",
-    "Wood/Wood Waste Biomass": "Biomass",
-    "Other Waste Biomass": "Biomass",
-    "Landfill Gas": "Biomass",
-    "Municipal Solid Waste": "Biomass",
-    "All Other": "Other Fossil",
-    "solar": "Solar",
-    "onshore_wind": "Onshore Wind",
-    "offshore_wind": "Offshore Wind",
-    "curtailment": "Curtailment",
-    "deficit": "Deficit",
-    "charge": "Storage",
-    "discharge": "Storage",
-}
 
 
 class DispatchModel:
     """Class to contain the core dispatch model functionality.
 
     - allow the core dispatch model to accept data set up for different uses
-    - provide a nicer API that accepts pandas objects on top of :func:`.dispatch_engine`
+    - provide a nicer API on top of :func:`.dispatch_engine_py` that accepts
+      :mod:`pandas` objects
     - methods for common analysis of dispatch results
     """
 
-    __slots__ = (
-        "net_load_profile",
+    # __slots__ = (
+    #     "load_profile",
+    #     "net_load_profile",
+    #     "dispatchable_specs",
+    #     "dispatchable_cost",
+    #     "dispatchable_profiles",
+    #     "storage_specs",
+    #     "re_profiles_ac",
+    #     "re_excess",
+    #     "re_plant_specs",
+    #     "dt_idx",
+    #     "yrs_idx",
+    #     "redispatch",
+    #     "storage_dispatch",
+    #     "system_data",
+    #     "starts",
+    #     "_metadata",
+    #     "_cached",
+    # )
+    _parquet_out = (
+        "re_profiles_ac",
+        "re_excess",
+        "re_plant_specs",
+        "storage_dispatch",
+        "system_data",
+        "storage_specs",
         "dispatchable_specs",
         "dispatchable_cost",
         "dispatchable_profiles",
-        "storage_specs",
-        "re_profiles",
-        "re_plant_specs",
-        "dt_idx",
-        "yrs_idx",
         "redispatch",
-        "storage_dispatch",
-        "system_data",
-        "starts",
-        "_metadata",
-        "_cached",
+        "load_profile",
+        "net_load_profile",
     )
-    _parquet_out = {
-        "re_profiles": _null,
-        "storage_dispatch": _null,
-        "system_data": _null,
-        "storage_specs": _null,
-        "dispatchable_specs": _null,
-        "dispatchable_cost": _null,
-        "dispatchable_profiles": _str_cols,
-        "redispatch": _str_cols,
-        "net_load_profile": _to_frame,
-    }
 
     def __init__(
         self,
-        net_load_profile: pd.Series[float],
+        load_profile: pd.Series[float],
         dispatchable_specs: pd.DataFrame,
         dispatchable_profiles: pd.DataFrame,
         dispatchable_cost: pd.DataFrame,
@@ -127,8 +91,10 @@ class DispatchModel:
         """Initialize DispatchModel.
 
         Args:
-            net_load_profile: net load, as in net of RE generation, negative net
-                load means excess renewable generation
+            load_profile: load profile that resources will be dispatched against. If
+                ``re_profiles`` and ``re_plant_specs`` are not provided, this should
+                be a net load profile. If they are provided, this *must* be a gross
+                profile, or at least, gross of those RE resources.
             dispatchable_specs: rows are dispatchable generators, columns must include:
 
                 -   capacity_mw: generator nameplate/operating capacity
@@ -136,9 +102,13 @@ class DispatchModel:
                 -   operating_date: the date the plant entered or will enter service
                 -   retirement_date: the date the plant will retire
 
-            dispatchable_profiles: set the maximum output of each generator in each hour
-            dispatchable_cost: cost metrics for each dispatchable generator in each year
-                must be tidy with :class:`pandas.MultiIndex` of
+                The index must be a :class:`pandas.MultiIndex` of
+                ``['plant_id_eia', 'generator_id']``.
+
+            dispatchable_profiles: set the maximum output of each generator in
+                each hour.
+            dispatchable_cost: cost metrics for each dispatchable generator in
+                each year must be tidy with :class:`pandas.MultiIndex` of
                 ``['plant_id_eia', 'generator_id', 'datetime']``, columns must
                 include:
 
@@ -147,15 +117,35 @@ class DispatchModel:
                 -   fom_per_kw: fixed O&M (USD/kW)
                 -   start_per_kw: generator startup cost (USD/kW)
 
-            storage_specs: rows are types of storage, columns must include:
+            storage_specs: rows are storage facilities, for RE+Storage facilities,
+                the ``plant_id_eia`` for the storage component must match the
+                ``plant_id_eia`` for the RE component in ``re_profiles`` and
+                ``re_plant_specs``. Columns must include:
 
                 -   capacity_mw: max charge/discharge capacity in MW
                 -   duration_hrs: storage duration in hours
                 -   roundtrip_eff: roundtrip efficiency
                 -   operating_date: datetime unit starts operating
 
-            re_profiles: ??
-            re_plant_specs: ??
+                The index must be a :class:`pandas.MultiIndex` of
+                ``['plant_id_eia', 'generator_id']``.
+
+            re_profiles: normalized renewable profiles, these should be DC profiles,
+                especially when they are part of RE+Storage resources, if they are
+                AC profiles, make sure the ilr in ``re_plant_specs`` is 1.0.
+            re_plant_specs: rows are renewable facilities, for RE+Storage facilities,
+                the ``plant_id_eia`` for the RE component must match the
+                ``plant_id_eia`` for the storage component in ``storage_specs``.
+                Columns must include:
+
+                -   capacity_mw: AC capacity of the generator
+                -   ilr: inverter loading ratio, if ilr != 1, the corresponding
+                    profile must be a DC profile.
+                -   operating_date: datetime unit starts operating
+
+                The index must be a :class:`pandas.MultiIndex` of
+                ``['plant_id_eia', 'generator_id']``.
+
             jit: if ``True``, use numba to compile the dispatch engine, ``False`` is
                 mostly for debugging
             name: a name, only used in the ``repr``
@@ -169,9 +159,9 @@ class DispatchModel:
             "jit": jit,
         }
 
-        self.net_load_profile: pd.Series = NET_LOAD_SCHEMA.validate(net_load_profile)
+        self.load_profile: pd.Series = LOAD_PROFILE_SCHEMA.validate(load_profile)
 
-        self.dt_idx = self.net_load_profile.index
+        self.dt_idx = self.load_profile.index
         self.yrs_idx = self.dt_idx.to_series().groupby([pd.Grouper(freq="YS")]).first()
 
         validator = Validator(self, gen_set=dispatchable_specs.index)
@@ -187,17 +177,27 @@ class DispatchModel:
             self.dispatchable_specs.operating_date,
             self.dispatchable_specs.retirement_date,
         )
-        self.re_plant_specs, self.re_profiles = validator.renewables(
+        self.re_plant_specs, re_profiles = validator.renewables(
             re_plant_specs, re_profiles
         )
+        (
+            self.net_load_profile,
+            self.re_profiles_ac,
+            self.re_excess,
+        ) = self.re_and_net_load(re_profiles)
 
         # create vars with correct column names that will be replaced after dispatch
         self.redispatch = MTDF.reindex(columns=self.dispatchable_specs.index)
         self.storage_dispatch = MTDF.reindex(
             columns=[
                 col
-                for i in range(self.storage_specs.shape[0])
-                for col in (f"charge_{i}", f"discharge_{i}", f"soc_{i}")
+                for i in self.storage_specs.index.get_level_values("plant_id_eia")
+                for col in (
+                    f"charge_{i}",
+                    f"discharge_{i}",
+                    f"soc_{i}",
+                    f"gridcharge_{i}",
+                )
             ]
         )
         self.system_data = MTDF.reindex(
@@ -205,6 +205,36 @@ class DispatchModel:
         )
         self.starts = MTDF.reindex(columns=self.dispatchable_specs.index)
         self._cached = {}
+
+    def re_and_net_load(self, re_profiles):
+        """Create net_load_profile based on what RE data was provided."""
+        if self.re_plant_specs is None or re_profiles is None:
+            return (
+                self.load_profile,
+                None,
+                None,
+            )
+        # ILR adjusted normalized profiles
+        temp = re_profiles * self.re_plant_specs.ilr.to_numpy()
+        ac_out = np.minimum(temp, 1) * self.re_plant_specs.capacity_mw.to_numpy()
+        excess = temp * self.re_plant_specs.capacity_mw.to_numpy() - ac_out
+        return self.load_profile - ac_out.sum(axis=1), ac_out, excess
+
+    def dc_charge(self):
+        """Align excess_re to match the storage facilities it could charge."""
+        dc_charge = pd.DataFrame(
+            np.nan, index=self.load_profile.index, columns=self.storage_specs.index
+        )
+        if self.re_excess is None:
+            return dc_charge.fillna(0.0)
+        dc_charge = dc_charge.droplevel("generator_id", axis=1)
+        return (
+            dc_charge.combine_first(self.re_excess.droplevel("generator_id", axis=1))[
+                dc_charge.columns
+            ]
+            .set_axis(self.storage_specs.index, axis=1)
+            .fillna(0.0)
+        )
 
     def add_total_costs(self, df: pd.DataFrame) -> pd.DataFrame:
         """Add columns for total FOM and total startup from respective unit costs."""
@@ -236,19 +266,10 @@ class DispatchModel:
                 )
             del meta["__qualname__"]
 
-        data_dict = {}
-        with ZipFile(path.with_suffix(".zip"), "r") as z:
-            metadata = json.loads(z.read("metadata.json"))
+        with DataZip(path, "r") as z:
+            metadata = z.read("metadata")
             _type_check(metadata)
-            plant_index = pd.MultiIndex.from_tuples(
-                metadata.pop("plant_index"), names=["plant_id_eia", "generator_id"]
-            )
-            for df_name in cls._parquet_out:
-                if (x := df_name + ".parquet") in z.namelist():
-                    df_in = pd.read_parquet(BytesIO(z.read(x))).squeeze()
-                    if df_name in ("dispatchable_profiles", "redispatch"):
-                        df_in.columns = plant_index
-                    data_dict[df_name] = df_in
+            data_dict = dict(z.read_dfs())
 
         sig = inspect.signature(cls).parameters
         self = cls(
@@ -272,9 +293,15 @@ class DispatchModel:
     ) -> DispatchModel:
         """Create :class:`.DispatchModel` with data from patio.BAScenario."""
         if "operating_date" not in storage_specs:
-            storage_specs = storage_specs.assign(operating_date=net_load.index.min())
+            storage_specs = storage_specs.assign(
+                operating_date=net_load.index.min(),
+                plant_id_eia=lambda x: x.index.to_series() * -1,
+                generator_id=lambda x: (
+                    x.groupby(["plant_id_eia"]).transform("cumcount") + 1
+                ).astype(str),
+            ).set_index(["plant_id_eia", "generator_id"])
         return cls(
-            net_load_profile=net_load,
+            load_profile=net_load,
             dispatchable_specs=plant_data,
             dispatchable_cost=cost_data,
             dispatchable_profiles=dispatchable_profiles,
@@ -321,17 +348,16 @@ class DispatchModel:
 
         # make a boolean array for whether a particular hour comes between
         # a generator's `operating_date` and `retirement_date` or not
-        dispatchable_profiles = apply_op_ret_date(
-            pd.DataFrame(
-                1, index=net_load_profile.index, columns=dispatchable_specs.index
+        dispatchable_profiles = pd.DataFrame(
+            np.expand_dims(dispatchable_specs.capacity_mw.to_numpy(), axis=0).repeat(
+                len(net_load_profile.index), axis=0
             ),
-            dispatchable_specs.operating_date,
-            dispatchable_specs.retirement_date,
-            dispatchable_specs.capacity_mw,
+            index=net_load_profile.index,
+            columns=dispatchable_specs.index,
         )
 
         return cls(
-            net_load_profile=net_load_profile,
+            load_profile=net_load_profile,
             dispatchable_specs=dispatchable_specs,
             dispatchable_cost=dispatchable_cost,
             dispatchable_profiles=dispatchable_profiles,
@@ -342,7 +368,7 @@ class DispatchModel:
     @property
     def dispatch_func(self) -> Callable:
         """Appropriate dispatch engine depending on ``jit`` setting."""
-        return dispatch_engine_compiled if self._metadata["jit"] else dispatch_engine
+        return dispatch_engine if self._metadata["jit"] else dispatch_engine_py
 
     @property
     def is_redispatch(self) -> bool:
@@ -377,7 +403,7 @@ class DispatchModel:
         return self._cost(self.redispatch)
 
     # TODO probably a bad idea to use __call__, but nice to not have to think of a name
-    def __call__(self) -> None:
+    def __call__(self) -> DispatchModel:
         """Run dispatch model."""
         fos_prof, storage, deficits, starts = self.dispatch_func(
             net_load=self.net_load_profile.to_numpy(dtype=np.float_),  # type: ignore
@@ -407,27 +433,22 @@ class DispatchModel:
                 >= self.storage_specs.operating_date.to_numpy(),
                 axis=0,
             ),
+            storage_dc_charge=self.dc_charge().to_numpy(dtype=np.float_),
         )
         self.redispatch = pd.DataFrame(
-            fos_prof.astype(np.float32),
+            fos_prof,
             index=self.dt_idx,
             columns=self.dispatchable_profiles.columns,
         )
         self.storage_dispatch = pd.DataFrame(
-            np.hstack([storage[:, :, x] for x in range(storage.shape[2])]).astype(
-                np.float32
-            ),
+            np.hstack([storage[:, :, x] for x in range(storage.shape[2])]),
             index=self.dt_idx,
-            columns=[
-                col
-                for i in range(storage.shape[2])
-                for col in (f"charge_{i}", f"discharge_{i}", f"soc_{i}")
-            ],
+            columns=self.storage_dispatch.columns,
         )
         self.system_data = pd.DataFrame(
-            deficits.astype(np.float32),
+            deficits,
             index=self.dt_idx,
-            columns=["deficit", "dirty_charge", "curtailment"],
+            columns=self.system_data.columns,
         )
         self.starts = (
             pd.DataFrame(
@@ -439,22 +460,23 @@ class DispatchModel:
             .reorder_levels([1, 2, 0])
             .sort_index()
         )
+        return self
 
     def _cost(self, profiles: pd.DataFrame) -> dict[str, pd.DataFrame]:
         """Determine total cost based on hourly production and starts."""
         profs = profiles.to_numpy()
         fuel_cost = profs * self.dispatchable_cost.fuel_per_mwh.unstack(
             level=("plant_id_eia", "generator_id")
-        ).reindex(index=self.net_load_profile.index, method="ffill")
+        ).reindex(index=self.load_profile.index, method="ffill")
         vom_cost = profs * self.dispatchable_cost.vom_per_mwh.unstack(
             level=("plant_id_eia", "generator_id")
-        ).reindex(index=self.net_load_profile.index, method="ffill")
+        ).reindex(index=self.load_profile.index, method="ffill")
         start_cost = np.where(
             (profs == 0) & (np.roll(profs, -1, axis=0) > 0), 1, 0
         ) * self.dispatchable_cost.startup_cost.unstack(
             level=("plant_id_eia", "generator_id")
         ).reindex(
-            index=self.net_load_profile.index, method="ffill"
+            index=self.load_profile.index, method="ffill"
         )
         fom = (
             apply_op_ret_date(
@@ -468,9 +490,9 @@ class DispatchModel:
                     lambda x: x.replace(day=1, month=1)
                 ),
             )
-            .reindex(index=self.net_load_profile.index, method="ffill")
+            .reindex(index=self.load_profile.index, method="ffill")
             .divide(
-                self.net_load_profile.groupby(pd.Grouper(freq="YS")).transform("count"),
+                self.load_profile.groupby(pd.Grouper(freq="YS")).transform("count"),
                 axis=0,
             )
         )
@@ -567,7 +589,7 @@ class DispatchModel:
     ) -> pd.Series[int]:
         """Number of hours during which deficit was in various duration bins."""
         if comparison is None:
-            durs = self.system_data.deficit / self.net_load_profile
+            durs = self.system_data.deficit / self.load_profile
         else:
             durs = self.system_data.deficit / comparison
         bins = map(
@@ -590,9 +612,7 @@ class DispatchModel:
         positive deficit hours.
         """
         if comparison is None:
-            comparison = self.net_load_profile.groupby(
-                [pd.Grouper(freq="YS")]
-            ).transform(
+            comparison = self.load_profile.groupby([pd.Grouper(freq="YS")]).transform(
                 "max"
             )  # type: ignore
         td_1h = np.timedelta64(1, "h")
@@ -603,9 +623,43 @@ class DispatchModel:
                     self.system_data.deficit / comparison > cutoff
                 ].index
                 for hr in (dhr - 2 * td_1h, dhr - td_1h, dhr)
-                if hr in self.net_load_profile.index
+                if hr in self.load_profile.index
             }
         )
+
+    def hourly_data_check(self, cutoff: float = 0.01):
+        """Aggregate data for :meth:`.DispatchModel.hrs_to_checl`."""
+        max_disp = apply_op_ret_date(
+            pd.DataFrame(
+                1.0,
+                index=self.load_profile.index,
+                columns=self.dispatchable_profiles.columns,
+            ),
+            self.dispatchable_specs.operating_date,
+            self.dispatchable_specs.retirement_date,
+            self.dispatchable_specs.capacity_mw,
+        )
+        out = pd.concat(
+            {
+                "gross_load": self.load_profile,
+                "net_load": self.net_load_profile,
+                "deficit": self.system_data.deficit,
+                "max_dispatch": max_disp.sum(axis=1),
+                "redispatch": self.redispatch.sum(axis=1),
+                "historical_dispatch": self.dispatchable_profiles.sum(axis=1),
+                "net_storage": (
+                    self.storage_dispatch.filter(regex="^discharge").sum(axis=1)
+                    - self.storage_dispatch.filter(regex="^gridcharge").sum(axis=1)
+                ),
+                "state_of_charge": self.storage_dispatch.filter(regex="^soc").sum(
+                    axis=1
+                ),
+                "re": self.re_profiles_ac.sum(axis=1),
+                "re_excess": self.re_excess.sum(axis=1),
+            },
+            axis=1,
+        ).loc[self.hrs_to_check(cutoff=cutoff), :]
+        return out
 
     def storage_capacity(self) -> pd.DataFrame:
         """Number of hours when storage charge or discharge was in various bins."""
@@ -648,17 +702,15 @@ class DispatchModel:
                 self.system_data.groupby(pd.Grouper(freq=freq))
                 .sum()
                 .rename(columns={c: f"{c}_mwh" for c in self.system_data}),
-                # max deficit pct of net load
+                # max deficit pct of load
                 self.system_data[["deficit"]]
                 .groupby(pd.Grouper(freq=freq))
                 .max()
                 .rename(columns={"deficit": "deficit_max_pct_net_load"})
-                / self.net_load_profile.max(),
+                / self.load_profile.max(),
                 # count of deficit greater than 2%
                 pd.Series(
-                    self.system_data[
-                        self.system_data / self.net_load_profile.max() > 0.02
-                    ]
+                    self.system_data[self.system_data / self.load_profile.max() > 0.02]
                     .groupby(pd.Grouper(freq=freq))
                     .deficit.count(),
                     name="deficit_gt_2pct_count",
@@ -669,12 +721,16 @@ class DispatchModel:
                         f"storage_{i}_max_mw": self.storage_dispatch.filter(
                             like=f"e_{i}"
                         ).max(axis=1)
-                        for i in self.storage_specs.index
+                        for i in self.storage_specs.index.get_level_values(
+                            "plant_id_eia"
+                        )
                     },
                     **{
                         f"storage_{i}_max_hrs": self.storage_dispatch[f"soc_{i}"]
                         / self.storage_specs.loc[i, "capacity_mw"]
-                        for i in self.storage_specs.index
+                        for i in self.storage_specs.index.get_level_values(
+                            "plant_id_eia"
+                        )
                     },
                 )
                 .groupby(pd.Grouper(freq=freq))
@@ -687,12 +743,12 @@ class DispatchModel:
             **{
                 f"storage_{i}_mw_utilization": out[f"storage_{i}_max_mw"]
                 / self.storage_specs.loc[i, "capacity_mw"]
-                for i in self.storage_specs.index
+                for i in self.storage_specs.index.get_level_values("plant_id_eia")
             },
             **{
                 f"storage_{i}_hrs_utilization": out[f"storage_{i}_max_hrs"]
                 / self.storage_specs.loc[i, "duration_hrs"]
-                for i in self.storage_specs.index
+                for i in self.storage_specs.index.get_level_values("plant_id_eia")
             },
         )
 
@@ -703,12 +759,12 @@ class DispatchModel:
         **kwargs,
     ) -> pd.DataFrame:
         """Create granular summary of renewable plant metrics."""
-        if self.re_profiles is None or self.re_plant_specs is None:
+        if self.re_profiles_ac is None or self.re_plant_specs is None:
             raise AssertionError(
                 "at least one of `re_profiles` and `re_plant_specs` is `None`"
             )
         out = (
-            self.re_profiles.groupby([pd.Grouper(freq=freq)])
+            self.re_profiles_ac.groupby([pd.Grouper(freq=freq)])
             .sum()
             .stack(["plant_id_eia", "generator_id"])
             .to_frame(name="redispatch_mwh")
@@ -737,26 +793,35 @@ class DispatchModel:
     ) -> pd.DataFrame:
         """Create granular summary of storage plant metrics."""
         out = (
-            self.storage_dispatch.groupby([pd.Grouper(freq=freq)])
+            self.storage_dispatch.filter(regex="^dis|^grid")
+            .groupby([pd.Grouper(freq=freq)])
             .sum()
             .stack()
             .reset_index()
             .rename(columns={0: "redispatch_mwh"})
         )
 
-        out[["kind", "index"]] = out.level_1.str.split("_", expand=True)
+        out[["kind", "plant_id_eia"]] = out.level_1.str.split("_", expand=True)
         out = (
-            out.query("kind != 'soc'")
+            out.astype({"plant_id_eia": int})
             .assign(
                 redispatch_mwh=lambda x: x.redispatch_mwh.mask(
-                    x.kind == "charge", x.redispatch_mwh * -1
-                )
+                    x.kind == "gridcharge", x.redispatch_mwh * -1
+                ),
+                generator_id=lambda x: x.plant_id_eia.replace(
+                    self.storage_specs.reset_index(
+                        "generator_id"
+                    ).generator_id.to_dict()
+                ),
             )
-            .groupby(["index", "datetime"])
+            .groupby(["plant_id_eia", "generator_id", "datetime"])
             .redispatch_mwh.sum()
             .reset_index()
-            .astype({"index": int})
-            .merge(self.storage_specs.reset_index(), on="index", validate="m:1")
+            .merge(
+                self.storage_specs.reset_index(),
+                on=["plant_id_eia", "generator_id"],
+                validate="m:1",
+            )
             .assign(
                 capacity_mw=lambda x: x.capacity_mw.where(
                     x.operating_date <= x.datetime, 0
@@ -764,14 +829,7 @@ class DispatchModel:
             )
         )
         if by is None:
-            if (
-                None in self.storage_specs.index.names
-                and len(self.storage_specs.index.names) == 1
-            ):
-                col = ["index"]
-            else:
-                col = self.storage_specs.index.names
-            return out.set_index(col + ["datetime"])
+            return out.set_index(["plant_id_eia", "generator_id", "datetime"])
         return out.groupby([by, "datetime"]).sum()
 
     def full_output(self, freq: str = "YS") -> pd.DataFrame:
@@ -805,13 +863,63 @@ class DispatchModel:
                 + [col for col in cols if col in self.dispatchable_specs]
             ]
         )
+
+        # setup deficit/curtailment as if they were resources for full output, the idea
+        # here is that you could rename them purchase/sales.
+        def_cur = self.grouper(self.system_data, by=None)[["deficit", "curtailment"]]
+        def_cur.columns = pd.MultiIndex.from_tuples(
+            [(0, "deficit"), (0, "curtailment")], names=["plant_id_eia", "generator_id"]
+        )
+        def_cur = (
+            def_cur.stack([0, 1])
+            .reorder_levels([1, 2, 0])
+            .sort_index()
+            .to_frame(name="redispatch_mwh")
+            .assign(
+                technology_description=lambda x: x.index.get_level_values(
+                    "generator_id"
+                )
+            )
+        )
+
         return pd.concat(
             [
                 dispatchable,
                 self.re_summary(by=None, freq=freq),
-                self.storage_summary(by=None, freq=freq),
+                self.storage_summary(by=None, freq=freq)
+                .reset_index()
+                .set_index(["plant_id_eia", "generator_id", "datetime"]),
+                def_cur,
             ]
         ).sort_index()
+
+    def load_summary(self, **kwargs):
+        """Create summary of load data."""
+        return pd.concat(
+            [
+                self.strict_grouper(
+                    self.net_load_profile.to_frame("net_load"), by=None, freq="YS"
+                ),
+                self.strict_grouper(
+                    self.net_load_profile.to_frame("net_load_peak"),
+                    by=None,
+                    freq="YS",
+                    freq_agg="max",
+                ),
+                self.strict_grouper(
+                    self.load_profile.to_frame("gross_load"),
+                    by=None,
+                    freq="YS",
+                ),
+                self.strict_grouper(
+                    self.load_profile.to_frame("gross_load_peak"),
+                    by=None,
+                    freq="YS",
+                    freq_agg="max",
+                ),
+            ],
+            axis=1,
+        )
 
     def dispatchable_summary(
         self,
@@ -833,7 +941,7 @@ class DispatchModel:
                         apply_op_ret_date(
                             pd.DataFrame(
                                 1,
-                                index=self.net_load_profile.index,
+                                index=self.load_profile.index,
                                 columns=self.dispatchable_specs.index,
                             ),
                             self.dispatchable_specs.operating_date,
@@ -900,54 +1008,39 @@ class DispatchModel:
         clobber=False,
         **kwargs,
     ) -> None:
-        """Save :class:`.DispatchModel` to disk.
-
-        A very ugly process at the moment because of our goal not to use pickle
-        and to try to keep the file small-ish. Also need to manage the fact that
-        the parquet requirement for string column names causes some problems.
-        """
-        if not isinstance(path, Path):
-            path = Path(path)
-        path = path.with_suffix(".zip")
-        if path.exists() and not clobber:
+        """Save :class:`.DispatchModel` to disk."""
+        if Path(path).with_suffix(".zip").exists() and not clobber:
             raise FileExistsError(f"{path} exists, to overwrite set `clobber=True`")
+        if clobber:
+            Path(path).with_suffix(".zip").unlink(missing_ok=True)
 
-        metadata = {
-            **self._metadata,
-            "__qualname__": self.__class__.__qualname__,
-            "plant_index": list(self.dispatchable_specs.index),
-        }
-
-        with ZipFile(path, "w", compression=compression) as z:
-            for df_name, func in self._parquet_out.items():
-                try:
-                    df_out = getattr(self, df_name)
-                    if df_out is not None and not df_out.empty:
-                        z.writestr(
-                            f"{df_name}.parquet", func(df_out, df_name).to_parquet()
-                        )
-                except Exception as exc:
-                    raise RuntimeError(f"{df_name} {exc!r}") from exc
+        with DataZip(path, "w", compression=compression) as z:
+            for df_name in self._parquet_out:
+                z.writed(df_name, getattr(self, df_name))
             if include_output and not self.redispatch.empty:
-                for df_name in ("system_level_summary", "dispatchable_summary"):
-                    z.writestr(
-                        f"{df_name}.parquet",
-                        getattr(self, df_name)(**kwargs).to_parquet(),
+                for df_name in ("full_output", "load_summary"):
+                    z.writed(
+                        df_name,
+                        getattr(self, df_name)(**kwargs),
                     )
-            z.writestr(
-                "metadata.json", json.dumps(metadata, ensure_ascii=False, indent=4)
+            z.writed(
+                "metadata",
+                {
+                    **self._metadata,
+                    "__qualname__": self.__class__.__qualname__,
+                },
             )
 
     def _plot_prep(self):
         if "plot_prep" not in self._cached:
             storage = self.storage_dispatch.assign(
-                charge=lambda x: -1 * x.filter(regex="^charge").sum(axis=1),
+                charge=lambda x: -1 * x.filter(regex="^gridcharge").sum(axis=1),
                 discharge=lambda x: x.filter(regex="^discharge").sum(axis=1),
             )
             try:
                 re = self.re_summary(freq="H").redispatch_mwh.unstack(level=0)
             except AssertionError:
-                re = MTDF.reindex(index=self.net_load_profile.index)
+                re = MTDF.reindex(index=self.load_profile.index)
 
             def _grp(df):
                 return df.rename(columns=PLOT_MAP).groupby(level=0, axis=1).sum()
@@ -957,7 +1050,7 @@ class DispatchModel:
                     [
                         self.grouper(self.redispatch, freq="H").pipe(_grp),
                         re.pipe(_grp),
-                        storage[["charge", "discharge"]].pipe(_grp),
+                        storage[["charge", "discharge"]],
                     ],
                     axis=1,
                 )
@@ -971,58 +1064,173 @@ class DispatchModel:
             )
         return self._cached["plot_prep"]
 
-    def plot_period(self, begin, end):
-        """Plot hourly dispatch."""
-        net_load = self.net_load_profile.loc[begin:end]
-        out = px.bar(
-            self._plot_prep().loc[net_load.index, :].reset_index(),
-            x="datetime",
-            y="net_generation_mwh",
-            color="resource",
-            color_discrete_map=COLOR_MAP,
-        ).add_scatter(
-            x=net_load.index,
-            y=net_load,
-            name="Net Load",
-            mode="lines",
-            line_color=COLOR_MAP["Net Load"],
-            line_dash="dot",
-        )
-        if self.re_profiles is None or self.re_plant_specs is None:
-            return out
-        gross = self.re_profiles.loc[net_load.index, :].sum(axis=1) + net_load
-        return out.add_scatter(
-            x=gross.index,
-            y=gross,
-            name="Grossed Load",
-            mode="lines",
-            line_color=COLOR_MAP["Grossed Load"],
+    def _plot_prep_detail(self, begin, end):
+        to_cat = [
+            self.redispatch.set_axis(
+                pd.MultiIndex.from_frame(
+                    self.dispatchable_specs.technology_description.reset_index()
+                ),
+                axis=1,
+            ),
+            self.re_profiles_ac.set_axis(
+                pd.MultiIndex.from_frame(
+                    self.re_plant_specs.technology_description.reset_index()
+                ),
+                axis=1,
+            ),
+            self.storage_dispatch.filter(like="discharge").set_axis(
+                pd.MultiIndex.from_frame(
+                    self.storage_specs.assign(
+                        technology_description="discharge"
+                    ).technology_description.reset_index()
+                ),
+                axis=1,
+            ),
+            -1
+            * self.storage_dispatch.filter(like="gridcharge").set_axis(
+                pd.MultiIndex.from_frame(
+                    self.storage_specs.assign(
+                        technology_description="charge"
+                    ).technology_description.reset_index()
+                ),
+                axis=1,
+            ),
+            -1
+            * self.system_data.curtailment.to_frame(
+                name=(999, "curtailment", "Curtailment")
+            ),
+            self.system_data.deficit.to_frame(name=(999, "deficit", "Deficit")),
+        ]
+        return (
+            pd.concat(
+                to_cat,
+                axis=1,
+            )
+            .loc[begin:end, :]
+            .stack([0, 1, 2])
+            .to_frame(name="net_generation_mwh")
+            .reset_index()
+            .assign(resource=lambda x: x.technology_description.replace(PLOT_MAP))
+            .query("net_generation_mwh != 0.0")
         )
 
-    def plot_year(self, year):
+    def plot_period(self, begin, end=None, by_gen=True) -> Figure:
+        """Plot hourly dispatch by generator."""
+        begin = pd.Timestamp(begin)
+        if end is None:
+            end = begin + pd.Timedelta(days=7)
+        else:
+            end = pd.Timestamp(end)
+        net_load = self.net_load_profile.loc[begin:end]
+        data = self._plot_prep_detail(begin, end)
+        hover_name = "plant_id_eia"
+        if not by_gen:
+            data = data.groupby(["datetime", "resource"]).sum().reset_index()
+            hover_name = "resource"
+        out = (
+            px.bar(
+                data.replace(
+                    {"resource": {"charge": "Storage", "discharge": "Storage"}}
+                ).sort_values(["resource"], key=dispatch_key),
+                x="datetime",
+                y="net_generation_mwh",
+                color="resource",
+                hover_name=hover_name,
+                color_discrete_map=COLOR_MAP,
+            )
+            .add_scatter(
+                x=net_load.index,
+                y=net_load,
+                name="Net Load",
+                mode="lines",
+                line_color=COLOR_MAP["Net Load"],
+                line_dash="dot",
+            )
+            .update_layout(xaxis_title=None, yaxis_title="MW", yaxis_tickformat=",.0r")
+        )
+        if self.re_profiles_ac is None or self.re_plant_specs is None:
+            return out
+        return out.add_scatter(
+            x=self.load_profile.loc[begin:end].index,
+            y=self.load_profile.loc[begin:end],
+            name="Gross Load",
+            mode="lines",
+            line_color=COLOR_MAP["Gross Load"],
+        )
+
+    def plot_year(self, year: int, freq="D") -> Figure:
         """Monthly facet plot of daily dispatch for a year."""
+        assert freq in ("H", "D"), "`freq` must be 'D' for day or 'H' for hour"
         out = (
             self._plot_prep()
+            .loc[str(year), :]
             .reset_index()
-            .groupby([pd.Grouper(freq="D", key="datetime"), "resource"])
+            .groupby([pd.Grouper(freq=freq, key="datetime"), "resource"])
             .sum()
+            .reset_index()
             .assign(
-                year=lambda x: x.index.get_level_values("datetime").year,
-                month=lambda x: x.index.get_level_values("datetime").month,
+                day=lambda z: z.datetime.dt.day,
+                hour=lambda z: z.datetime.dt.day * 24 + z.datetime.dt.hour,
+                month=lambda z: z.datetime.dt.strftime("%B"),
+                resource=lambda z: z.resource.replace(
+                    {"charge": "Storage", "discharge": "Storage"}
+                ),
             )
+            .sort_values(["resource", "month"], key=dispatch_key)
         )
-        return px.bar(
-            out.loc[str(year), :].reset_index(),
-            x="datetime",
-            y="net_generation_mwh",
-            color="resource",
-            facet_col="month",
-            facet_col_wrap=4,
+        x, yt, ht = {"D": ("day", "MWh", "resource"), "H": ("hour", "MW", "datetime")}[
+            freq
+        ]
+        return (
+            px.bar(
+                out,
+                x=x,
+                y="net_generation_mwh",
+                color="resource",
+                facet_col="month",
+                facet_col_wrap=4,
+                height=800,
+                width=1000,
+                hover_name=ht,
+                color_discrete_map=COLOR_MAP,
+            )
+            .for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+            .update_xaxes(title=None)
+            .for_each_yaxis(
+                lambda yaxis: (yaxis.update(title=yt) if yaxis.title.text else None)
+                # lambda yaxis: print(yaxis)
+            )
+            .update_layout(bargap=0)
         )
 
+    def plot_output(self, y: str, color="resource") -> Figure:
+        """Plot a columns from :meth:`.DispatchModel.full_output`."""
+        return px.bar(
+            self.full_output()
+            .reset_index()
+            .assign(
+                year=lambda x: x.datetime.dt.year,
+                resource=lambda x: x.technology_description.replace(PLOT_MAP),
+                redispatch_cost=lambda x: x.filter(like="redispatch_cost").sum(axis=1),
+                historical_cost=lambda x: x.filter(like="historical_cost").sum(axis=1),
+            )
+            .sort_values(["resource"], key=dispatch_key),
+            x="year",
+            y=y,
+            color=color,
+            hover_name="plant_id_eia",
+            color_discrete_map=COLOR_MAP,
+            width=1000,
+        ).update_layout(xaxis_title=None)
+
     def __repr__(self) -> str:
+        if self.re_plant_specs is None:
+            re_len = 0
+        else:
+            re_len = len(self.re_plant_specs)
         return (
             self.__class__.__qualname__
             + f"({', '.join(f'{k}={v}' for k, v in self._metadata.items())}, "
-            f"n_plants={len(self.dispatchable_specs)})".replace("self.", "")
+            f"n_dispatchable={len(self.dispatchable_specs)}, n_re={re_len}, "
+            f"n_storage={len(self.storage_specs)})"
         )
