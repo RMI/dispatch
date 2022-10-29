@@ -229,9 +229,11 @@ class DispatchModel:
             return dc_charge.fillna(0.0)
         dc_charge = dc_charge.droplevel("generator_id", axis=1)
         return (
-            dc_charge.combine_first(self.re_excess.droplevel("generator_id", axis=1))[
-                dc_charge.columns
-            ]
+            dc_charge.combine_first(
+                self.re_excess.groupby(level=0, axis=1)
+                .sum()
+                .sort_index(axis=1, ascending=False)
+            )[dc_charge.columns]
             .set_axis(self.storage_specs.index, axis=1)
             .fillna(0.0)
         )
@@ -834,36 +836,6 @@ class DispatchModel:
 
     def full_output(self, freq: str = "YS") -> pd.DataFrame:
         """Create full operations output."""
-        cols = [
-            "plant_name_eia",
-            "technology_description",
-            "utility_id_eia",
-            "final_ba_code",
-            "final_respondent_id",
-            "respondent_name",
-            "balancing_authority_code_eia",
-            "prime_mover_code",
-            "operating_date",
-            "retirement_date",
-            "status",
-            "owned_pct",
-        ]
-        a = self.dispatchable_summary(by=None, freq=freq)
-
-        dispatchable = (
-            a.reset_index()
-            .merge(
-                self.dispatchable_specs,
-                on=["plant_id_eia", "generator_id"],
-                validate="m:1",
-                suffixes=(None, "_l"),
-            )
-            .set_index(a.index.names)[
-                list(a.columns)
-                + [col for col in cols if col in self.dispatchable_specs]
-            ]
-        )
-
         # setup deficit/curtailment as if they were resources for full output, the idea
         # here is that you could rename them purchase/sales.
         def_cur = self.grouper(self.system_data, by=None)[["deficit", "curtailment"]]
@@ -884,7 +856,7 @@ class DispatchModel:
 
         return pd.concat(
             [
-                dispatchable,
+                self.dispatchable_summary(by=None, freq=freq, augment=True),
                 self.re_summary(by=None, freq=freq),
                 self.storage_summary(by=None, freq=freq)
                 .reset_index()
@@ -925,6 +897,7 @@ class DispatchModel:
         self,
         by: str | None = "technology_description",
         freq: str = "YS",
+        augment: bool = False,
         **kwargs,
     ) -> pd.DataFrame:
         """Create granular summary of dispatchable plant metrics.
@@ -933,8 +906,9 @@ class DispatchModel:
             by: column from :attr:`.DispatchModel.dispatchable_specs` to use for
                 grouping dispatchable plants, if None, no column grouping
             freq: output time resolution
+            augment: include columns from plant_specs columns
         """
-        return (
+        out = (
             pd.concat(
                 [
                     self.strict_grouper(
@@ -998,6 +972,35 @@ class DispatchModel:
                 ),
             )
             .sort_index()
+        )
+        if not augment:
+            return out
+        cols = [
+            "plant_name_eia",
+            "technology_description",
+            "utility_id_eia",
+            "final_ba_code",
+            "final_respondent_id",
+            "respondent_name",
+            "balancing_authority_code_eia",
+            "prime_mover_code",
+            "operating_date",
+            "retirement_date",
+            "status",
+            "owned_pct",
+        ]
+        return (
+            out.reset_index()
+            .merge(
+                self.dispatchable_specs,
+                on=["plant_id_eia", "generator_id"],
+                validate="m:1",
+                suffixes=(None, "_l"),
+            )
+            .set_index(out.index.names)[
+                list(out.columns)
+                + [col for col in cols if col in self.dispatchable_specs]
+            ]
         )
 
     def to_file(

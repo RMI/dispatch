@@ -38,8 +38,8 @@ What's New?
     easily reading and writing :class:`pandas.DataFrame` as ``parquet`` and
     :class:`dict` as ``json``. This includes storing column names separately that
     cannot be included in a ``parquet``.
-*   Extracted :func:`dispatch.engine.charge_storage_py` and
-    :func:`dispatch.engine.make_rank_arrays_py` from :func:`.dispatch_engine_py`. This
+*   Extracted :func:`.charge_storage_py` and
+    :func:`.make_rank_arrays_py` from :func:`.dispatch_engine_py`. This
     allows easier unit testing and, in the former case, makes sure all charging is
     implemented consistently.
 *   Added plotting functions :meth:`.DispatchModel.plot_output` to visualize columns
@@ -47,6 +47,13 @@ What's New?
     :meth:`.DispatchModel.plot_period` to display data by generator if ``by_gen=True``.
     :meth:`.DispatchModel.plot_year` can now display the results with daily or hourly
     frequency.
+*   For renewables, ``plant_id_eia`` no longer need by unique, now for renewables,
+    ``plant_id_eia`` and ``generator_id`` must be jointly unique. In cases where a
+    single ``plant_id_eia`` has two renewable generator's as well as storage,
+    :meth:`.DispatchModel.dc_charge` assumes excess renewable generation from the
+    several generators can be combined to charge the facility's storage.
+*   ``re_plant_specs``, ``dispatchable_specs``, and ``storage_specs``, now allow zeros
+    for ``capacity_mw`` and ``duration_hrs``.
 
 
 Known Issues
@@ -67,6 +74,12 @@ Known Issues
     :class:`pandas.DataFrame` that cannot be stored in the ``parquet`` itself. Ways of
     addressing this get messy and still wouldn't allow updating existing data without
     copying everything which a user can do if that is needed.
+
+Bug Fixes
+^^^^^^^^^
+*   Fixed an issue in :func:`.dispatch_engine_py` where a storage resource's state of
+    charge would not be carried forward if it wasn't charged or discharged in that
+    hour.
 
 .. _release-v0-3-0:
 
