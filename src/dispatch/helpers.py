@@ -177,7 +177,7 @@ class DataZip(ZipFile):
         return list(map(lambda x: x.partition(".")[0], self.namelist()))
 
     def read(
-        self, name: str | ZipInfo, pwd: bytes | None = ...
+        self, name: str | ZipInfo, pwd: bytes | None = ..., super_=False
     ) -> bytes | pd.DataFrame | pd.Series | dict:
         """Return obj or bytes for name."""
         stem, _, suffix = name.partition(".")
@@ -188,7 +188,7 @@ class DataZip(ZipFile):
                 return self._read_dictable(stem)
             else:
                 return self._read_dict(stem)
-        if suffix == "zip" or f"{stem}.zip" in self.namelist():
+        if (suffix == "zip" or f"{stem}.zip" in self.namelist()) and not super_:
             return self._read_obj(stem)
         return super().read(name)
 
@@ -231,29 +231,29 @@ class DataZip(ZipFile):
         self,
         name: str,
         data: str | dict | pd.DataFrame | pd.Series | NamedTuple | Any,
+        **kwargs,
     ) -> None:
         """Write dict, df, str, to name."""
         if data is None:
             LOGGER.info("Unable to write data %s because it is None.", name)
             return None
         name = name.removesuffix(".json").removesuffix(".parquet").removesuffix(".zip")
-        if isinstance(data, tuple) and hasattr(data, "_asdict"):
+        if isinstance(data, (pd.DataFrame, pd.Series)):
+            self._write_df(name, data, **kwargs)
+        elif isinstance(data, tuple) and hasattr(data, "_asdict"):
             self._write_nt(name, data)
         elif isinstance(data, (dict, list, tuple)):
             self._write_simple_json(name, data)
-        elif isinstance(data, (pd.DataFrame, pd.Series)):
-            self._write_df(name, data)
-
         elif hasattr(data, "to_file") and hasattr(data, "from_file"):
-            self._write_obj(name, data)
+            self._write_obj(name, data, **kwargs)
         else:
             raise TypeError(
                 "`data` must be a dict, pd.DataFrame, pd.Series or implement a `to_file` method"
             )
 
-    def _write_obj(self, name, obj):
+    def _write_obj(self, name, obj, **kwargs):
         if name not in self._stemlist():
-            obj.to_file(temp := BytesIO())
+            obj.to_file(temp := BytesIO(), **kwargs)
             self.writestr(f"{name}.zip", temp.getvalue())
             self.obj_meta.update(
                 {
@@ -279,7 +279,7 @@ class DataZip(ZipFile):
         else:
             raise FileExistsError(f"{name} already in {self.filename}")
 
-    def _write_df(self, name: str, df: pd.DataFrame | pd.Series) -> None:
+    def _write_df(self, name: str, df: pd.DataFrame | pd.Series, **kwargs) -> None:
         """Write a df in the ZIP as parquet."""
         if df.empty:
             LOGGER.info("Unable to write df %s because it is empty.", name)
@@ -296,7 +296,10 @@ class DataZip(ZipFile):
             raise FileExistsError(f"{name} already in {self.filename}")
 
     def _write_simple_json(
-        self, name, obj: dict[int | str, list | tuple | dict | str | float | int]
+        self,
+        name,
+        obj: dict[int | str, list | tuple | dict | str | float | int],
+        **kwargs,
     ) -> None:
         """Write a dict in the ZIP as json."""
         if name not in self._stemlist():

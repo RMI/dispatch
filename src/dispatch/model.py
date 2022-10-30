@@ -7,7 +7,7 @@ from collections.abc import Callable
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
-from zipfile import ZIP_DEFLATED
+from zipfile import ZIP_STORED
 
 import numpy as np
 import pandas as pd
@@ -1008,7 +1008,7 @@ class DispatchModel:
         self,
         path: Path | str | BytesIO,
         include_output: bool = False,
-        compression=ZIP_DEFLATED,
+        compression=ZIP_STORED,
         clobber=False,
         **kwargs,
     ) -> None:
