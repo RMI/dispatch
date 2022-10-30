@@ -3,7 +3,8 @@
 import pandas as pd
 import pytest
 
-from dispatch.helpers import DataZip, copy_profile, dispatch_key
+from dispatch import DispatchModel
+from dispatch.helpers import DataZip, ObjMeta, copy_profile, dispatch_key
 
 
 def test_copy_profile(ent_fresh):
@@ -121,5 +122,49 @@ def test_datazip_w(test_dir):
         with pytest.raises(FileExistsError):
             with DataZip(test_dir / "obj.zip", "w") as z3:
                 z3.namelist()
+    finally:
+        (test_dir / "obj.zip").unlink(missing_ok=True)
+
+
+def test_dm_in_datazip(test_dir, ent_fresh):
+    """Test creating a datazip with a :class:`.DispatchModel` in it."""
+    dm = DispatchModel(**ent_fresh)
+    df = pd.DataFrame(
+        [[0, 1], [2, 3]],
+        columns=pd.MultiIndex.from_tuples([(0, "a"), (1, "b")]),
+    )
+
+    try:
+        with DataZip(test_dir / "obj.zip", "w") as z0:
+            z0.writed("df", df)
+            z0.writed("dm", dm)
+        with DataZip(test_dir / "obj.zip", "r") as self:
+            dm1 = self.read("dm")
+            assert isinstance(dm1, DispatchModel)
+    finally:
+        (test_dir / "obj.zip").unlink(missing_ok=True)
+
+
+def test_namedtuple_in_datazip(test_dir, ent_fresh):
+    """Test creating a datazip with a :class:`.DispatchModel` in it."""
+    dm = DispatchModel(**ent_fresh)
+    df = pd.DataFrame(
+        [[0, 1], [2, 3]],
+        columns=pd.MultiIndex.from_tuples([(0, "a"), (1, "b")]),
+    )
+    om = ObjMeta("this", "that")
+
+    try:
+        with DataZip(test_dir / "obj.zip", "w") as z0:
+            z0.writed("df", df)
+            z0.writed("dm", dm)
+            z0.writed("om", om)
+            z0.writed("tup", (1, 2, (1, 2, 3)))
+            z0.writed("l", [om, om])
+            z0.writed("d", {"a": (1, 2, 3), "b": [32, 45], 3: 4})
+        with DataZip(test_dir / "obj.zip", "r") as self:
+            om1 = self.read("om")
+            self.read("tup")
+            assert isinstance(om1, ObjMeta)
     finally:
         (test_dir / "obj.zip").unlink(missing_ok=True)

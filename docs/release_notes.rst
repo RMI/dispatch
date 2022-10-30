@@ -54,7 +54,11 @@ What's New?
     several generators can be combined to charge the facility's storage.
 *   ``re_plant_specs``, ``dispatchable_specs``, and ``storage_specs``, now allow zeros
     for ``capacity_mw`` and ``duration_hrs``.
-
+*   :class:`.DataZip`, :meth:`.DispatchModel.to_file`, and
+    :meth:`.DispatchModel.from_file` now support :class:`io.BytesIO` as ``file``
+    or ``path``. This now allows any object that implements ``to_file``/``from_file``
+    methods using :class:`.DataZip`, to be written into and recovered from another
+    :class:`.DataZip`.
 
 Known Issues
 ^^^^^^^^^^^^

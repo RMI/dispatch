@@ -5,6 +5,7 @@ import inspect
 import logging
 from collections.abc import Callable
 from datetime import datetime
+from io import BytesIO
 from pathlib import Path
 from zipfile import ZIP_DEFLATED
 
@@ -42,25 +43,25 @@ class DispatchModel:
     - methods for common analysis of dispatch results
     """
 
-    # __slots__ = (
-    #     "load_profile",
-    #     "net_load_profile",
-    #     "dispatchable_specs",
-    #     "dispatchable_cost",
-    #     "dispatchable_profiles",
-    #     "storage_specs",
-    #     "re_profiles_ac",
-    #     "re_excess",
-    #     "re_plant_specs",
-    #     "dt_idx",
-    #     "yrs_idx",
-    #     "redispatch",
-    #     "storage_dispatch",
-    #     "system_data",
-    #     "starts",
-    #     "_metadata",
-    #     "_cached",
-    # )
+    __slots__ = (
+        "load_profile",
+        "net_load_profile",
+        "dispatchable_specs",
+        "dispatchable_cost",
+        "dispatchable_profiles",
+        "storage_specs",
+        "re_profiles_ac",
+        "re_excess",
+        "re_plant_specs",
+        "dt_idx",
+        "yrs_idx",
+        "redispatch",
+        "storage_dispatch",
+        "system_data",
+        "starts",
+        "_metadata",
+        "_cached",
+    )
     _parquet_out = (
         "re_profiles_ac",
         "re_excess",
@@ -255,16 +256,16 @@ class DispatchModel:
         return df.drop(columns=["capacity_mw"])
 
     @classmethod
-    def from_file(cls, path: Path | str) -> DispatchModel:
+    def from_file(cls, path: Path | str | BytesIO) -> DispatchModel:
         """Recreate an instance of :class:`.DispatchModel` from disk."""
-        if not isinstance(path, Path):
+        if isinstance(path, str):
             path = Path(path)
 
         def _type_check(meta):
             if meta["__qualname__"] != cls.__qualname__:
                 raise TypeError(
                     f"{path.name} represents a `{meta['__qualname__']}` which "
-                    f"is not compatible with `{cls.__qualname__}.from_disk()`"
+                    f"is not compatible with `{cls.__qualname__}.from_file()`"
                 )
             del meta["__qualname__"]
 
@@ -1005,17 +1006,18 @@ class DispatchModel:
 
     def to_file(
         self,
-        path: Path | str,
+        path: Path | str | BytesIO,
         include_output: bool = False,
         compression=ZIP_DEFLATED,
         clobber=False,
         **kwargs,
     ) -> None:
         """Save :class:`.DispatchModel` to disk."""
-        if Path(path).with_suffix(".zip").exists() and not clobber:
-            raise FileExistsError(f"{path} exists, to overwrite set `clobber=True`")
-        if clobber:
-            Path(path).with_suffix(".zip").unlink(missing_ok=True)
+        if isinstance(path, (str, Path)):
+            if Path(path).with_suffix(".zip").exists() and not clobber:
+                raise FileExistsError(f"{path} exists, to overwrite set `clobber=True`")
+            if clobber:
+                Path(path).with_suffix(".zip").unlink(missing_ok=True)
 
         with DataZip(path, "w", compression=compression) as z:
             for df_name in self._parquet_out:

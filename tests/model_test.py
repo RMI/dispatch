@@ -1,4 +1,6 @@
 """Where dispatch tests will go."""
+from io import BytesIO
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -179,6 +181,21 @@ def test_write_and_read_full(test_dir, ent_fresh):
         assert True
     finally:
         file.unlink(missing_ok=True)
+
+
+def test_write_and_read_bytes(ent_fresh):
+    """Test that DispatchModel can be written and read."""
+    dm = DispatchModel(**ent_fresh)
+    file = BytesIO()
+    try:
+        dm.to_file(file)
+        x = DispatchModel.from_file(file)
+        x()
+        x.to_file(file, clobber=True, include_output=True)
+    except Exception as exc:
+        raise AssertionError(f"{exc!r}") from exc
+    else:
+        assert True
 
 
 def test_marginal_cost(fossil_profiles, re_profiles, fossil_specs, fossil_cost):
