@@ -417,6 +417,57 @@ def test_hourly_data_check(ent_redispatch):
     assert not df.empty
 
 
+@pytest.mark.parametrize(
+    "gen, col_set, col, expected",
+    [
+        ((55380, "CTG1"), "redispatch_", "mwh", 0.0),
+        ((55380, "CTG1"), "redispatch_", "cost_fuel", 0.0),
+        ((55380, "CTG1"), "redispatch_", "cost_vom", 0.0),
+        ((55380, "CTG1"), "redispatch_", "cost_startup", 0.0),
+        ((55380, "CTG1"), "redispatch_", "cost_fom", 0.0),
+        ((55380, "CTG1"), "historical_", "mwh", 1.0),
+        ((55380, "CTG1"), "historical_", "cost_fuel", 1.0),
+        ((55380, "CTG1"), "historical_", "cost_vom", 1.0),
+        ((55380, "CTG1"), "historical_", "cost_startup", 1.0),
+        ((55380, "CTG1"), "historical_", "cost_fom", 1.0),
+        ((55380, "CTG2"), "redispatch_", "mwh", 1.0),
+        ((55380, "CTG2"), "redispatch_", "cost_fuel", 1.0),
+        ((55380, "CTG2"), "redispatch_", "cost_vom", 1.0),
+        ((55380, "CTG2"), "redispatch_", "cost_startup", 1.0),
+        ((55380, "CTG2"), "redispatch_", "cost_fom", 1.0),
+        ((55380, "CTG2"), "historical_", "mwh", 1.0),
+        ((55380, "CTG2"), "historical_", "cost_fuel", 1.0),
+        ((55380, "CTG2"), "historical_", "cost_vom", 1.0),
+        ((55380, "CTG2"), "historical_", "cost_startup", 1.0),
+        ((55380, "CTG2"), "historical_", "cost_fom", 1.0),
+    ],
+    ids=idfn,
+)
+def test_dispatchable_exclude(
+    ent_out_for_excl_test, ent_out_for_test, gen, col_set, col, expected
+):
+    """Test the effect of excluding a generator from dispatch."""
+    if expected == 0.0:
+        assert ent_out_for_excl_test.loc[gen, col_set + col] == expected
+        assert (
+            ent_out_for_excl_test.loc[gen, col_set + col]
+            != ent_out_for_test.loc[gen, col_set + col]
+        )
+    else:
+        rel = None
+        if gen == (55380, "CTG2") and col_set == "redispatch_":
+            # we do not expect this generator's output in redispatch to be the same
+            # whether CTG1 is excluded or not because excluding CTG1 affects other
+            # generator dispatch
+            rel = 1e-1
+        assert ent_out_for_excl_test.loc[gen, col_set + col] > 1e4
+        assert ent_out_for_excl_test.loc[gen, col_set + col] == pytest.approx(
+            # we do not expend
+            ent_out_for_test.loc[gen, col_set + col],
+            rel=rel,
+        )
+
+
 @pytest.mark.skip(reason="for debugging only")
 def test_ent(ent_fresh):
     """Harness for testing dispatch."""

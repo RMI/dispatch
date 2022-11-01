@@ -2,10 +2,11 @@
 import logging
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
-from dispatch import DataZip
+from dispatch import DataZip, DispatchModel
 
 logger = logging.getLogger(__name__)
 
@@ -85,3 +86,28 @@ def ent_redispatch(test_dir) -> dict:
     # df.columns.name = "datetime"
     # return df.stack()
     return DataZip.dfs_from_zip(test_dir / "data/8redispatch.zip")
+
+
+@pytest.fixture(scope="session")
+def ent_out_for_excl_test(test_dir):
+    """Dispatchable_summary with excluded generator."""
+    ent_redispatch = DataZip.dfs_from_zip(test_dir / "data/8redispatch.zip")
+
+    ent_redispatch["dispatchable_specs"] = ent_redispatch["dispatchable_specs"].assign(
+        exclude=lambda x: np.where(x.index == (55380, "CTG1"), True, False),
+    )
+    self = DispatchModel(**ent_redispatch)
+    self()
+    df = self.dispatchable_summary(by=None)
+    return df.groupby(level=[0, 1]).sum()
+
+
+@pytest.fixture(scope="session")
+def ent_out_for_test(test_dir):
+    """Dispatchable_summary without excluded generator."""
+    ent_redispatch = DataZip.dfs_from_zip(test_dir / "data/8redispatch.zip")
+
+    self = DispatchModel(**ent_redispatch)
+    self()
+    df = self.dispatchable_summary(by=None)
+    return df.groupby(level=[0, 1]).sum()

@@ -102,6 +102,9 @@ class DispatchModel:
                 -   ramp_rate: max 1-hr increase in output, in MW
                 -   operating_date: the date the plant entered or will enter service
                 -   retirement_date: the date the plant will retire
+                -   exclude: (Optional) True means the generator will NOT be
+                    redispatched. It's historical data will be preserved and redispatch
+                    data will be zero.
 
                 The index must be a :class:`pandas.MultiIndex` of
                 ``['plant_id_eia', 'generator_id']``.
@@ -168,7 +171,7 @@ class DispatchModel:
         validator = Validator(self, gen_set=dispatchable_specs.index)
         self.dispatchable_specs: pd.DataFrame = validator.dispatchable_specs(
             dispatchable_specs
-        )
+        ).pipe(self._add_exclude_col)
         self.dispatchable_cost: pd.DataFrame = validator.dispatchable_cost(
             dispatchable_cost
         ).pipe(self.add_total_costs)
@@ -254,6 +257,13 @@ class DispatchModel:
         if "startup_cost" not in df:
             df = df.assign(startup_cost=lambda x: x.capacity_mw * x.start_per_kw * 1000)
         return df.drop(columns=["capacity_mw"])
+
+    @staticmethod
+    def _add_exclude_col(df: pd.DataFrame) -> pd.DataFrame:
+        """Add ``exclude`` column if not already present."""
+        if "exclude" in df:
+            return df
+        return df.assign(exclude=False)
 
     @classmethod
     def from_file(cls, path: Path | str | BytesIO) -> DispatchModel:
@@ -403,18 +413,30 @@ class DispatchModel:
     @property
     def redispatch_cost(self) -> dict[str, pd.DataFrame]:
         """Total hourly redispatch cost by generator."""
-        return self._cost(self.redispatch)
+        out = self._cost(self.redispatch)
+        # zero out FOM of excluded resources
+        out["fom"] = out["fom"] * (~self.dispatchable_specs.exclude).to_numpy(
+            dtype=float
+        )
+        return out
 
     # TODO probably a bad idea to use __call__, but nice to not have to think of a name
     def __call__(self) -> DispatchModel:
         """Run dispatch model."""
+        # determine any dispatchable resources that should be excluded from dispatch and
+        # zero out their profile so they do not run
+        to_exclude = (~self.dispatchable_specs.exclude).to_numpy(dtype=float)
+        d_prof = self.dispatchable_profiles.to_numpy(dtype=np.float_, copy=True)
+        if np.any(to_exclude == 0.0):
+            d_prof = d_prof * to_exclude
+
         fos_prof, storage, deficits, starts = self.dispatch_func(
             net_load=self.net_load_profile.to_numpy(dtype=np.float_),  # type: ignore
             hr_to_cost_idx=(
                 self.net_load_profile.index.year  # type: ignore
                 - self.net_load_profile.index.year.min()  # type: ignore
             ).to_numpy(dtype=np.int64),
-            historical_dispatch=self.dispatchable_profiles.to_numpy(dtype=np.float_),
+            historical_dispatch=d_prof,
             dispatchable_ramp_mw=self.dispatchable_specs.ramp_rate.to_numpy(
                 dtype=np.float_
             ),

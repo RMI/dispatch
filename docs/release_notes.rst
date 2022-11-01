@@ -59,6 +59,9 @@ What's New?
     or ``path``. This now allows any object that implements ``to_file``/``from_file``
     methods using :class:`.DataZip`, to be written into and recovered from another
     :class:`.DataZip`.
+*   Added the ability to specify in ``dispatchable_specs`` via an ``exclude`` column
+    that a generator not be dispatched by the model without affecting historical
+    dispatch data.
 
 Known Issues
 ^^^^^^^^^^^^

@@ -96,6 +96,7 @@ class Validator:
                     description="operating_date in dispatchable_specs",
                 ),
                 "retirement_date": pa.Column(pa.Timestamp, nullable=True),
+                "exclude": pa.Column(pa.Bool, nullable=False, required=False),
             },
             coerce=True,
         )
