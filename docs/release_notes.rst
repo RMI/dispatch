@@ -62,6 +62,7 @@ What's New?
 *   Added the ability to specify in ``dispatchable_specs`` via an ``exclude`` column
     that a generator not be dispatched by the model without affecting historical
     dispatch data.
+*   Migrating :class:`.DataZip` functionality to :class:`etoolbox.datazip.DataZip`.
 
 Known Issues
 ^^^^^^^^^^^^

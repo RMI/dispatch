@@ -462,7 +462,6 @@ def test_dispatchable_exclude(
             rel = 1e-1
         assert ent_out_for_excl_test.loc[gen, col_set + col] > 1e4
         assert ent_out_for_excl_test.loc[gen, col_set + col] == pytest.approx(
-            # we do not expend
             ent_out_for_test.loc[gen, col_set + col],
             rel=rel,
         )

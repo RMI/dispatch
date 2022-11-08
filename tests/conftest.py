@@ -5,8 +5,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
+from etoolbox.datazip import DataZip
 
-from dispatch import DataZip, DispatchModel
+from dispatch import DispatchModel
 
 logger = logging.getLogger(__name__)
 

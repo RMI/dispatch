@@ -25,10 +25,12 @@ except ModuleNotFoundError:
 
 __all__ = ["DispatchModel"]
 
+from etoolbox.datazip import DataZip
+
 from dispatch import __version__
 from dispatch.constants import COLOR_MAP, MTDF, PLOT_MAP
 from dispatch.engine import dispatch_engine, dispatch_engine_py
-from dispatch.helpers import DataZip, apply_op_ret_date, dispatch_key
+from dispatch.helpers import apply_op_ret_date, dispatch_key
 from dispatch.metadata import LOAD_PROFILE_SCHEMA, Validator
 
 LOGGER = logging.getLogger(__name__)
@@ -103,7 +105,7 @@ class DispatchModel:
                 -   operating_date: the date the plant entered or will enter service
                 -   retirement_date: the date the plant will retire
                 -   exclude: (Optional) True means the generator will NOT be
-                    redispatched. It's historical data will be preserved and redispatch
+                    redispatched. Its historical data will be preserved and redispatch
                     data will be zero.
 
                 The index must be a :class:`pandas.MultiIndex` of
