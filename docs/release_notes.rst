@@ -63,6 +63,8 @@ What's New?
     that a generator not be dispatched by the model without affecting historical
     dispatch data.
 *   Migrating :class:`.DataZip` functionality to :class:`etoolbox.datazip.DataZip`.
+*   Updates to constants to allow Nuclear and Conventional Hydroelectric to be properly
+    displayed in plots.
 
 Known Issues
 ^^^^^^^^^^^^
