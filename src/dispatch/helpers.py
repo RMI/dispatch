@@ -160,7 +160,7 @@ class DataZip(EtDataZip):
         #         raise FileExistsError(
         #             f"{file} exists, you cannot write or append to an existing DataZip."
         #         )
-        warnings.simplefilter("always")
+        warnings.simplefilter("once")
         warnings.warn(
             "DataZip is now in rmi.etoolbox (https://github.com/rmi-electricity/etoolbox)"
             " and will be removed from rmi.dispatch",

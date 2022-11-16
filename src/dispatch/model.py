@@ -282,7 +282,7 @@ class DispatchModel:
             del meta["__qualname__"]
 
         with DataZip(path, "r") as z:
-            metadata = z.read("metadata")
+            metadata = z.read("metadata_")
             _type_check(metadata)
             data_dict = dict(z.read_dfs())
 
@@ -1053,7 +1053,7 @@ class DispatchModel:
                         getattr(self, df_name)(**kwargs),
                     )
             z.writed(
-                "metadata",
+                "metadata_",
                 {
                     **self._metadata,
                     "__qualname__": self.__class__.__qualname__,
