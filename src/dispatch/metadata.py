@@ -77,6 +77,7 @@ class Validator:
                     description="operating_date in renewable_specs",
                 ),
                 "retirement_date": pa.Column(pa.Timestamp, nullable=True),
+                "interconnect_mw": pa.Column(pa.Float, nullable=False, required=False),
             },
             coerce=True,
         )

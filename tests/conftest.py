@@ -55,38 +55,33 @@ def fossil_profiles(test_dir) -> pd.DataFrame:
 def fossil_specs(test_dir) -> pd.DataFrame:
     """Fossil Profiles."""
     df = pd.read_parquet(test_dir / "data/plant_specs.parquet")
-    # df.columns = [pd.Timestamp(x) if x[0] == "2" else x for x in df.columns]
     return df
 
 
 @pytest.fixture(scope="session")
 def fossil_cost(test_dir) -> pd.DataFrame:
     """Fossil Profiles."""
-    # df = pd.read_parquet(test_dir / "data/plant_specs.parquet").filter(like="20")
-    # df.columns = df.columns.map(lambda x: pd.Timestamp(x))
-    # df.columns.name = "datetime"
-    # return df.stack()
     return pd.read_parquet(test_dir / "data/fossil_cost.parquet")
 
 
 @pytest.fixture
 def ent_fresh(test_dir) -> dict:
     """Fossil Profiles."""
-    # df = pd.read_parquet(test_dir / "data/plant_specs.parquet").filter(like="20")
-    # df.columns = df.columns.map(lambda x: pd.Timestamp(x))
-    # df.columns.name = "datetime"
-    # return df.stack()
     return DataZip.dfs_from_zip(test_dir / "data/8fresh.zip")
 
 
 @pytest.fixture
 def ent_redispatch(test_dir) -> dict:
     """Fossil Profiles."""
-    # df = pd.read_parquet(test_dir / "data/plant_specs.parquet").filter(like="20")
-    # df.columns = df.columns.map(lambda x: pd.Timestamp(x))
-    # df.columns.name = "datetime"
-    # return df.stack()
     return DataZip.dfs_from_zip(test_dir / "data/8redispatch.zip")
+
+
+@pytest.fixture(scope="session", params=["8fresh", "8redispatch"])
+def ent_dm(test_dir, request) -> DispatchModel:
+    """Fossil Profiles."""
+    return DispatchModel(
+        **DataZip.dfs_from_zip(test_dir / f"data/{request.param}.zip")
+    )()
 
 
 @pytest.fixture(scope="session")

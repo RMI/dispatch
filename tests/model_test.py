@@ -232,7 +232,7 @@ def test_operations_summary(fossil_profiles, re_profiles, fossil_specs, fossil_c
     )
     self()
     x = self.dispatchable_summary(by=None)
-    assert not x.empty
+    assert x.notna().all().all()
 
 
 def test_storage_summary(fossil_profiles, re_profiles, fossil_specs, fossil_cost):
@@ -254,48 +254,73 @@ def test_storage_summary(fossil_profiles, re_profiles, fossil_specs, fossil_cost
     assert not x.empty
 
 
-def test_storage_capacity(ent_fresh):
-    """Test full_output."""
-    self = DispatchModel(**ent_fresh)()
-    df = self.storage_capacity()
-    assert not df.empty
+out_params = [
+    (
+        "dispatchable_summary",
+        {"by": None, "augment": True},
+        (
+            "utility_id_eia",
+            "final_respondent_id",
+            "retirement_date",
+            "final_ba_code",
+            "respondent_name",
+            "balancing_authority_code_eia",
+            "plant_name_eia",
+            "prime_mover_code",
+        ),
+        "notna",
+    ),
+    ("dispatchable_summary", {"by": None}, (), "notna"),
+    ("re_summary", {"by": None}, ("owned_pct", "retirement_date"), "notna"),
+    ("system_level_summary", {}, (), "notna"),
+    ("load_summary", {}, (), "notna"),
+    ("storage_durations", {}, (), "notna"),
+    ("storage_capacity", {}, (), "notna"),
+    ("hourly_data_check", {}, (), "notna"),
+    ("dc_charge", {}, (), "notna"),
+    pytest.param("full_output", {}, (), "notna", marks=pytest.mark.xfail),
+    (
+        "dispatchable_summary",
+        {"by": None, "augment": True},
+        (
+            "utility_id_eia",
+            "final_respondent_id",
+            "retirement_date",
+            "final_ba_code",
+            "respondent_name",
+            "balancing_authority_code_eia",
+            "plant_name_eia",
+            "prime_mover_code",
+        ),
+        "notempty",
+    ),
+    ("dispatchable_summary", {"by": None}, (), "notempty"),
+    ("re_summary", {"by": None}, ("owned_pct", "retirement_date"), "notempty"),
+    ("system_level_summary", {}, (), "notempty"),
+    ("load_summary", {}, (), "notempty"),
+    ("storage_durations", {}, (), "notempty"),
+    ("storage_capacity", {}, (), "notempty"),
+    ("hourly_data_check", {}, (), "notempty"),
+    ("dc_charge", {}, (), "notempty"),
+    ("full_output", {}, (), "notempty"),
+]
 
 
-def test_storage_durations(ent_fresh):
-    """Test full_output."""
-    self = DispatchModel(**ent_fresh)()
-    df = self.storage_durations()
-    assert not df.empty
-
-
-def test_system_summary(ent_fresh):
-    """Test full_output."""
-    self = DispatchModel(**ent_fresh)()
-    df = self.system_level_summary()
-    assert not df.empty
-
-
-def test_dc_charge(ent_fresh):
-    """Test full_output."""
-    self = DispatchModel(**ent_fresh)
-    df = self.dc_charge()
-    assert not df.empty
-
-
-def test_full_output(ent_fresh):
-    """Test full_output."""
-    self = DispatchModel(**ent_fresh)
-    self()
-    df = self.full_output()
-    assert not df.empty
-
-
-def test_load_summary(ent_fresh):
-    """Test full_output."""
-    self = DispatchModel(**ent_fresh)
-    self()
-    df = self.load_summary()
-    assert not df.empty
+@pytest.mark.parametrize(
+    "func, args, drop_cols, expected",
+    out_params,
+    ids=idfn,
+)
+def test_outputs_parametric(ent_dm, func, args, drop_cols, expected):
+    """Test that outputs are not empty or do not have unexpected nans."""
+    df = getattr(ent_dm, func)(**args)
+    df = df[[c for c in df if c not in drop_cols]]
+    if expected == "notna":
+        assert df.notna().all().all()
+    elif expected == "notempty":
+        assert not df.empty
+    else:
+        assert False
 
 
 def test_plotting(fossil_profiles, re_profiles, fossil_specs, fossil_cost, test_dir):
@@ -409,14 +434,6 @@ def test_fresh_different(ent_fresh, existing):
     assert not comp.empty, f"dispatch of {existing} failed"
 
 
-def test_hourly_data_check(ent_redispatch):
-    """Harness for testing dispatch."""
-    self = DispatchModel(**ent_redispatch)
-    self()
-    df = self.hourly_data_check()
-    assert not df.empty
-
-
 @pytest.mark.parametrize(
     "gen, col_set, col, expected",
     [
@@ -465,6 +482,27 @@ def test_dispatchable_exclude(
             ent_out_for_test.loc[gen, col_set + col],
             rel=rel,
         )
+
+
+def test_interconnect_mw(ent_fresh):
+    """Test that interconnect_mw produces expected re_profiles and excess_re."""
+    raw = DispatchModel(**ent_fresh)
+    re_specs = (
+        ent_fresh["re_plant_specs"]
+        .copy()
+        .assign(interconnect_mw=lambda x: x.capacity_mw)
+    )
+    new_max = re_specs.iloc[0, re_specs.columns.get_loc("interconnect_mw")] * 0.5
+    re_specs.iloc[0, re_specs.columns.get_loc("interconnect_mw")] = new_max
+    changed = DispatchModel(**(ent_fresh | {"re_plant_specs": re_specs}))
+    assert changed.re_profiles_ac.iloc[:, 0].max() == new_max
+    assert (
+        raw.re_profiles_ac.iloc[:, 0].max()
+        == re_specs.iloc[0, re_specs.columns.get_loc("capacity_mw")]
+        * ent_fresh["re_profiles"].iloc[:, 0].max()
+    )
+    assert changed.re_excess.iloc[:, 0].sum() > 0.0
+    assert raw.re_excess.iloc[:, 0].sum() == 0.0
 
 
 @pytest.mark.skip(reason="for debugging only")

@@ -128,10 +128,10 @@ class DispatchModel:
                 ``plant_id_eia`` for the RE component in ``re_profiles`` and
                 ``re_plant_specs``. Columns must include:
 
-                -   capacity_mw: max charge/discharge capacity in MW
-                -   duration_hrs: storage duration in hours
-                -   roundtrip_eff: roundtrip efficiency
-                -   operating_date: datetime unit starts operating
+                -   capacity_mw: max charge/discharge capacity in MW.
+                -   duration_hrs: storage duration in hours.
+                -   roundtrip_eff: roundtrip efficiency.
+                -   operating_date: datetime unit starts operating.
 
                 The index must be a :class:`pandas.MultiIndex` of
                 ``['plant_id_eia', 'generator_id']``.
@@ -148,6 +148,11 @@ class DispatchModel:
                 -   ilr: inverter loading ratio, if ilr != 1, the corresponding
                     profile must be a DC profile.
                 -   operating_date: datetime unit starts operating
+                -   interconnect_mw: (Optional) the interconnect capacity of the
+                    renewable facility. By default, this is the same as ``capacity_mw``
+                    but can be reduced to reflect facility-specific transmission /
+                    interconnection constraints. If the facility has storage, storage
+                    can be charged by the constrained excess.
 
                 The index must be a :class:`pandas.MultiIndex` of
                 ``['plant_id_eia', 'generator_id']``.
@@ -220,10 +225,18 @@ class DispatchModel:
                 None,
                 None,
             )
+        if "interconnect_mw" not in self.re_plant_specs:
+            self.re_plant_specs = self.re_plant_specs.assign(
+                interconnect_mw=lambda x: x.capacity_mw
+            )
         # ILR adjusted normalized profiles
-        temp = re_profiles * self.re_plant_specs.ilr.to_numpy()
-        ac_out = np.minimum(temp, 1) * self.re_plant_specs.capacity_mw.to_numpy()
-        excess = temp * self.re_plant_specs.capacity_mw.to_numpy() - ac_out
+        full_prod = (
+            re_profiles
+            * self.re_plant_specs.ilr.to_numpy()
+            * self.re_plant_specs.capacity_mw.to_numpy()
+        )
+        ac_out = np.minimum(full_prod, self.re_plant_specs.interconnect_mw.to_numpy())
+        excess = full_prod - ac_out
         return self.load_profile - ac_out.sum(axis=1), ac_out, excess
 
     def dc_charge(self):
@@ -754,7 +767,11 @@ class DispatchModel:
                     },
                     **{
                         f"storage_{i}_max_hrs": self.storage_dispatch[f"soc_{i}"]
-                        / self.storage_specs.loc[i, "capacity_mw"]
+                        / (
+                            self.storage_specs.loc[i, "capacity_mw"].item()
+                            if np.all(self.storage_specs.loc[i, "capacity_mw"] > 0)
+                            else 1.0
+                        )
                         for i in self.storage_specs.index.get_level_values(
                             "plant_id_eia"
                         )
@@ -769,12 +786,20 @@ class DispatchModel:
         return out.assign(
             **{
                 f"storage_{i}_mw_utilization": out[f"storage_{i}_max_mw"]
-                / self.storage_specs.loc[i, "capacity_mw"]
+                / (
+                    self.storage_specs.loc[i, "capacity_mw"].item()
+                    if np.all(self.storage_specs.loc[i, "capacity_mw"] > 0)
+                    else 1.0
+                )
                 for i in self.storage_specs.index.get_level_values("plant_id_eia")
             },
             **{
                 f"storage_{i}_hrs_utilization": out[f"storage_{i}_max_hrs"]
-                / self.storage_specs.loc[i, "duration_hrs"]
+                / (
+                    self.storage_specs.loc[i, "duration_hrs"].item()
+                    if np.all(self.storage_specs.loc[i, "duration_hrs"] > 0)
+                    else 1.0
+                )
                 for i in self.storage_specs.index.get_level_values("plant_id_eia")
             },
         )
@@ -992,8 +1017,8 @@ class DispatchModel:
                 avoided_cost_startup=lambda x: np.maximum(
                     x.historical_cost_startup - x.redispatch_cost_startup, 0.0
                 ),
-                pct_replaced=lambda x: np.maximum(
-                    x.avoided_mwh / x.historical_mwh, 0.0
+                pct_replaced=lambda x: np.nan_to_num(
+                    np.maximum(x.avoided_mwh / x.historical_mwh, 0.0)
                 ),
             )
             .sort_index()
