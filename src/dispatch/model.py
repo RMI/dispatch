@@ -1155,20 +1155,38 @@ class DispatchModel:
             ),
             self.system_data.deficit.to_frame(name=(999, "deficit", "Deficit")),
         ]
-        return (
-            pd.concat(
-                to_cat,
-                axis=1,
+
+        def arrange(df):
+            return (
+                df.loc[begin:end, :]
+                .stack([0, 1, 2])
+                .to_frame(name="net_generation_mwh")
+                .reset_index()
+                .assign(resource=lambda x: x.technology_description.replace(PLOT_MAP))
+                .query("net_generation_mwh != 0.0 & net_generation_mwh.notna()")
             )
-            .loc[begin:end, :]
-            .stack([0, 1, 2])
-            .to_frame(name="net_generation_mwh")
-            .reset_index()
-            .assign(resource=lambda x: x.technology_description.replace(PLOT_MAP))
-            .query("net_generation_mwh != 0.0")
+
+        return pd.concat(
+            [
+                arrange(
+                    pd.concat(
+                        to_cat,
+                        axis=1,
+                    )
+                ).assign(series="redispatch"),
+                arrange(
+                    self.historical_dispatch.set_axis(
+                        pd.MultiIndex.from_frame(
+                            self.dispatchable_specs.technology_description.reset_index()
+                        ),
+                        axis=1,
+                    )
+                ).assign(series="historical"),
+            ],
+            axis=0,
         )
 
-    def plot_period(self, begin, end=None, by_gen=True) -> Figure:
+    def plot_period(self, begin, end=None, by_gen=True, compare_hist=False) -> Figure:
         """Plot hourly dispatch by generator."""
         begin = pd.Timestamp(begin)
         if end is None:
@@ -1177,10 +1195,34 @@ class DispatchModel:
             end = pd.Timestamp(end)
         net_load = self.net_load_profile.loc[begin:end]
         data = self._plot_prep_detail(begin, end)
+        if data.query("series == 'historical'").empty:
+            if compare_hist:
+                LOGGER.warning("disabling `compare_hist` because no historical data")
+            compare_hist = False
         hover_name = "plant_id_eia"
         if not by_gen:
             data = data.groupby(["datetime", "resource"]).sum().reset_index()
             hover_name = "resource"
+        if not compare_hist:
+            data = data.query("series == 'redispatch'")
+            kwargs = {}
+        else:
+            kwargs = {"facet_row": "series"}
+        nl_args = dict(
+            x=net_load.index,
+            y=net_load,
+            name="Net Load",
+            mode="lines",
+            line_color=COLOR_MAP["Net Load"],
+            line_dash="dot",
+        )
+        gl_args = dict(
+            x=self.load_profile.loc[begin:end].index,
+            y=self.load_profile.loc[begin:end],
+            name="Gross Load",
+            mode="lines",
+            line_color=COLOR_MAP["Gross Load"],
+        )
         out = (
             px.bar(
                 data.replace(
@@ -1191,26 +1233,32 @@ class DispatchModel:
                 color="resource",
                 hover_name=hover_name,
                 color_discrete_map=COLOR_MAP,
+                **kwargs,
             )
-            .add_scatter(
-                x=net_load.index,
-                y=net_load,
-                name="Net Load",
-                mode="lines",
-                line_color=COLOR_MAP["Net Load"],
-                line_dash="dot",
-            )
-            .update_layout(xaxis_title=None, yaxis_title="MW", yaxis_tickformat=",.0r")
+            .add_scatter(**nl_args)
+            .update_layout(xaxis_title=None)
+            .update_yaxes(title="MW", tickformat=",.0r")
+            .for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
         )
+        if compare_hist:
+            out = out.add_scatter(
+                **nl_args,
+                row=2,
+                col=1,
+                showlegend=False,
+            )
         if self.re_profiles_ac is None or self.re_plant_specs is None:
             return out
-        return out.add_scatter(
-            x=self.load_profile.loc[begin:end].index,
-            y=self.load_profile.loc[begin:end],
-            name="Gross Load",
-            mode="lines",
-            line_color=COLOR_MAP["Gross Load"],
-        )
+
+        out = out.add_scatter(**gl_args)
+        if compare_hist:
+            return out.add_scatter(
+                **gl_args,
+                row=2,
+                col=1,
+                showlegend=False,
+            )
+        return out
 
     def plot_year(self, year: int, freq="D") -> Figure:
         """Monthly facet plot of daily dispatch for a year."""

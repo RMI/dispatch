@@ -353,7 +353,22 @@ def test_plot_detail_ent(ent_fresh, test_dir):
     """Testing plotting function."""
     img_path = test_dir / "plot.pdf"
     self = DispatchModel(**ent_fresh)()
-    x = self.plot_period("2034-01-01", "2034-01-05")
+    x = self.plot_period("2034-01-01", "2034-01-05", compare_hist=True)
+    try:
+        x.write_image(img_path)
+    except Exception as exc:
+        raise AssertionError("unable to write image") from exc
+    else:
+        assert True
+    finally:
+        img_path.unlink(missing_ok=True)
+
+
+def test_plot_period_comp(ent_redispatch, test_dir):
+    """Testing plotting function."""
+    img_path = test_dir / "plot.pdf"
+    self = DispatchModel(**ent_redispatch)()
+    x = self.plot_period("2034-01-01", "2034-01-05", compare_hist=False)
     try:
         x.write_image(img_path)
     except Exception as exc:

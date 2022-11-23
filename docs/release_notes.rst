@@ -71,7 +71,8 @@ What's New?
     capacity. By default, this is the same as ``capacity_mw`` but can be reduced to
     reflect facility-specific transmission / interconnection constraints. If the
     facility has storage, storage can be charged by the constrained excess.
-
+*   Added ``compare_hist`` argument to :meth:`.DispatchModel.plot_period` which creates
+    panel plot showing both historical dispatch and redispatch for the period.
 
 Bug Fixes
 ^^^^^^^^^
