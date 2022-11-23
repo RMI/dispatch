@@ -168,7 +168,7 @@ legacy_tox_ini = """
 envlist =
     linters
     docs
-    test
+    tests
 isolated_build = True
 
 [testenv]
