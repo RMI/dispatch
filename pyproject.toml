@@ -54,7 +54,7 @@ tests = [
     "flake8-rst-docstrings>=0.2,<0.3",
     "flake8-use-fstring>=1.0,<1.5",
     "mccabe>=0.6,<0.8",
-    "mypy>=0.942,<0.991",
+    "mypy>=0.942,<0.992",
     "pep8-naming>=0.12,<0.14",
     "pre-commit>=2.9,<2.21",
     "pydocstyle>=5.1,<6.2",
@@ -73,10 +73,11 @@ viz = [
 write_to = "src/dispatch/_version.py"
 
 [tool.setuptools]
-package-dir = {"" = "src"}
+include-package-data = true
+#package-dir = {"" = "src"}
 
-[tool.setuptools.packages.find]
-where = ["src"]
+#[tool.setuptools.packages.find]
+#where = ["src"]
 
 [tool.setuptools.dynamic]
 version = {attr = "dispatch._version.__version__"}
