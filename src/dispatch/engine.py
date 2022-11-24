@@ -214,6 +214,7 @@ def dispatch_engine_py(
         # sometimes we charge storage direct from DC-coupled RE even when there
         # is a positive deficit
         if deficit <= 0.0:
+            # store excess generation (-deficit) as curtailment
             system_level[hr, 2] = -deficit
             continue
 
@@ -225,6 +226,9 @@ def dispatch_engine_py(
             # skip the `es_i` storage resource if it is not yet in operation or
             # there was excess generation from a DC-coupled RE facility
             if storage_op_hour[es_i] > hr or storage_dc_charge[hr, es_i] > 0.0:
+                # if we got here because of DC-coupled charging, we still need to
+                # propagate forward soc
+                storage[hr, 2, es_i] = storage[hr - 1, 2, es_i]
                 continue
             discharge = min(storage[hr - 1, 2, es_i], deficit, storage_mw[es_i])
             storage[hr, 1, es_i] = discharge
@@ -249,6 +253,7 @@ def dispatch_engine_py(
             # a fossil plant's output during an hour is the lesser of the deficit,
             # the plant's historical output, and the plant's re-dispatch output
             # in the previous hour + the plant's one hour max ramp
+            assert redispatch[hr - 1, r] == 0
             r_out = min(
                 deficit, historical_dispatch[hr, r], redispatch[hr - 1, r] + ramp
             )

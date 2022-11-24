@@ -59,20 +59,20 @@ repos:
   # Update a bunch of Python syntax, using __futures__ for Python 3.8/3.9
   # Note that this sometimes conflicts with Pydantic on Python 3.8/3.9
   - repo: https://github.com/asottile/pyupgrade
-    rev: v2.37.3
+    rev: v3.2.2
     hooks:
       - id: pyupgrade
-        args: ["--py38-plus"]
+        args: ["--py39-plus"]
 
   # Deterministic python formatting:
   - repo: https://github.com/psf/black
-    rev: 22.6.0
+    rev: 22.10.0
     hooks:
       - id: black
         language_version: python3.10
 
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v2.7.1
+    rev: v3.0.0-alpha.4
     hooks:
       - id: prettier
         types_or: [yaml]
@@ -86,7 +86,6 @@ repos:
     rev: 5.0.4
     hooks:
       - id: flake8
-        args: ["--config", "tox.ini"]
         additional_dependencies:
           - flake8-docstrings
           - flake8-colors
@@ -97,6 +96,7 @@ repos:
           - pycodestyle
           - pyflakes
           - flake8-rst-docstrings
+          - flake8-pyproject
           - flake8-use-fstring
 
   # Check for known security vulnerabilities:
@@ -107,18 +107,6 @@ repos:
         args: ["-c", "pyproject.toml"]
         additional_dependencies: ["bandit[toml]"]
 
-  #  # Use type annotations to check types
-  #  - repo: https://github.com/pre-commit/mirrors-mypy
-  #    rev: v0.971
-  #    hooks:
-  #      - id: mypy
-  #        additional_dependencies:
-  #          - pytest
-  #          - types-jinja2
-  #          - types-setuptools
-  ##          - pandas-stubs
-  #        args: ["--strict"]
-
   # Check for errors in restructuredtext (.rst) files under the doc hierarchy
   - repo: https://github.com/PyCQA/doc8
     rev: v1.0.0
@@ -127,8 +115,8 @@ repos:
         args: ["--config", "pyproject.toml"]
 
   # Lint any RST files and embedded code blocks for syntax / formatting errors
-  - repo: https://github.com/myint/rstcheck
-    rev: v6.1.0
+  - repo: https://github.com/rstcheck/rstcheck
+    rev: v6.1.1
     hooks:
       - id: rstcheck
         additional_dependencies: ["rstcheck[toml, sphinx]"]

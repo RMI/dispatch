@@ -151,6 +151,6 @@ Thumbs.db
 # Dispatch
 *.zip
 *.ipynb
-!tests/data/*.zip
+!tests/data/*h.zip
 
 /src/dispatch/_version.py

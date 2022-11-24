@@ -48,8 +48,8 @@ class Validator:
                 coerce=True,
             ),
             columns={
-                "capacity_mw": pa.Column(float, pa.Check.greater_than(0)),
-                "duration_hrs": pa.Column(int, pa.Check.greater_than(0)),
+                "capacity_mw": pa.Column(float, pa.Check.greater_than_or_equal_to(0)),
+                "duration_hrs": pa.Column(int, pa.Check.greater_than_or_equal_to(0)),
                 "roundtrip_eff": pa.Column(float, pa.Check.in_range(0, 1)),
                 "operating_date": pa.Column(
                     pa.Timestamp,
@@ -64,12 +64,12 @@ class Validator:
         self.renewable_specs_schema = pa.DataFrameSchema(
             index=pa.MultiIndex(
                 [PID_SCHEMA, GID_SCHEMA],
-                unique=["plant_id_eia"],
+                unique=["plant_id_eia", "generator_id"],
                 strict=True,
                 coerce=True,
             ),
             columns={
-                "capacity_mw": pa.Column(float, pa.Check.greater_than(0)),
+                "capacity_mw": pa.Column(float, pa.Check.greater_than_or_equal_to(0)),
                 "ilr": pa.Column(float, pa.Check.in_range(1.0, 10.0)),
                 "operating_date": pa.Column(
                     pa.Timestamp,
@@ -77,6 +77,7 @@ class Validator:
                     description="operating_date in renewable_specs",
                 ),
                 "retirement_date": pa.Column(pa.Timestamp, nullable=True),
+                "interconnect_mw": pa.Column(pa.Float, nullable=False, required=False),
             },
             coerce=True,
         )
@@ -88,7 +89,7 @@ class Validator:
                 coerce=True,
             ),
             columns={
-                "capacity_mw": pa.Column(float, pa.Check.greater_than(0)),
+                "capacity_mw": pa.Column(float, pa.Check.greater_than_or_equal_to(0)),
                 "ramp_rate": pa.Column(float, pa.Check.greater_than(0)),
                 "operating_date": pa.Column(
                     pa.Timestamp,
@@ -96,6 +97,7 @@ class Validator:
                     description="operating_date in dispatchable_specs",
                 ),
                 "retirement_date": pa.Column(pa.Timestamp, nullable=True),
+                "exclude": pa.Column(pa.Bool, nullable=False, required=False),
             },
             coerce=True,
         )

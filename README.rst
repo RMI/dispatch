@@ -17,12 +17,16 @@ Dispatch: A simple and efficient electricity dispatch model
    :target: https://github.com/psf/black>
    :alt: Any color you want, so long as it's black.
 
+.. image:: https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat
+   :target: https://pycqa.github.io/isort/
+   :alt: Imports: isort
+
 .. readme-intro
 
 Description
 =======================================================================================
 
-``Dispatch`` is in essence a hugely simplified production cost model. It takes in a
+``Dispatch`` is a hugely simplified production cost model. It takes in a
 portfolio of dispatchable and storage resources and asks, how can these resources
 be dispatched to meet [net] load? And how much would it cost?
 
@@ -49,21 +53,21 @@ environment using pip. To install it using pip:
 
 .. code-block:: bash
 
-   $ pip install git+https://github.com/rmi-electricity/dispatch.git
+   pip install git+https://github.com/rmi-electricity/dispatch.git
 
 Or from the dev branch:
 
 .. code-block:: bash
 
-   $ pip install git+https://github.com/rmi-electricity/dispatch.git@dev
+   pip install git+https://github.com/rmi-electricity/dispatch.git@dev
 
 
 To create an environment for Dispatch, navigate to the repo folder in terminal and run:
 
 .. code-block:: bash
 
-   $ mamba update mamba
-   $ mamba env create --name dispatch --file environment.yml
+   mamba update mamba
+   mamba env create --name dispatch --file environment.yml
 
 If you get a ``CondaValueError`` that the prefix already exists, that means an
 environment with the same name already exists. You must remove the old one before
@@ -71,6 +75,6 @@ creating the new one:
 
 .. code-block:: bash
 
-   $ mamba update mamba
-   $ mamba env remove --name dispatch
-   $ mamba env create --name dispatch --file environment.yml
+   mamba update mamba
+   mamba env remove --name dispatch
+   mamba env create --name dispatch --file environment.yml

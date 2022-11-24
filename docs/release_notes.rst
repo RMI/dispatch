@@ -38,8 +38,8 @@ What's New?
     easily reading and writing :class:`pandas.DataFrame` as ``parquet`` and
     :class:`dict` as ``json``. This includes storing column names separately that
     cannot be included in a ``parquet``.
-*   Extracted :func:`dispatch.engine.charge_storage_py` and
-    :func:`dispatch.engine.make_rank_arrays_py` from :func:`.dispatch_engine_py`. This
+*   Extracted :func:`.charge_storage_py` and
+    :func:`.make_rank_arrays_py` from :func:`.dispatch_engine_py`. This
     allows easier unit testing and, in the former case, makes sure all charging is
     implemented consistently.
 *   Added plotting functions :meth:`.DispatchModel.plot_output` to visualize columns
@@ -47,7 +47,48 @@ What's New?
     :meth:`.DispatchModel.plot_period` to display data by generator if ``by_gen=True``.
     :meth:`.DispatchModel.plot_year` can now display the results with daily or hourly
     frequency.
+*   For renewables, ``plant_id_eia`` no longer need by unique, now for renewables,
+    ``plant_id_eia`` and ``generator_id`` must be jointly unique. In cases where a
+    single ``plant_id_eia`` has two renewable generator's as well as storage,
+    :meth:`.DispatchModel.dc_charge` assumes excess renewable generation from the
+    several generators can be combined to charge the facility's storage.
+*   ``re_plant_specs``, ``dispatchable_specs``, and ``storage_specs``, now allow zeros
+    for ``capacity_mw`` and ``duration_hrs``.
+*   :class:`.DataZip`, :meth:`.DispatchModel.to_file`, and
+    :meth:`.DispatchModel.from_file` now support :class:`io.BytesIO` as ``file``
+    or ``path``. This now allows any object that implements ``to_file``/``from_file``
+    methods using :class:`.DataZip`, to be written into and recovered from another
+    :class:`.DataZip`.
+*   Added the ability to specify in ``dispatchable_specs`` via an ``exclude`` column
+    that a generator not be dispatched by the model without affecting historical
+    dispatch data.
+*   Migrating :class:`.DataZip` functionality to :class:`etoolbox.datazip.DataZip`.
+*   Updates to constants to allow Nuclear and Conventional Hydroelectric to be properly
+    displayed in plots.
+*   Updates to ``re_plant_specs``, its validation, and
+    :meth:`.DispatchModel.re_and_net_load` for a new column, ``interconnect_mw``, that
+    allows interconnection capacity for a renewable facility to independent of its
+    capacity. By default, this is the same as ``capacity_mw`` but can be reduced to
+    reflect facility-specific transmission / interconnection constraints. If the
+    facility has storage, storage can be charged by the constrained excess.
+*   Added ``compare_hist`` argument to :meth:`.DispatchModel.plot_period` which creates
+    panel plot showing both historical dispatch and redispatch for the period.
+*   :meth:`.DispatchModel.plot_output` adds a row facet to show both historical and
+    redispatch versions of the requested data if available.
+*   Cleanup of configuration and packaging files. Contents of ``setup.cfg`` and
+    ``tox.ini`` moved to ``pyproject.toml``.
 
+Bug Fixes
+^^^^^^^^^
+*   Fixed a bug where storage metrics in :meth:`.DispatchModel.system_level_summary`
+    were :class:`numpy.nan` because selecting of data from ``storage_specs`` returned
+    a :class:`pandas.Series` rather than a :class:`int` or :class:`float`. Further, in
+    cases of division be zero in these calculations, the result is now 0 rather than
+    :class:`numpy.nan`. Tests now make sure that no new :class:`numpy.nan` show up.
+*   Fixed a bug in :meth:`.DispatchModel.dispatchable_summary` where ``pct_replaced``
+    would be :class:`numpy.nan` because of division be zero in these calculations, the
+    result is now 0 rather than :class:`numpy.nan`. Tests now make sure that no new
+    :class:`numpy.nan` show up.
 
 Known Issues
 ^^^^^^^^^^^^
@@ -59,7 +100,8 @@ Known Issues
 *   It is possible that output from DC-coupled RE+Storage facilities during some hours
     will exceed the system's inverter capacity because when we discharge these storage
     facilities, we do not know how much 'room' there is in the inverter because we do
-    not know the RE-side's output.
+    not know the RE-side's output. This issue is now in some sense compounded when
+    ``interconnect_mw`` is less than ``capacity_mw``.
 *   :class:`.DataZip` are effectively immutable once they are created so the ``a`` mode
     is not allowed and the ``w`` mode is not allowed on existing files. This is because
     it is not possible to overwrite or remove a file already in a
@@ -67,6 +109,12 @@ Known Issues
     :class:`pandas.DataFrame` that cannot be stored in the ``parquet`` itself. Ways of
     addressing this get messy and still wouldn't allow updating existing data without
     copying everything which a user can do if that is needed.
+
+Bug Fixes
+^^^^^^^^^
+*   Fixed an issue in :func:`.dispatch_engine_py` where a storage resource's state of
+    charge would not be carried forward if it wasn't charged or discharged in that
+    hour.
 
 .. _release-v0-3-0:
 

@@ -1,11 +1,14 @@
 """PyTest configuration module. Defines useful fixtures, command line args."""
 import logging
+import shutil
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
+from etoolbox.datazip import DataZip
 
-from dispatch import DataZip
+from dispatch import DispatchModel, apply_op_ret_date
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +41,15 @@ def test_dir() -> Path:
 
 
 @pytest.fixture(scope="session")
+def temp_dir(test_dir) -> Path:
+    """Return the path to a temp directory that gets deleted on teardown."""
+    out = test_dir / "temp"
+    out.mkdir(exist_ok=True)
+    yield out
+    shutil.rmtree(out)
+
+
+@pytest.fixture(scope="session")
 def re_profiles(test_dir) -> pd.DataFrame:
     """RE Profiles."""
     return pd.read_parquet(test_dir / "data/re_profiles.parquet")
@@ -53,35 +65,79 @@ def fossil_profiles(test_dir) -> pd.DataFrame:
 def fossil_specs(test_dir) -> pd.DataFrame:
     """Fossil Profiles."""
     df = pd.read_parquet(test_dir / "data/plant_specs.parquet")
-    # df.columns = [pd.Timestamp(x) if x[0] == "2" else x for x in df.columns]
     return df
 
 
 @pytest.fixture(scope="session")
 def fossil_cost(test_dir) -> pd.DataFrame:
     """Fossil Profiles."""
-    # df = pd.read_parquet(test_dir / "data/plant_specs.parquet").filter(like="20")
-    # df.columns = df.columns.map(lambda x: pd.Timestamp(x))
-    # df.columns.name = "datetime"
-    # return df.stack()
     return pd.read_parquet(test_dir / "data/fossil_cost.parquet")
 
 
 @pytest.fixture
 def ent_fresh(test_dir) -> dict:
     """Fossil Profiles."""
-    # df = pd.read_parquet(test_dir / "data/plant_specs.parquet").filter(like="20")
-    # df.columns = df.columns.map(lambda x: pd.Timestamp(x))
-    # df.columns.name = "datetime"
-    # return df.stack()
     return DataZip.dfs_from_zip(test_dir / "data/8fresh.zip")
 
 
 @pytest.fixture
 def ent_redispatch(test_dir) -> dict:
     """Fossil Profiles."""
-    # df = pd.read_parquet(test_dir / "data/plant_specs.parquet").filter(like="20")
-    # df.columns = df.columns.map(lambda x: pd.Timestamp(x))
-    # df.columns.name = "datetime"
-    # return df.stack()
     return DataZip.dfs_from_zip(test_dir / "data/8redispatch.zip")
+
+
+@pytest.fixture(scope="session", params=["8fresh", "8redispatch"])
+def ent_dm(test_dir, request) -> tuple[str, DispatchModel]:
+    """Fossil Profiles."""
+    indicator = {"8fresh": "f", "8redispatch": "r"}
+    return (
+        indicator[request.param],
+        DispatchModel(**DataZip.dfs_from_zip(test_dir / f"data/{request.param}.zip"))(),
+    )
+
+
+@pytest.fixture(scope="session")
+def ent_out_for_excl_test(test_dir):
+    """Dispatchable_summary with excluded generator."""
+    ent_redispatch = DataZip.dfs_from_zip(test_dir / "data/8redispatch.zip")
+
+    ent_redispatch["dispatchable_specs"] = ent_redispatch["dispatchable_specs"].assign(
+        exclude=lambda x: np.where(x.index == (55380, "CTG1"), True, False),
+    )
+    self = DispatchModel(**ent_redispatch)
+    self()
+    df = self.dispatchable_summary(by=None)
+    return df.groupby(level=[0, 1]).sum()
+
+
+@pytest.fixture(scope="session")
+def ent_out_for_test(test_dir):
+    """Dispatchable_summary without excluded generator."""
+    ent_redispatch = DataZip.dfs_from_zip(test_dir / "data/8redispatch.zip")
+
+    self = DispatchModel(**ent_redispatch)
+    self()
+    df = self.dispatchable_summary(by=None)
+    return df.groupby(level=[0, 1]).sum()
+
+
+@pytest.fixture(scope="session")
+def mini_dm(fossil_profiles, fossil_specs, fossil_cost, re_profiles):
+    """Setup `DispatchModel`."""
+    re = np.array([5000.0, 5000.0, 0.0, 0.0])
+
+    fossil_profiles.columns = fossil_specs.index
+    fossil_profiles = apply_op_ret_date(
+        fossil_profiles, fossil_specs.operating_date, fossil_specs.retirement_date
+    )
+    dm = DispatchModel.from_patio(
+        fossil_profiles.sum(axis=1) - re_profiles @ re,
+        dispatchable_profiles=fossil_profiles,
+        cost_data=fossil_cost,
+        plant_data=fossil_specs,
+        storage_specs=pd.DataFrame(
+            [(5000, 4, 0.9), (2000, 8760, 0.5)],
+            columns=["capacity_mw", "duration_hrs", "roundtrip_eff"],
+        ),
+    )()
+    return dm

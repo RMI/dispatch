@@ -1,15 +1,15 @@
 """Some helpers for profiles and such."""
 from __future__ import annotations
 
-import json
 import logging
-from collections.abc import Generator
+import warnings
 from io import BytesIO
 from pathlib import Path
-from zipfile import ZipFile, ZipInfo
+from typing import NamedTuple
 
 import numpy as np
 import pandas as pd
+from etoolbox.datazip import DataZip as EtDataZip
 
 from dispatch.constants import ORDERING
 
@@ -113,7 +113,15 @@ def dispatch_key(item):
     return ORDERING.get(item.casefold(), str(item))
 
 
-class DataZip(ZipFile):
+class ObjMeta(NamedTuple):
+    """NamedTuple for testing."""
+
+    module: str
+    qualname: str
+    constructor: str | None = None
+
+
+class DataZip(EtDataZip):
     """SubClass of :class:`ZipFile` with methods for easier use with :mod:`pandas`.
 
     z = DataZip(file, mode="r", compression=ZIP_STORED, allowZip64=True,
@@ -121,7 +129,7 @@ class DataZip(ZipFile):
 
     """
 
-    def __init__(self, file: str | Path, mode="r", *args, **kwargs):
+    def __init__(self, file: str | Path | BytesIO, mode="r", *args, **kwargs):
         """Open the ZIP file.
 
         Args:
@@ -140,145 +148,227 @@ class DataZip(ZipFile):
                            When using ZIP_DEFLATED integers 0 through 9 are accepted.
                            When using ZIP_BZIP2 integers 1 through 9 are accepted.
         """
-        if not isinstance(file, Path):
-            file = Path(file)
-        file = file.with_suffix(".zip")
-        if mode in ("a", "x"):
-            raise ValueError("DataZip does not support modes 'a' or 'x'")
-        if file.exists() and mode == "w":
-            raise FileExistsError(
-                f"{file} exists, you cannot write or append to an existing DataZip."
-            )
+        # if mode in ("a", "x"):
+        #     raise ValueError("DataZip does not support modes 'a' or 'x'")
+        #
+        # if isinstance(file, str):
+        #     file = Path(file)
+        #
+        # if isinstance(file, Path):
+        #     file = file.with_suffix(".zip")
+        #     if file.exists() and mode == "w":
+        #         raise FileExistsError(
+        #             f"{file} exists, you cannot write or append to an existing DataZip."
+        #         )
+        warnings.simplefilter("once")
+        warnings.warn(
+            "DataZip is now in rmi.etoolbox (https://github.com/rmi-electricity/etoolbox)"
+            " and will be removed from rmi.dispatch",
+            DeprecationWarning,
+        )
+        warnings.simplefilter("default")
+
         super().__init__(file, mode, *args, **kwargs)
-        try:
-            self.bad_cols = self._read_dict("bad_cols")
-        except KeyError:
-            self.bad_cols = {}
 
-    def read(
-        self, name: str | ZipInfo, pwd: bytes | None = ...
-    ) -> bytes | pd.DataFrame | pd.Series | dict:
-        """Return obj or bytes for name."""
-        if "parquet" in name or f"{name}.parquet" in self.namelist():
-            return self._read_df(name)
-        if "json" in name or f"{name}.json" in self.namelist():
-            return self._read_dict(name)
-        return super().read(name)
-
-    def read_dfs(self) -> Generator[tuple[str, pd.DataFrame | pd.Series]]:
-        """Read all dfs lazily."""
-        for name, *suffix in map(lambda x: x.split("."), self.namelist()):
-            if "parquet" in suffix:
-                yield name, self.read(name)
-
-    def _read_df(self, name) -> pd.DataFrame | pd.Series:
-        name = name.removesuffix(".parquet")
-        out = pd.read_parquet(BytesIO(super().read(name + ".parquet")))
-
-        if name in self.bad_cols:
-            cols, names = self.bad_cols[name]
-            if isinstance(names, (tuple, list)) and len(names) > 1:
-                cols = pd.MultiIndex.from_tuples(cols, names=names)
-            else:
-                cols = pd.Index(cols, name=names[0])
-            out.columns = cols
-        return out.squeeze()
-
-    def _read_dict(self, name) -> dict:
-        return json.loads(super().read(name.removesuffix(".json") + ".json"))
-
-    def writed(
-        self,
-        name: str,
-        data: str | dict | pd.DataFrame | pd.Series,
-    ) -> None:
-        """Write dict, df, str, to name."""
-        if data is None:
-            LOGGER.info("Unable to write data %s because it is None.", name)
-            return None
-        name = name.removesuffix(".json").removesuffix(".parquet")
-        if isinstance(data, dict):
-            self._write_dict(name, data)
-        elif isinstance(data, (pd.DataFrame, pd.Series)):
-            self._write_df(name, data)
-        else:
-            raise TypeError("`data` must be a dict, pd.DataFrame, or pd.Series")
-
-    def _write_df(self, name: str, df: pd.DataFrame | pd.Series) -> None:
-        """Write a df in the ZIP as parquet."""
-        if df.empty:
-            LOGGER.info("Unable to write df %s because it is empty.", name)
-            return None
-        if f"{name}.parquet" not in self.namelist():
-            if isinstance(df, pd.Series):
-                df = df.to_frame(name=name)
-            try:
-                self.writestr(f"{name}.parquet", df.to_parquet())
-            except ValueError:
-                self.bad_cols.update({name: (list(df.columns), list(df.columns.names))})
-                self.writestr(f"{name}.parquet", _str_cols(df).to_parquet())
-        else:
-            raise FileExistsError(f"{name}.parquet already in {self.filename}")
-
-    def _write_dict(
-        self, name, dct: dict[int | str, list | tuple | dict | str | float | int]
-    ) -> None:
-        """Write a dict in the ZIP as json."""
-        if f"{name}.json" not in self.namelist():
-            self.writestr(f"{name}.json", json.dumps(dct, ensure_ascii=False, indent=4))
-        else:
-            raise FileExistsError(f"{name}.json already in {self.filename}")
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.mode == "w":
-            self._write_dict("bad_cols", self.bad_cols)
-        super().__exit__(exc_type, exc_val, exc_tb)
-
-    @classmethod
-    def dfs_to_zip(cls, path: Path, df_dict: dict[str, pd.DataFrame], clobber=False):
-        """Create a zip of parquets.
-
-        Args:
-            df_dict: dict of dfs to put into a zip
-            path: path for the zip
-            clobber: if True, overwrite exiting file with same path
-
-        Returns: None
-
-        """
-        path = path.with_suffix(".zip")
-        if path.exists():
-            if not clobber:
-                raise FileExistsError(f"{path} exists, to overwrite set `clobber=True`")
-            path.unlink()
-        with cls(path, "w") as z:
-            other_stuff = {}
-            for key, val in df_dict.items():
-                if isinstance(val, (pd.Series, pd.DataFrame, dict)):
-                    z.writed(key, val)
-                elif isinstance(val, (float, int, str, tuple, dict, list)):
-                    other_stuff.update({key: val})
-            z.writed("other_stuff", other_stuff)
-
-    @classmethod
-    def dfs_from_zip(cls, path: Path) -> dict:
-        """Dict of dfs from a zip of parquets.
-
-        Args:
-            path: path of the zip to load
-
-        Returns: dict of dfs
-
-        """
-        with cls(path, "r") as z:
-            out_dict = dict(z.read_dfs())
-            try:
-                other = z.read("other_stuff")
-            except KeyError:
-                other = {}
-            out_dict = out_dict | other
-
-        return out_dict
+    #     try:
+    #         self.bad_cols = self._read_dict("bad_cols")
+    #     except KeyError:
+    #         self.bad_cols = {}
+    #     try:
+    #         self.obj_meta = self._read_dict("obj_meta")
+    #     except KeyError:
+    #         self.obj_meta = {}
+    #
+    # def _stemlist(self):
+    #     return list(map(lambda x: x.partition(".")[0], self.namelist()))
+    #
+    # def read(
+    #     self, name: str | ZipInfo, pwd: bytes | None = ..., super_=False
+    # ) -> bytes | pd.DataFrame | pd.Series | dict:
+    #     """Return obj or bytes for name."""
+    #     stem, _, suffix = name.partition(".")
+    #     if suffix == "parquet" or f"{stem}.parquet" in self.namelist():
+    #         return self._read_df(stem)
+    #     if suffix == "json" or f"{stem}.json" in self.namelist():
+    #         if stem in self.obj_meta:
+    #             return self._read_dictable(stem)
+    #         else:
+    #             return self._read_dict(stem)
+    #     if (suffix == "zip" or f"{stem}.zip" in self.namelist()) and not super_:
+    #         return self._read_obj(stem)
+    #     return super().read(name)
+    #
+    # def read_dfs(self) -> Generator[tuple[str, pd.DataFrame | pd.Series]]:
+    #     """Read all dfs lazily."""
+    #     for name, *suffix in map(lambda x: x.split("."), self.namelist()):
+    #         if "parquet" in suffix:
+    #             yield name, self.read(name)
+    #
+    # def _read_obj(self, name) -> pd.DataFrame | pd.Series:
+    #     temp = BytesIO(super().read(name + ".zip"))
+    #     mod, qname, constructor = self.obj_meta[name]
+    #     cls = getattr(import_module(mod), qname)
+    #     return getattr(cls, constructor)(temp)
+    #
+    # def _read_dictable(self, name) -> pd.DataFrame | pd.Series:
+    #     temp = json.loads(super().read(name + ".json"))
+    #     mod, qname, constructor = self.obj_meta[name]
+    #     cls = getattr(import_module(mod), qname)
+    #     if isinstance(temp, dict):
+    #         return cls(**temp)
+    #     return cls(temp)
+    #
+    # def _read_df(self, name) -> pd.DataFrame | pd.Series:
+    #     out = pd.read_parquet(BytesIO(super().read(name + ".parquet")))
+    #
+    #     if name in self.bad_cols:
+    #         cols, names = self.bad_cols[name]
+    #         if isinstance(names, (tuple, list)) and len(names) > 1:
+    #             cols = pd.MultiIndex.from_tuples(cols, names=names)
+    #         else:
+    #             cols = pd.Index(cols, name=names[0])
+    #         out.columns = cols
+    #     return out.squeeze()
+    #
+    # def _read_dict(self, name) -> dict:
+    #     return json.loads(super().read(name + ".json"))
+    #
+    # def writed(
+    #     self,
+    #     name: str,
+    #     data: str | dict | pd.DataFrame | pd.Series | NamedTuple | Any,
+    #     **kwargs,
+    # ) -> None:
+    #     """Write dict, df, str, to name."""
+    #     if data is None:
+    #         LOGGER.info("Unable to write data %s because it is None.", name)
+    #         return None
+    #     name = name.removesuffix(".json").removesuffix(".parquet").removesuffix(".zip")
+    #     if isinstance(data, (pd.DataFrame, pd.Series)):
+    #         self._write_df(name, data, **kwargs)
+    #     elif isinstance(data, tuple) and hasattr(data, "_asdict"):
+    #         self._write_nt(name, data)
+    #     elif isinstance(data, (dict, list, tuple)):
+    #         self._write_simple_json(name, data)
+    #     elif hasattr(data, "to_file") and hasattr(data, "from_file"):
+    #         self._write_obj(name, data, **kwargs)
+    #     else:
+    #         raise TypeError(
+    #             "`data` must be a dict, pd.DataFrame, pd.Series or implement a `to_file` method"
+    #         )
+    #
+    # def _write_obj(self, name, obj, **kwargs):
+    #     if name not in self._stemlist():
+    #         obj.to_file(temp := BytesIO(), **kwargs)
+    #         self.writestr(f"{name}.zip", temp.getvalue())
+    #         self.obj_meta.update(
+    #             {
+    #                 name: (
+    #                     obj.__class__.__module__,
+    #                     obj.__class__.__qualname__,
+    #                     "from_file",
+    #                 )
+    #             }
+    #         )
+    #     else:
+    #         raise FileExistsError(f"{name} already in {self.filename}")
+    #
+    # def _write_nt(self, name, obj: NamedTuple) -> None:
+    #     """Write a namedtuple in the ZIP as json."""
+    #     if name not in self._stemlist():
+    #         self.writestr(
+    #             f"{name}.json", json.dumps(obj._asdict(), ensure_ascii=False, indent=4)
+    #         )
+    #         self.obj_meta.update(
+    #             {name: (obj.__class__.__module__, obj.__class__.__qualname__, None)}
+    #         )
+    #     else:
+    #         raise FileExistsError(f"{name} already in {self.filename}")
+    #
+    # def _write_df(self, name: str, df: pd.DataFrame | pd.Series, **kwargs) -> None:
+    #     """Write a df in the ZIP as parquet."""
+    #     if df.empty:
+    #         LOGGER.info("Unable to write df %s because it is empty.", name)
+    #         return None
+    #     if name not in self._stemlist():
+    #         if isinstance(df, pd.Series):
+    #             df = df.to_frame(name=name)
+    #         try:
+    #             self.writestr(f"{name}.parquet", df.to_parquet())
+    #         except ValueError:
+    #             self.bad_cols.update({name: (list(df.columns), list(df.columns.names))})
+    #             self.writestr(f"{name}.parquet", _str_cols(df).to_parquet())
+    #     else:
+    #         raise FileExistsError(f"{name} already in {self.filename}")
+    #
+    # def _write_simple_json(
+    #     self,
+    #     name,
+    #     obj: dict[int | str, list | tuple | dict | str | float | int],
+    #     **kwargs,
+    # ) -> None:
+    #     """Write a dict in the ZIP as json."""
+    #     if name not in self._stemlist():
+    #         self.writestr(f"{name}.json", json.dumps(obj, ensure_ascii=False, indent=4))
+    #         if isinstance(obj, tuple):
+    #             self.obj_meta.update({name: self._objinfo(obj)})
+    #     else:
+    #         raise FileExistsError(f"{name} already in {self.filename}")
+    #
+    # def _objinfo(self, obj):
+    #     return obj.__class__.__module__, obj.__class__.__qualname__, None
+    #
+    # def __exit__(self, exc_type, exc_val, exc_tb):
+    #     if self.mode == "w":
+    #         self._write_simple_json("bad_cols", self.bad_cols)
+    #         self._write_simple_json("obj_meta", self.obj_meta)
+    #     super().__exit__(exc_type, exc_val, exc_tb)
+    #
+    # @classmethod
+    # def dfs_to_zip(cls, path: Path, df_dict: dict[str, pd.DataFrame], clobber=False):
+    #     """Create a zip of parquets.
+    #
+    #     Args:
+    #         df_dict: dict of dfs to put into a zip
+    #         path: path for the zip
+    #         clobber: if True, overwrite exiting file with same path
+    #
+    #     Returns: None
+    #
+    #     """
+    #     path = path.with_suffix(".zip")
+    #     if path.exists():
+    #         if not clobber:
+    #             raise FileExistsError(f"{path} exists, to overwrite set `clobber=True`")
+    #         path.unlink()
+    #     with cls(path, "w") as z:
+    #         other_stuff = {}
+    #         for key, val in df_dict.items():
+    #             if isinstance(val, (pd.Series, pd.DataFrame, dict)):
+    #                 z.writed(key, val)
+    #             elif isinstance(val, (float, int, str, tuple, dict, list)):
+    #                 other_stuff.update({key: val})
+    #         z.writed("other_stuff", other_stuff)
+    #
+    # @classmethod
+    # def dfs_from_zip(cls, path: Path) -> dict:
+    #     """Dict of dfs from a zip of parquets.
+    #
+    #     Args:
+    #         path: path of the zip to load
+    #
+    #     Returns: dict of dfs
+    #
+    #     """
+    #     with cls(path, "r") as z:
+    #         out_dict = dict(z.read_dfs())
+    #         try:
+    #             other = z.read("other_stuff")
+    #         except KeyError:
+    #             other = {}
+    #         out_dict = out_dict | other
+    #
+    #     return out_dict
 
 
 def idfn(val):

@@ -24,7 +24,6 @@ __all__ = [
     "dispatch_engine",
     "copy_profile",
     "apply_op_ret_date",
-    "DataZip",
     "__version__",
 ]
 
