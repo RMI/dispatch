@@ -73,6 +73,8 @@ What's New?
     facility has storage, storage can be charged by the constrained excess.
 *   Added ``compare_hist`` argument to :meth:`.DispatchModel.plot_period` which creates
     panel plot showing both historical dispatch and redispatch for the period.
+*   :meth:`.DispatchModel.plot_output` adds a row facet to show both historical and
+    redispatch versions of the requested data if available.
 *   Cleanup of configuration and packaging files. Contents of ``setup.cfg`` and
     ``tox.ini`` moved to ``pyproject.toml``.
 

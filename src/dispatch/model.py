@@ -1300,30 +1300,75 @@ class DispatchModel:
             .update_xaxes(title=None)
             .for_each_yaxis(
                 lambda yaxis: (yaxis.update(title=yt) if yaxis.title.text else None)
-                # lambda yaxis: print(yaxis)
+            )
+            .update_traces(
+                marker_line_width=0.1,
             )
             .update_layout(bargap=0)
         )
 
-    def plot_output(self, y: str, color="resource") -> Figure:
+    def plot_output(self, y: str, color="resource", freq="YS") -> Figure:
         """Plot a columns from :meth:`.DispatchModel.full_output`."""
-        return px.bar(
-            self.full_output()
+        to_plot = (
+            self.full_output(freq=freq)
             .reset_index()
             .assign(
                 year=lambda x: x.datetime.dt.year,
+                month=lambda x: x.datetime.dt.month,
                 resource=lambda x: x.technology_description.replace(PLOT_MAP),
                 redispatch_cost=lambda x: x.filter(like="redispatch_cost").sum(axis=1),
                 historical_cost=lambda x: x.filter(like="historical_cost").sum(axis=1),
             )
-            .sort_values(["resource"], key=dispatch_key),
-            x="year",
+        )
+        y_cat = y.removeprefix("redispatch_").removeprefix("historical_")
+        b_kwargs = dict(
+            x="datetime",
             y=y,
             color=color,
             hover_name="plant_id_eia",
             color_discrete_map=COLOR_MAP,
-            width=1000,
-        ).update_layout(xaxis_title=None)
+        )
+        if series_facet := all(
+            ("redispatch_" + y_cat in to_plot, "historical_" + y_cat in to_plot)
+        ):
+            to_plot1 = to_plot.melt(
+                id_vars=[
+                    "plant_id_eia",
+                    "generator_id",
+                    "datetime",
+                    "capacity_mw",
+                    "plant_name_eia",
+                    "technology_description",
+                    "year",
+                    "month",
+                    "resource",
+                ],
+                value_vars=["redispatch_" + y_cat, "historical_" + y_cat],
+                var_name="series",
+                value_name=y_cat,
+            ).assign(series=lambda x: x.series.str.split("_" + y_cat, expand=True)[0])
+            if (
+                series_facet := to_plot1.groupby("series")[y_cat].sum().at["historical"]
+                > 0.0
+            ):
+                b_kwargs.update(facet_row="series", y=y_cat)
+                to_plot = to_plot1
+        if freq == "MS":
+            b_kwargs.update(facet_col="year", facet_col_wrap=2, x="month")
+            if series_facet:
+                b_kwargs.update(facet_row="year", facet_col="series", facet_col_wrap=0)
+        return (
+            px.bar(
+                to_plot.sort_values(["resource"], key=dispatch_key),
+                width=800,
+                **b_kwargs,
+            )
+            .update_traces(
+                marker_line_width=0.1,
+            )
+            .update_layout(xaxis_title=None, bargap=0.025)
+            .for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+        )
 
     def __repr__(self) -> str:
         if self.re_plant_specs is None:
