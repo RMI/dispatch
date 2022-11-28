@@ -66,7 +66,7 @@ tests = [
 ]
 viz = [
     "plotly>5.10,<=5.11",
-    "kaleido>0.2,<=0.2.1",
+    "kaleido>0.2,<0.2.2",
 ]
 
 [tool.setuptools_scm]
