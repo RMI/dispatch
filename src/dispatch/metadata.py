@@ -78,6 +78,7 @@ class Validator:
                 ),
                 "retirement_date": pa.Column(pa.Timestamp, nullable=True),
                 "interconnect_mw": pa.Column(pa.Float, nullable=False, required=False),
+                "fom_per_kw": pa.Column(pa.Float, nullable=True, required=False),
             },
             coerce=True,
         )

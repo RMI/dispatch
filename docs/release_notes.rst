@@ -77,6 +77,9 @@ What's New?
     redispatch versions of the requested data if available.
 *   Cleanup of configuration and packaging files. Contents of ``setup.cfg`` and
     ``tox.ini`` moved to ``pyproject.toml``.
+*   Added the ability to specify FOM for renewables in ``re_plant_specs`` via an
+    optional ``fom_per_kw`` column. This allows :meth:`.DispatchModel.re_summary` and
+    derived outputs to include a ``redispatch_cost_fom`` column.
 
 Bug Fixes
 ^^^^^^^^^

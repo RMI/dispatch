@@ -184,7 +184,12 @@ out_params = [
         "notna",
     ),
     ("dispatchable_summary", {"by": None}, (), "notna"),
-    ("re_summary", {"by": None}, ("owned_pct", "retirement_date"), "notna"),
+    (
+        "re_summary",
+        {"by": None},
+        ("owned_pct", "retirement_date", "fom_per_kw"),
+        "notna",
+    ),
     ("system_level_summary", {}, (), "notna"),
     ("load_summary", {}, (), "notna"),
     ("storage_durations", {}, (), "notna"),
