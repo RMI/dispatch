@@ -25,7 +25,7 @@ dependencies = [
     "pandas >= 1.4,< 1.6",
     "pandera ~= 0.12",
     "pyarrow>=7, <11",
-    "rmi.etoolbox @ git+https://github.com/rmi-electricity/etoolbox.git",
+    "rmi.etoolbox @ git+https://github.com/rmi/etoolbox.git",
 ]
 
 [project.optional-dependencies]
