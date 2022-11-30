@@ -2,16 +2,16 @@ Dispatch: A simple and efficient electricity dispatch model
 =======================================================================================
 
 
-.. image:: https://github.com/rmi-electricity/dispatch/workflows/tox-pytest/badge.svg
-   :target: https://github.com/rmi-electricity/dispatch/actions?query=workflow%3Atox-pytest
+.. image:: https://github.com/rmi/dispatch/workflows/tox-pytest/badge.svg
+   :target: https://github.com/rmi/dispatch/actions?query=workflow%3Atox-pytest
    :alt: Tox-PyTest Status
 
-.. image:: https://github.com/rmi-electricity/dispatch/workflows/docs/badge.svg
-   :target: https://rmi-electricity.github.io/dispatch/
+.. image:: https://github.com/rmi/dispatch/workflows/docs/badge.svg
+   :target: https://rmi.github.io/dispatch/
    :alt: GitHub Pages Status
 
-.. image:: https://coveralls.io/repos/github/rmi-electricity/dispatch/badge.svg
-   :target: https://coveralls.io/github/rmi-electricity/dispatch
+.. image:: https://coveralls.io/repos/github/rmi/dispatch/badge.svg
+   :target: https://coveralls.io/github/rmi/dispatch
 
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
    :target: https://github.com/psf/black>
@@ -43,7 +43,7 @@ procedure in each hour:
    their ramp rate.
 
 For more information about how the model works and how to use it, please see the
-`model documentation <https://rmi-electricity.github.io/dispatch/>`__.
+`model documentation <https://rmi.github.io/dispatch/>`__.
 
 Installation
 =======================================================================================
@@ -53,13 +53,13 @@ environment using pip. To install it using pip:
 
 .. code-block:: bash
 
-   pip install git+https://github.com/rmi-electricity/dispatch.git
+   pip install git+https://github.com/rmi/dispatch.git
 
 Or from the dev branch:
 
 .. code-block:: bash
 
-   pip install git+https://github.com/rmi-electricity/dispatch.git@dev
+   pip install git+https://github.com/rmi/dispatch.git@dev
 
 
 To create an environment for Dispatch, navigate to the repo folder in terminal and run:

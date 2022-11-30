@@ -27,8 +27,8 @@ __all__ = [
     "__version__",
 ]
 
-__projecturl__ = "https://github.com/rmi-electricity/dispatch"
-__downloadurl__ = "https://github.com/rmi-electricity/dispatch"
+__projecturl__ = "https://github.com/rmi/dispatch"
+__downloadurl__ = "https://github.com/rmi/dispatch"
 
 # Create a root logger for use anywhere within the package.
 logger = logging.getLogger(__name__)
