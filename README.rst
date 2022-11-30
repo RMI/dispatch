@@ -9,7 +9,7 @@ Dispatch: A simple and efficient electricity dispatch model
 .. image:: https://github.com/rmi/dispatch/workflows/docs/badge.svg
    :target: https://rmi.github.io/dispatch/
    :alt: GitHub Pages Status
-   
+
 .. image:: https://coveralls.io/repos/github/RMI/dispatch/badge.svg?branch=main
    :target: https://coveralls.io/github/RMI/dispatch?branch=main
 
