@@ -153,6 +153,7 @@ class DispatchModel:
                     but can be reduced to reflect facility-specific transmission /
                     interconnection constraints. If the facility has storage, storage
                     can be charged by the constrained excess.
+                -   fom_per_kw: (Optional) fixed O&M (USD/kW)
 
                 The index must be a :class:`pandas.MultiIndex` of
                 ``['plant_id_eia', 'generator_id']``.
@@ -229,6 +230,8 @@ class DispatchModel:
             self.re_plant_specs = self.re_plant_specs.assign(
                 interconnect_mw=lambda x: x.capacity_mw
             )
+        if "fom_per_kw" not in self.re_plant_specs:
+            self.re_plant_specs = self.re_plant_specs.assign(fom_per_kw=np.nan)
         # ILR adjusted normalized profiles
         full_prod = (
             re_profiles
@@ -815,11 +818,43 @@ class DispatchModel:
             raise AssertionError(
                 "at least one of `re_profiles` and `re_plant_specs` is `None`"
             )
+        fom = (
+            apply_op_ret_date(
+                (
+                    self.re_plant_specs.capacity_mw
+                    * 1000
+                    * self.re_plant_specs.fom_per_kw
+                )
+                .to_frame(name=self.yrs_idx[0])
+                .reindex(self.yrs_idx, axis=1, method="ffill")
+                .T,
+                self.re_plant_specs.operating_date.apply(
+                    lambda x: x.replace(day=1, month=1)
+                ),
+                self.re_plant_specs.retirement_date.apply(
+                    lambda x: x.replace(day=1, month=1)
+                ),
+            )
+            .reindex(index=self.load_profile.index, method="ffill")
+            .divide(
+                self.load_profile.groupby(pd.Grouper(freq="YS")).transform("count"),
+                axis=0,
+            )
+        )
         out = (
             self.re_profiles_ac.groupby([pd.Grouper(freq=freq)])
             .sum()
             .stack(["plant_id_eia", "generator_id"])
             .to_frame(name="redispatch_mwh")
+            .merge(
+                fom.groupby([pd.Grouper(freq=freq)])
+                .sum()
+                .stack(["plant_id_eia", "generator_id"])
+                .to_frame(name="redispatch_cost_fom"),
+                left_index=True,
+                right_index=True,
+                validate="1:1",
+            )
             # .assign(redispatch_mwh=lambda x: x.historical_mwh)
             .reset_index()
             .merge(

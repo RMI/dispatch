@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools<66", "setuptools_scm[toml]>=3.5.0"]
+requires = ["setuptools<66", "setuptools_scm[toml]<8", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -23,9 +23,9 @@ dependencies = [
     "numexpr >= 2.8, < 2.8.5",
     "numpy >= 1.18.5,<2",
     "pandas >= 1.4,< 1.6",
-    "pandera ~= 0.12",
+    "pandera >= 0.12",
     "pyarrow>=7, <11",
-    "rmi.etoolbox @ git+https://github.com/rmi-electricity/etoolbox.git",
+    "rmi.etoolbox @ git+https://github.com/rmi/etoolbox.git",
 ]
 
 [project.optional-dependencies]
@@ -33,6 +33,7 @@ dev = [
     "black[jupyter] >= 22,<23",
     "isort>=5.0,<5.11",
     "tox>=3.20,<3.28",
+    "twine>=3.3,<4.1",  # Used to make releases to PyPI
 ]
 doc = [
     "doc8>=0.9,<1.1",
@@ -162,64 +163,3 @@ report_level = "WARNING"
 ignore_roles = ["pr", "issue", "user", "include"]
 ignore_messages = '(Hyperlink target .* is not referenced\.$|Duplicate implicit target name:|An `AttributeError` error occured.*)'
 ignore_directives = ["bibliography", "todo", "include"]
-
-[tool.tox]
-legacy_tox_ini = """
-[tox]
-envlist =
-    linters
-    docs
-    tests
-isolated_build = True
-
-[testenv]
-extras =
-    tests
-    doc
-    viz
-allowlist_externals =
-    bash
-    coverage
-    sphinx-build
-skip_install = false
-covargs = --cov={envsitepackagesdir}/dispatch --cov-append --cov-report=lcov:coverage.info
-covreport = coverage report --sort=cover
-
-[testenv:linters]
-description = Run the pre-commit, flake8, rstcheck, doc8 and bandit linters.
-commands =
-    pre-commit run --all-files --show-diff-on-failure python-no-eval
-    pre-commit run --all-files --show-diff-on-failure python-no-log-warn
-    pre-commit run --all-files --show-diff-on-failure python-check-blanket-noqa
-    pre-commit run --all-files --show-diff-on-failure check-merge-conflict
-    pre-commit run --all-files --show-diff-on-failure check-yaml
-    pre-commit run --all-files --show-diff-on-failure check-case-conflict
-    pre-commit run --all-files --show-diff-on-failure debug-statements
-    pre-commit run --all-files --show-diff-on-failure name-tests-test
-    bandit -c pyproject.toml -r src/dispatch/
-    flake8
-    bash -c 'rm -rf docs/_build'
-    doc8 docs/ README.rst
-    rstcheck --config pyproject.toml --recursive ./
-
-[testenv:docs]
-description = Build the HTML docs from scratch using Sphinx.
-commands =
-    bash -c 'rm -rf docs/_build'
-    sphinx-build -b html docs docs/_build
-
-[testenv:tests]
-description = Run all tests & generate test coverage.
-recreate = true
-commands =
-    coverage erase
-    pytest {posargs} {[testenv]covargs} --doctest-modules {envsitepackagesdir}/dispatch tests
-    {[testenv]covreport}
-
-[testenv:build]
-description = Prepare Python source and binary packages for release.
-basepython = python3
-commands =
-    bash -c 'rm -rf build/* dist/*'
-    python -m build --sdist --wheel
-"""
