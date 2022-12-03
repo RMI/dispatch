@@ -11,7 +11,7 @@ Release Notes
 
 What's New?
 ^^^^^^^^^^^
-*   Tests for :func:`.dispatch_engine_py`, :func:`.copy_profile`.
+*   Tests for :func:`.engine.dispatch_engine`, :func:`.copy_profile`.
 *   :meth:`.DispatchModel.hourly_data_check` to help in checking for dispatch errors,
     and running down why deficits are occuring.
 *   :class:`.DispatchModel` now takes ``load_profile`` that resources will be
@@ -25,7 +25,7 @@ What's New?
     RE+Storage facilities that can charge from otherwise clipped generation. The
     calculations for the amount of charging from DC-coupled RE is in
     :meth:`.DispatchModel.dc_charge`.
-*   Updates to :func:`.dispatch_engine_py` and :func:`.engine.validate_inputs_py` to
+*   Updates to :func:`.engine.dispatch_engine` and :func:`.engine.validate_inputs` to
     accommodate DC-coupled RE charging data. Storage can now be charged from
     DC-coupled RE in addition to the grid. This includes tracking ``gridcharge``
     in addition to ``charge``, where the latter includes charging from the grid
@@ -38,8 +38,8 @@ What's New?
     easily reading and writing :class:`pandas.DataFrame` as ``parquet`` and
     :class:`dict` as ``json``. This includes storing column names separately that
     cannot be included in a ``parquet``.
-*   Extracted :func:`.charge_storage_py` and
-    :func:`.make_rank_arrays_py` from :func:`.dispatch_engine_py`. This
+*   Extracted :func:`.engine.charge_storage` and
+    :func:`.engine.make_rank_arrays` from :func:`.engine.dispatch_engine`. This
     allows easier unit testing and, in the former case, makes sure all charging is
     implemented consistently.
 *   Added plotting functions :meth:`.DispatchModel.plot_output` to visualize columns
@@ -80,6 +80,7 @@ What's New?
 *   Added the ability to specify FOM for renewables in ``re_plant_specs`` via an
     optional ``fom_per_kw`` column. This allows :meth:`.DispatchModel.re_summary` and
     derived outputs to include a ``redispatch_cost_fom`` column.
+*   :class:`.DispatchModel` now contains examples as doctests.
 
 Bug Fixes
 ^^^^^^^^^
@@ -115,7 +116,7 @@ Known Issues
 
 Bug Fixes
 ^^^^^^^^^
-*   Fixed an issue in :func:`.dispatch_engine_py` where a storage resource's state of
+*   Fixed an issue in :func:`.engine.dispatch_engine` where a storage resource's state of
     charge would not be carried forward if it wasn't charged or discharged in that
     hour.
 

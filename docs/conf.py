@@ -63,6 +63,7 @@ autoapi_ignore = [
     "*/package_data/*",
     "_*.py",
     "*constants.py",
+    "*_version.py",
 ]
 autoapi_python_class_content = "both"
 autoapi_options = [

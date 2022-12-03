@@ -4,12 +4,11 @@
 import numpy as np
 import pytest
 
-# noinspection PyProtectedMember
 from dispatch.engine import (
-    charge_storage_py,
-    dispatch_engine_py,
-    make_rank_arrays_py,
-    validate_inputs_py,
+    charge_storage,
+    dispatch_engine,
+    make_rank_arrays,
+    validate_inputs,
 )
 from dispatch.helpers import idfn
 
@@ -38,7 +37,7 @@ CAP = [500, 400, 300]
 
 def test_engine():
     """Trivial test for the dispatch engine."""
-    redispatch, es, sl, st = dispatch_engine_py(
+    redispatch, es, sl, st = dispatch_engine.py_func(
         net_load=np.array(NL),
         hr_to_cost_idx=np.zeros(len(NL), dtype=int),
         historical_dispatch=np.array([CAP] * len(NL)),
@@ -82,10 +81,10 @@ def test_validate_inputs(override, expected):
         storage_eff=np.array((0.9, 0.9)),
         storage_dc_charge=np.zeros((len(NL), 2)),
     )
-    validate_inputs_py(**base)
+    validate_inputs.py_func(**base)
     over = base | override
     with pytest.raises(expected):
-        validate_inputs_py(**over)
+        validate_inputs.py_func(**over)
 
 
 @pytest.mark.parametrize(
@@ -114,13 +113,13 @@ def test_validate_inputs(override, expected):
 )
 def test_charge_storage(deficit, soc, dc_charge, mw, soc_max, eff, expected):
     """Test storage charging calculations."""
-    assert charge_storage_py(deficit, soc, dc_charge, mw, soc_max, eff) == expected
+    assert charge_storage.py_func(deficit, soc, dc_charge, mw, soc_max, eff) == expected
 
 
 def test_make_rank_arrays():
     """Test cost rank setup."""
     m_cost = np.array([[50.0, 50.0], [25.0, 75.0]])
     s_cost = np.array([[250.0, 250.0], [500.0, 500.0]])
-    m, s = make_rank_arrays_py(m_cost, s_cost)
+    m, s = make_rank_arrays.py_func(m_cost, s_cost)
     assert np.all(m == np.array([[1, 0], [0, 1]]))
     assert np.all(s == np.array([[0, 0], [1, 1]]))

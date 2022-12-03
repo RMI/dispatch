@@ -4,17 +4,9 @@ from __future__ import annotations
 import numpy as np
 from numba import njit
 
-__all__ = [
-    "dispatch_engine",
-    "make_rank_arrays",
-    "charge_storage",
-    "dispatch_engine_py",
-    "make_rank_arrays_py",
-    "charge_storage_py",
-]
 
-
-def dispatch_engine_py(
+@njit(error_model="numpy")
+def dispatch_engine(
     net_load: np.ndarray,
     hr_to_cost_idx: np.ndarray,
     historical_dispatch: np.ndarray,
@@ -301,7 +293,8 @@ def dispatch_engine_py(
     return redispatch, storage, system_level, starts
 
 
-def make_rank_arrays_py(
+@njit
+def make_rank_arrays(
     marginal_cost: np.ndarray, startup_cost: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray]:
     """Turn cost arrays into rank arrays.
@@ -341,7 +334,8 @@ def make_rank_arrays_py(
     return marginal_ranks, start_ranks
 
 
-def charge_storage_py(
+@njit
+def charge_storage(
     deficit: float,
     soc: float,
     dc_charge: float,
@@ -391,7 +385,8 @@ def charge_storage_py(
     return charge, 0.0, soc, grid_charge
 
 
-def validate_inputs_py(
+@njit
+def validate_inputs(
     net_load,
     hr_to_cost_idx,
     historical_dispatch,
@@ -434,16 +429,3 @@ def validate_inputs_py(
             "# of unique values in `hr_to_cost_idx` does not match # of columns "
             "in `dispatchable_marginal_cost` and `dispatchable_startup_cost`"
         )
-
-
-validate_inputs = njit(validate_inputs_py)
-""":mod:`numba` compiled version of :func:`.validate_inputs_py`."""
-
-make_rank_arrays = njit(make_rank_arrays_py)
-""":mod:`numba` compiled version of :func:`.make_rank_arrays_py`."""
-
-charge_storage = njit(charge_storage_py)
-""":mod:`numba` compiled version of :func:`.charge_storage_py`."""
-
-dispatch_engine = njit(dispatch_engine_py, error_model="numpy")
-""":mod:`numba` compiled version of :func:`.dispatch_engine_py`."""

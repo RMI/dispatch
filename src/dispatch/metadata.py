@@ -140,6 +140,15 @@ class Validator:
 
     def dispatchable_cost(self, dispatchable_cost: pd.DataFrame) -> pd.DataFrame:
         """Validate dispatchable_cost."""
+        try:
+            marg_freq = dispatchable_cost.index.levels[2].freqstr
+            if marg_freq is None:
+                raise RuntimeError
+        except (AttributeError, RuntimeError):
+            marg_freq = pd.infer_freq(
+                dispatchable_cost.index.get_level_values(2).unique()
+            )
+
         dispatchable_cost = self.dispatchable_cost_schema.validate(dispatchable_cost)
         # make sure al
         if not np.all(
@@ -151,7 +160,6 @@ class Validator:
             raise AssertionError(
                 "generators in `dispatchable_cost` do not match generators in `dispatchable_specs`"
             )
-        marg_freq = pd.infer_freq(dispatchable_cost.index.get_level_values(2).unique())
         self.obj._metadata["marginal_cost_freq"] = marg_freq
         if "YS" not in marg_freq and "AS" not in marg_freq:
             raise AssertionError("Cost data must be `YS`")

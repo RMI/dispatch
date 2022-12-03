@@ -14,14 +14,11 @@ try:
 except ImportError:
     __version__ = "unknown"
 
-from dispatch.engine import dispatch_engine, dispatch_engine_py
 from dispatch.helpers import DataZip, apply_op_ret_date, copy_profile
 from dispatch.model import DispatchModel
 
 __all__ = [
     "DispatchModel",
-    "dispatch_engine_py",
-    "dispatch_engine",
     "copy_profile",
     "apply_op_ret_date",
     "__version__",
