@@ -80,4 +80,6 @@ ORDERING = {
     "october": "110",
     "november": "111",
     "december": "112",
+    "historical": "200",
+    "redispatch": "201",
 }
