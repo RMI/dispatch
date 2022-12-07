@@ -81,6 +81,8 @@ What's New?
     optional ``fom_per_kw`` column. This allows :meth:`.DispatchModel.re_summary` and
     derived outputs to include a ``redispatch_cost_fom`` column.
 *   :class:`.DispatchModel` now contains examples as doctests.
+*   :meth:`.DispatchModel.plot_all_years` to create daily redispatch plot faceted by
+    month and year.
 
 Bug Fixes
 ^^^^^^^^^

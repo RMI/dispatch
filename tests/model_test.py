@@ -242,6 +242,17 @@ def test_outputs_parametric(ent_dm, func, args, drop_cols, expected):
         assert False
 
 
+def test_plot_all_years(ent_dm, temp_dir):
+    """Test that outputs are not empty or do not have unexpected nans."""
+    ind, ent_dm = ent_dm
+    y = ent_dm.plot_all_years()
+    img_path = temp_dir / "test_plot_all_years.pdf"
+    try:
+        y.write_image(str(img_path))
+    except Exception as exc:
+        raise AssertionError("unable to write image") from exc
+
+
 @pytest.mark.parametrize("freq", ["D", "H"], ids=idfn)
 def test_plotting(mini_dm, temp_dir, freq):
     """Testing plotting function."""

@@ -107,7 +107,7 @@ def _str_cols(df, *args):
 def dispatch_key(item):
     """Key function for use sorting, including with :mod:`pandas` objects."""
     if isinstance(item, pd.Series):
-        return item.str.casefold().replace(ORDERING)
+        return item.astype(str).str.casefold().replace(ORDERING)
     if isinstance(item, pd.Index):
         return pd.Index([ORDERING.get(x.casefold(), str(x)) for x in item])
     return ORDERING.get(item.casefold(), str(item))
