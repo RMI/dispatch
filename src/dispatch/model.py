@@ -1106,7 +1106,7 @@ class DispatchModel:
         )
         if by is None:
             return out.set_index(["plant_id_eia", "generator_id", "datetime"])
-        return out.groupby([by, "datetime"]).sum()
+        return out.groupby([by, "datetime"]).sum(numeric_only=True)
 
     def storage_summary(
         self,
@@ -1494,6 +1494,7 @@ class DispatchModel:
             mode="lines",
             line_color=COLOR_MAP["Gross Load"],
         )
+        # see https://plotly.com/python/facet-plots/#adding-the-same-trace-to-all-facets
         out = (
             px.bar(
                 data.replace(
@@ -1566,11 +1567,57 @@ class DispatchModel:
                 width=1000,
                 hover_name=ht,
                 color_discrete_map=COLOR_MAP,
+                # facet_row_spacing=0.02,
             )
             .for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
             .update_xaxes(title=None)
             .for_each_yaxis(
                 lambda yaxis: (yaxis.update(title=yt) if yaxis.title.text else None)
+            )
+            .update_traces(
+                marker_line_width=0.1,
+            )
+            .update_layout(bargap=0)
+        )
+
+    def plot_all_years(self) -> Figure:
+        """Facet plot of daily dispatch for all years."""
+        out = (
+            self._plot_prep()
+            .reset_index()
+            .groupby([pd.Grouper(freq="D", key="datetime"), "resource"])
+            .sum()
+            .reset_index()
+            .assign(
+                day=lambda z: z.datetime.dt.day,
+                hour=lambda z: z.datetime.dt.day * 24 + z.datetime.dt.hour,
+                year=lambda z: z.datetime.dt.strftime("%Y"),
+                month=lambda z: z.datetime.dt.strftime("%B"),
+                resource=lambda z: z.resource.replace(
+                    {"charge": "Storage", "discharge": "Storage"}
+                ),
+            )
+            .sort_values(["resource", "year", "month"], key=dispatch_key)
+        )
+        return (
+            px.bar(
+                out,
+                x="day",
+                y="net_generation_mwh",
+                color="resource",
+                facet_col="month",
+                facet_row="year",
+                height=1750,
+                width=1750,
+                # hover_name=ht,
+                color_discrete_map=COLOR_MAP,
+                facet_row_spacing=0.002,
+                facet_col_spacing=0.004,
+            )
+            .for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+            .update_xaxes(title=None)
+            .for_each_yaxis(
+                lambda yaxis: (yaxis.update(title="MWh") if yaxis.title.text else None)
             )
             .update_traces(
                 marker_line_width=0.1,
@@ -1625,12 +1672,21 @@ class DispatchModel:
                 b_kwargs.update(facet_row="series", y=y_cat)
                 to_plot = to_plot1
         if freq == "MS":
-            b_kwargs.update(facet_col="year", facet_col_wrap=2, x="month")
+            b_kwargs.update(
+                facet_col="year", facet_col_wrap=2, x="month", facet_row_spacing=0.003
+            )
             if series_facet:
                 b_kwargs.update(facet_row="year", facet_col="series", facet_col_wrap=0)
         return (
             px.bar(
-                to_plot.sort_values(["resource"], key=dispatch_key),
+                to_plot.sort_values(
+                    (
+                        ["series", "resource", "year"]
+                        if series_facet
+                        else ["resource", "year"]
+                    ),
+                    key=dispatch_key,
+                ),
                 width=800,
                 **b_kwargs,
             )
