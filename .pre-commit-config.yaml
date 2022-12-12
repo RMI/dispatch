@@ -38,7 +38,7 @@ repos:
 
   # Make sure import statements are sorted uniformly.
   - repo: https://github.com/PyCQA/isort
-    rev: 5.10.1
+    rev: 5.11.0
     hooks:
       - id: isort
 
@@ -59,14 +59,14 @@ repos:
   # Update a bunch of Python syntax, using __futures__ for Python 3.8/3.9
   # Note that this sometimes conflicts with Pydantic on Python 3.8/3.9
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.3.0
+    rev: v3.3.1
     hooks:
       - id: pyupgrade
         args: ["--py39-plus"]
 
   # Deterministic python formatting:
   - repo: https://github.com/psf/black
-    rev: 22.10.0
+    rev: 22.12.0
     hooks:
       - id: black
         language_version: python3.10
