@@ -31,6 +31,7 @@ class Validator:
             "total_var_mwh": pa.Column(float, required=False),
             "fom_per_kw": pa.Column(float),
             "start_per_kw": pa.Column(float),
+            "startup_cost": pa.Column(float, required=False),
         },
         coerce=True,
     )
@@ -171,28 +172,10 @@ class Validator:
         ]
         if missing_prds:
             raise AssertionError(f"{missing_prds} not in `dispatchable_cost`")
-        if "total_var_mwh" not in dispatchable_cost:
-            dispatchable_cost = dispatchable_cost.assign(
-                total_var_mwh=lambda x: x[["vom_per_mwh", "fuel_per_mwh"]].sum(axis=1)
-            )
         return dispatchable_cost
 
     def storage_specs(self, storage_specs: pd.DataFrame) -> pd.DataFrame:
         """Validate storage_specs."""
-        # if storage_specs is None:
-        #     LOGGER.warning("Careful, dispatch without storage is untested")
-        #     storage_specs = pd.DataFrame(
-        #         [0.0, 0, 1.0, self.load_profile.index.max()],
-        #         columns=[
-        #             "capacity_mw",
-        #             "duration_hrs",
-        #             "roundtrip_eff",
-        #             "operating_date",
-        #         ],
-        #         index=pd.MultiIndex.from_tuples(
-        #             [(-99, "es")], names=["plant_id_eia", "generator_id"]
-        #         ),
-        #     )
         return self.storage_specs_schema.validate(storage_specs)
 
     def renewables(
