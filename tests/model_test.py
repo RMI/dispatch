@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 
 from dispatch import DispatchModel
-from dispatch.helpers import idfn
+from dispatch.helpers import apply_op_ret_date, idfn
 
 
 def test_new(fossil_profiles, re_profiles, fossil_specs, fossil_cost):
@@ -155,6 +155,47 @@ def test_marginal_cost(mini_dm):
     assert not x.empty
 
 
+def test_alt_total_var_mwh(
+    mini_dm, fossil_specs, fossil_profiles, re_profiles, fossil_cost
+):
+    """Test that changing total_var_mwh changes dispatch but not cost calculations."""
+    fossil_cost = fossil_cost.copy()
+    fossil_cost.loc[(3648, "4", "2018-01-01"), "total_var_mwh"] = 0.0
+    re = np.array([5000.0, 5000.0, 0.0, 0.0])
+    fossil_profiles.columns = fossil_specs.index
+    fossil_profiles = apply_op_ret_date(
+        fossil_profiles, fossil_specs.operating_date, fossil_specs.retirement_date
+    )
+    alt = DispatchModel.from_patio(
+        fossil_profiles.sum(axis=1) - re_profiles @ re,
+        dispatchable_profiles=fossil_profiles,
+        cost_data=fossil_cost,
+        plant_data=fossil_specs,
+        storage_specs=pd.DataFrame(
+            [(5000, 4, 0.9), (2000, 8760, 0.5)],
+            columns=["capacity_mw", "duration_hrs", "roundtrip_eff"],
+        ),
+    )()
+    assert (
+        alt.redispatch.loc["2017", :].compare(mini_dm.redispatch.loc["2017", :]).empty
+    )
+    assert np.all(
+        alt.redispatch.loc["2018", (3648, "4")]
+        >= mini_dm.redispatch.loc["2018", (3648, "4")]
+    )
+    assert (
+        not alt.dispatchable_summary(by=None)
+        .compare(mini_dm.dispatchable_summary(by=None))
+        .empty
+    )
+    alt.redispatch = mini_dm.redispatch
+    assert (
+        alt.dispatchable_summary(by=None)
+        .compare(mini_dm.dispatchable_summary(by=None))
+        .empty
+    )
+
+
 def test_operations_summary(mini_dm):
     """Setup for testing cost and grouper methods."""
     x = mini_dm.dispatchable_summary(by=None)
@@ -180,6 +221,9 @@ out_params = [
             "balancing_authority_code_eia",
             "plant_name_eia",
             "prime_mover_code",
+            "state",
+            "latitude",
+            "longitude",
         ),
         "notna",
     ),
