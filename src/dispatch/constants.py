@@ -52,6 +52,7 @@ PLOT_MAP = {
     # "charge": "Storage",
     # "discharge": "Storage",
     "Batteries": "Storage",
+    "H2 Storage": "Storage",
 }
 ORDERING = {
     "nuclear": "000",

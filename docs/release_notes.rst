@@ -86,6 +86,9 @@ What's New?
 
 Bug Fixes
 ^^^^^^^^^
+*   Fixed an issue in :func:`.engine.dispatch_engine` where a storage resource's state of
+    charge would not be carried forward if it wasn't charged or discharged in that
+    hour.
 *   Fixed a bug where storage metrics in :meth:`.DispatchModel.system_level_summary`
     were :class:`numpy.nan` because selecting of data from ``storage_specs`` returned
     a :class:`pandas.Series` rather than a :class:`int` or :class:`float`. Further, in
@@ -95,6 +98,11 @@ Bug Fixes
     would be :class:`numpy.nan` because of division be zero in these calculations, the
     result is now 0 rather than :class:`numpy.nan`. Tests now make sure that no new
     :class:`numpy.nan` show up.
+*   Fixed an issue where :meth:`.DispatchModel.full_output` and methods that use it,
+    i.e. :meth:`.DispatchModel.plot_output` improperly aggregated
+    :attr:`.DispatchModel.system_data` when ``freq`` was not 'YS'.
+*   Fixed an issue where :meth:`.DispatchModel.full_output` didn't properly show
+    ``Curtailment`` and ``Storage``.
 
 Known Issues
 ^^^^^^^^^^^^
@@ -116,11 +124,6 @@ Known Issues
     addressing this get messy and still wouldn't allow updating existing data without
     copying everything which a user can do if that is needed.
 
-Bug Fixes
-^^^^^^^^^
-*   Fixed an issue in :func:`.engine.dispatch_engine` where a storage resource's state of
-    charge would not be carried forward if it wasn't charged or discharged in that
-    hour.
 
 .. _release-v0-3-0:
 

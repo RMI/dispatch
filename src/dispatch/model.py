@@ -122,6 +122,11 @@ class DispatchModel:
                 -   fuel_per_mwh: fuel cost (USD/MWh)
                 -   fom_per_kw: fixed O&M (USD/kW)
                 -   start_per_kw: generator startup cost (USD/kW)
+                -   total_var_mwh: (Optional) total variable cost (USD/MWh), if not
+                    provided it will be calculates as  vom_per_mwh + fuel_per_mwh.
+                    If it is provided, this value will be used to determine marginal
+                    cost rank but will not be used to calculate operating costs.
+                    This allows for a kludgy kind of must-run or uneconomic dispatch.
 
             storage_specs: rows are storage facilities, for RE+Storage facilities,
                 the ``plant_id_eia`` for the storage component must match the
@@ -510,6 +515,10 @@ class DispatchModel:
         )
         if "startup_cost" not in df:
             df = df.assign(startup_cost=lambda x: x.capacity_mw * x.start_per_kw * 1000)
+        if "total_var_mwh" not in df:
+            df = df.assign(
+                total_var_mwh=lambda x: x[["vom_per_mwh", "fuel_per_mwh"]].sum(axis=1)
+            )
         return df.drop(columns=["capacity_mw"])
 
     @staticmethod
@@ -1159,7 +1168,9 @@ class DispatchModel:
         """Create full operations output."""
         # setup deficit/curtailment as if they were resources for full output, the idea
         # here is that you could rename them purchase/sales.
-        def_cur = self.grouper(self.system_data, by=None)[["deficit", "curtailment"]]
+        def_cur = self.grouper(self.system_data, by=None, freq=freq)[
+            ["deficit", "curtailment"]
+        ]
         def_cur.columns = pd.MultiIndex.from_tuples(
             [(0, "deficit"), (0, "curtailment")], names=["plant_id_eia", "generator_id"]
         )
@@ -1309,11 +1320,14 @@ class DispatchModel:
             "retirement_date",
             "status",
             "owned_pct",
+            "state",
+            "latitude",
+            "longitude",
         ]
         return (
             out.reset_index()
             .merge(
-                self.dispatchable_specs,
+                self.dispatchable_specs.reset_index(),
                 on=["plant_id_eia", "generator_id"],
                 validate="m:1",
                 suffixes=(None, "_l"),
@@ -1636,6 +1650,9 @@ class DispatchModel:
                 resource=lambda x: x.technology_description.replace(PLOT_MAP),
                 redispatch_cost=lambda x: x.filter(like="redispatch_cost").sum(axis=1),
                 historical_cost=lambda x: x.filter(like="historical_cost").sum(axis=1),
+                redispatch_mwh=lambda x: x.redispatch_mwh.mask(
+                    x.technology_description == "curtailment", x.redispatch_mwh * -1
+                ),
             )
         )
         y_cat = y.removeprefix("redispatch_").removeprefix("historical_")
@@ -1679,7 +1696,9 @@ class DispatchModel:
                 b_kwargs.update(facet_row="year", facet_col="series", facet_col_wrap=0)
         return (
             px.bar(
-                to_plot.sort_values(
+                to_plot[to_plot[b_kwargs["y"]] != 0.0]
+                .dropna(subset=b_kwargs["y"])
+                .sort_values(
                     (
                         ["series", "resource", "year"]
                         if series_facet
