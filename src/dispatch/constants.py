@@ -10,6 +10,7 @@ COLOR_MAP = {
     "Gas RICE": "#fbbb7d",
     "Gas ST": "#ffdaab",
     "Coal": "#5f2803",
+    "Coal CCS": "#a68462",
     "Hydro": "#007b7b",
     "Nuclear": "#3e3969",
     "Other Fossil": "#7d492c",
@@ -36,6 +37,7 @@ PLOT_MAP = {
     "Natural Gas Fired Combustion Turbine": "Gas CT",
     "Natural Gas Internal Combustion Engine": "Gas RICE",
     "Coal Integrated Gasification Combined Cycle": "Coal",
+    "Steam Coal w/ CCS": "Coal CCS",
     "Other Gases": "Other Fossil",
     "Petroleum Coke": "Other Fossil",
     "Wood/Wood Waste Biomass": "Biomass",
@@ -57,6 +59,7 @@ PLOT_MAP = {
 ORDERING = {
     "nuclear": "000",
     "coal": "001",
+    "coal ccs": "0015",
     "gas cc": "002",
     "gas ct": "004",
     "gas rice": "005",
