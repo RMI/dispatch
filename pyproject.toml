@@ -31,7 +31,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "black[jupyter] >= 22,<23",
-    "isort>=5.0,<5.11",
+    "isort>=5.0,<5.12",
     "tox>=3.20,<4.1",
     "twine>=3.3,<4.1",  # Used to make releases to PyPI
 ]
