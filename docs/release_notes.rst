@@ -83,6 +83,11 @@ What's New?
 *   :class:`.DispatchModel` now contains examples as doctests.
 *   :meth:`.DispatchModel.plot_all_years` to create daily redispatch plot faceted by
     month and year.
+*   :meth:`.DispatchModel.dispatchable_summary` now includes mmbtu and co2 data for
+    historical, redispatch, and avoided column groupings. These metrics are based on
+    `heat_rate` and `co2_factor` columns in `dispatchable_cost`, these columns are
+    optional.
+
 
 Bug Fixes
 ^^^^^^^^^
