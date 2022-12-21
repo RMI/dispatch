@@ -40,7 +40,7 @@ class Validator:
             ),
             "co2_factor": pa.Column(
                 float,
-                pa.Check.in_range(0.0, 1e-6),
+                pa.Check.in_range(0.0, 0.2),
                 required=False,
                 nullable=True,
             ),
