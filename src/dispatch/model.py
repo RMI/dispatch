@@ -252,7 +252,7 @@ class DispatchModel:
         ...         "fom_per_kw": [2, 15, 25],
         ...         "start_per_kw": [0.005, 0.01, 0.03],
         ...         "heat_rate": [10.0, 6.5, 9.5],
-        ...         "co2_factor": [5.306e-08, 5.306e-08, 9.61825e-08],
+        ...         "co2_factor": [0.05291, 0.05291, 0.09713],
         ...     },
         ...     index=pd.MultiIndex.from_tuples(
         ...         [
@@ -265,11 +265,11 @@ class DispatchModel:
         ... )
         >>> dispatchable_cost.index.levels[2].freq = "AS-JAN"
         >>> dispatchable_cost  # doctest: +NORMALIZE_WHITESPACE
-                                              vom_per_mwh  fuel_per_mwh  fom_per_kw  start_per_kw  heat_rate    co2_factor
+                                              vom_per_mwh  fuel_per_mwh  fom_per_kw  start_per_kw  heat_rate  co2_factor
         plant_id_eia generator_id datetime
-        1            1            2020-01-01         15.0          45.0           2         0.005       10.0  5.306000e-08
-                     2            2020-01-01          5.0          35.0          15         0.010        6.5  5.306000e-08
-        2            1            2020-01-01          2.0          20.0          25         0.030        9.5  9.618250e-08
+        1            1            2020-01-01         15.0          45.0           2         0.005       10.0     0.05291
+                     2            2020-01-01          5.0          35.0          15         0.010        6.5     0.05291
+        2            1            2020-01-01          2.0          20.0          25         0.030        9.5     0.09713
 
         Specifications for storage facilities. For RE+Storage facilities, the
         ``plant_id_eia`` for the storage component must match the ``plant_id_eia`` for
@@ -390,7 +390,7 @@ class DispatchModel:
         historical_cost_startup          NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
         redispatch_mwh              136842.7   123668.3                       462990.0  ...                       -43743.0            1724245.0            -138169.8
         redispatch_mmbtu                 NaN        NaN                      4629900.1  ...                            NaN                  NaN                  NaN
-        redispatch_co2                   NaN        NaN                            0.2  ...                            NaN                  NaN                  NaN
+        redispatch_co2                   NaN        NaN                       244968.0  ...                            NaN                  NaN                  NaN
         redispatch_cost_fuel             NaN        NaN                     20834550.4  ...                            NaN                  NaN                  NaN
         redispatch_cost_vom              NaN        NaN                      6944850.1  ...                            NaN                  NaN                  NaN
         redispatch_cost_startup          NaN        NaN                      3200750.0  ...                            NaN                  NaN                  NaN
