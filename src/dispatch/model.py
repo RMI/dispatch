@@ -127,6 +127,9 @@ class DispatchModel:
                     If it is provided, this value will be used to determine marginal
                     cost rank but will not be used to calculate operating costs.
                     This allows for a kludgy kind of must-run or uneconomic dispatch.
+                -   heat_rate: (Optional) (mmbtu/MWh)
+                -   co2_factor: (Optional) (X/mmbtu) X should be tonnes or short
+                    tonnes.
 
             storage_specs: rows are storage facilities, for RE+Storage facilities,
                 the ``plant_id_eia`` for the storage component must match the
@@ -248,6 +251,8 @@ class DispatchModel:
         ...         "fuel_per_mwh": [45.0, 35.0, 20.0],
         ...         "fom_per_kw": [2, 15, 25],
         ...         "start_per_kw": [0.005, 0.01, 0.03],
+        ...         "heat_rate": [10.0, 6.5, 9.5],
+        ...         "co2_factor": [5.306e-08, 5.306e-08, 9.61825e-08],
         ...     },
         ...     index=pd.MultiIndex.from_tuples(
         ...         [
@@ -260,11 +265,11 @@ class DispatchModel:
         ... )
         >>> dispatchable_cost.index.levels[2].freq = "AS-JAN"
         >>> dispatchable_cost  # doctest: +NORMALIZE_WHITESPACE
-                                              vom_per_mwh  fuel_per_mwh  fom_per_kw  start_per_kw
+                                              vom_per_mwh  fuel_per_mwh  fom_per_kw  start_per_kw  heat_rate    co2_factor
         plant_id_eia generator_id datetime
-        1            1            2020-01-01         15.0          45.0           2          0.005
-                     2            2020-01-01          5.0          35.0          15          0.010
-        2            1            2020-01-01          2.0          20.0          25          0.030
+        1            1            2020-01-01         15.0          45.0           2         0.005       10.0  5.306000e-08
+                     2            2020-01-01          5.0          35.0          15         0.010        6.5  5.306000e-08
+        2            1            2020-01-01          2.0          20.0          25         0.030        9.5  9.618250e-08
 
         Specifications for storage facilities. For RE+Storage facilities, the
         ``plant_id_eia`` for the storage component must match the ``plant_id_eia`` for
@@ -372,21 +377,27 @@ class DispatchModel:
 
         Generate a full, combined output of all resources at specified frequency (transposed for easier viewing).
 
-        >>> dm.full_output(freq="YS").round(0).T  # doctest: +NORMALIZE_WHITESPACE
+        >>> dm.full_output(freq="YS").round(1).T  # doctest: +NORMALIZE_WHITESPACE
         plant_id_eia                       0                                         1  ...                              5                    6                    7
         generator_id             curtailment    deficit                              1  ...                             es                    1                    1
         datetime                  2020-01-01 2020-01-01                     2020-01-01  ...                     2020-01-01           2020-01-01           2020-01-01
         capacity_mw                      NaN        NaN                          350.0  ...                          250.0                500.0                200.0
         historical_mwh                   NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
+        historical_mmbtu                 NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
+        historical_co2                   NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
         historical_cost_fuel             NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
         historical_cost_vom              NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
         historical_cost_startup          NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
-        redispatch_mwh              136843.0   123668.0                       462990.0  ...                       -43743.0            1724245.0            -138170.0
-        redispatch_cost_fuel             NaN        NaN                     20834550.0  ...                            NaN                  NaN                  NaN
-        redispatch_cost_vom              NaN        NaN                      6944850.0  ...                            NaN                  NaN                  NaN
+        redispatch_mwh              136842.7   123668.3                       462990.0  ...                       -43743.0            1724245.0            -138169.8
+        redispatch_mmbtu                 NaN        NaN                      4629900.1  ...                            NaN                  NaN                  NaN
+        redispatch_co2                   NaN        NaN                            0.2  ...                            NaN                  NaN                  NaN
+        redispatch_cost_fuel             NaN        NaN                     20834550.4  ...                            NaN                  NaN                  NaN
+        redispatch_cost_vom              NaN        NaN                      6944850.1  ...                            NaN                  NaN                  NaN
         redispatch_cost_startup          NaN        NaN                      3200750.0  ...                            NaN                  NaN                  NaN
         redispatch_cost_fom              NaN        NaN                       700000.0  ...                            NaN                  0.0                  NaN
         avoided_mwh                      NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
+        avoided_mmbtu                    NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
+        avoided_co2                      NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
         avoided_cost_fuel                NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
         avoided_cost_vom                 NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
         avoided_cost_startup             NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
@@ -398,9 +409,9 @@ class DispatchModel:
         interconnect_mw                  NaN        NaN                            NaN  ...                            NaN                500.0                  NaN
         fom_per_kw                       NaN        NaN                            NaN  ...                            NaN                  NaN                  NaN
         duration_hrs                     NaN        NaN                            NaN  ...                            4.0                  NaN                 12.0
-        roundtrip_eff                    NaN        NaN                            NaN  ...                            1.0                  NaN                  0.0
+        roundtrip_eff                    NaN        NaN                            NaN  ...                            0.9                  NaN                  0.5
         <BLANKLINE>
-        [23 rows x 9 columns]
+        [29 rows x 9 columns]
 
         """
         if not name and "balancing_authority_code_eia" in dispatchable_specs:
@@ -423,7 +434,7 @@ class DispatchModel:
         ).pipe(self._add_exclude_col)
         self.dispatchable_cost: pd.DataFrame = validator.dispatchable_cost(
             dispatchable_cost
-        ).pipe(self.add_total_costs)
+        ).pipe(self._add_total_and_missing_cols)
         self.storage_specs: pd.DataFrame = validator.storage_specs(storage_specs)
         self.dispatchable_profiles: pd.DataFrame = apply_op_ret_date(
             validator.dispatchable_profiles(dispatchable_profiles),
@@ -501,7 +512,7 @@ class DispatchModel:
             .fillna(0.0)
         )
 
-    def add_total_costs(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _add_total_and_missing_cols(self, df: pd.DataFrame) -> pd.DataFrame:
         """Add columns for total FOM and total startup from respective unit costs."""
         df = (
             df.reset_index()
@@ -519,6 +530,10 @@ class DispatchModel:
             df = df.assign(
                 total_var_mwh=lambda x: x[["vom_per_mwh", "fuel_per_mwh"]].sum(axis=1)
             )
+        if "heat_rate" not in df:
+            df = df.assign(heat_rate=np.nan)
+        if "co2_factor" not in df:
+            df = df.assign(co2_factor=np.nan)
         return df.drop(columns=["capacity_mw"])
 
     @staticmethod
@@ -1240,6 +1255,13 @@ class DispatchModel:
             freq: output time resolution
             augment: include columns from plant_specs columns
         """
+        hr = self.dispatchable_cost.heat_rate.unstack([0, 1]).reindex(
+            index=self.load_profile.index, method="ffill"
+        )
+        co2 = self.dispatchable_cost.co2_factor.unstack([0, 1]).reindex(
+            index=self.load_profile.index, method="ffill"
+        )
+
         out = (
             pd.concat(
                 [
@@ -1266,6 +1288,18 @@ class DispatchModel:
                         col_name="historical_mwh",
                     ),
                     self.grouper(
+                        self.historical_dispatch * hr,
+                        by=by,
+                        freq=freq,
+                        col_name="historical_mmbtu",
+                    ),
+                    self.grouper(
+                        self.historical_dispatch * hr * co2,
+                        by=by,
+                        freq=freq,
+                        col_name="historical_co2",
+                    ),
+                    self.grouper(
                         self.historical_cost,
                         by=by,
                         freq=freq,
@@ -1276,6 +1310,18 @@ class DispatchModel:
                         by=by,
                         freq=freq,
                         col_name="redispatch_mwh",
+                    ),
+                    self.grouper(
+                        self.redispatch * hr,
+                        by=by,
+                        freq=freq,
+                        col_name="redispatch_mmbtu",
+                    ),
+                    self.grouper(
+                        self.redispatch * hr * co2,
+                        by=by,
+                        freq=freq,
+                        col_name="redispatch_co2",
                     ),
                     self.grouper(
                         self.redispatch_cost,
@@ -1289,6 +1335,12 @@ class DispatchModel:
             .assign(
                 avoided_mwh=lambda x: np.maximum(
                     x.historical_mwh - x.redispatch_mwh, 0.0
+                ),
+                avoided_mmbtu=lambda x: np.maximum(
+                    x.historical_mmbtu - x.redispatch_mmbtu, 0.0
+                ),
+                avoided_co2=lambda x: np.maximum(
+                    x.historical_co2 - x.redispatch_co2, 0.0
                 ),
                 avoided_cost_fuel=lambda x: np.maximum(
                     x.historical_cost_fuel - x.redispatch_cost_fuel, 0.0
