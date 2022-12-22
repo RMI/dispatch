@@ -34,7 +34,7 @@ class Validator:
             "startup_cost": pa.Column(float, required=False),
             "heat_rate": pa.Column(
                 float,
-                pa.Check.in_range(0.0, 20.0),
+                pa.Check.in_range(0.0, 30.0),
                 required=False,
                 nullable=True,
             ),
