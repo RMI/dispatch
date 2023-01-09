@@ -1,0 +1,110 @@
+:py:mod:`dispatch.engine`
+=========================
+
+.. py:module:: dispatch.engine
+
+.. autoapi-nested-parse::
+
+   Dispatch engine.
+
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   dispatch.engine.dispatch_engine
+   dispatch.engine.make_rank_arrays
+   dispatch.engine.charge_storage
+   dispatch.engine.validate_inputs
+
+
+
+.. py:function:: dispatch_engine(net_load, hr_to_cost_idx, historical_dispatch, dispatchable_ramp_mw, dispatchable_startup_cost, dispatchable_marginal_cost, storage_mw, storage_hrs, storage_eff, storage_op_hour, storage_dc_charge)
+
+   Dispatch engine that can be compiled with :func:`numba.jit`.
+
+   For each hour...
+
+   1.  first iterate through operating plants
+   2.  then charge/discharge storage
+   3.  if there is still a deficit, iterate through non-operating plants
+       and turn them on if required
+
+   :param net_load: net load, as in net of RE generation, negative net load means
+                    excess renewables
+   :param hr_to_cost_idx: an array that contains for each hour, the index of the correct
+                          column in ``dispatchable_marginal_cost`` that contains cost data for that
+                          hour
+   :param historical_dispatch: historic plant dispatch, acts as an hourly upper
+                               constraint on this dispatch
+   :param dispatchable_ramp_mw: max one hour ramp in MW
+   :param dispatchable_startup_cost: startup cost in $ for each dispatchable generator
+   :param dispatchable_marginal_cost: annual marginal cost for each dispatchable
+                                      generator in $/MWh rows are generators and columns are years
+   :param storage_mw: max charge/discharge rate for storage in MW
+   :param storage_hrs: duration of storage
+   :param storage_eff: storage round-trip efficiency
+   :param storage_op_hour: first hour in which storage is available, i.e. the index of
+                           the operating date
+   :param storage_dc_charge: an array whose columns match each storage facility, and a
+                             row for each hour representing how much energy would be curtailed at an
+                             attached renewable facility because it exceeds the system's inverter. This
+                             then represents how much the storage in an RE+Storage facility could be
+                             charged by otherwise curtailed energy when ilr>1.
+
+   :returns:
+
+             -   **redispatch** (:class:`numpy.ndarray`) - new hourly dispatch
+             -   **storage** (:class:`numpy.ndarray`) - hourly charge, discharge, and state
+                 of charge data
+             -   **system_level** (:class:`numpy.ndarray`) - hourly deficit, dirty charge,
+                 and total curtailment dat
+             -   **starts** (:class:`numpy.ndarray`) - count of starts for each plant in
+                 each year
+
+
+.. py:function:: make_rank_arrays(marginal_cost, startup_cost)
+
+   Turn cost arrays into rank arrays.
+
+   :param marginal_cost: array of marginal costs
+   :param startup_cost: array of startup cost
+
+   :returns:
+
+             -   **marginal_ranks** (:class:`numpy.ndarray`) - marginal rank array
+             -   **start_ranks** (:class:`numpy.ndarray`) - start rank array
+
+
+.. py:function:: charge_storage(deficit, soc, dc_charge, mw, soc_max, eff)
+
+   Calculations for charging storage.
+
+   :param deficit: amount of charging possible from the grid
+   :param soc: state of charge before charging
+   :param dc_charge: power available from DC-coupled RE
+   :param mw: storage power capacity
+   :param soc_max: storage energy capacity
+   :param eff: round-trip efficiency of storage
+
+   :returns: A tuple with the same organization of columns of internal ``storage`` in
+             :func:`.dispatch_engine_py`.
+
+             -   **charge** (:class:`float`) - total charge in the hour
+             -   **discharge** (:class:`float`) - always 0.0, a placeholder
+             -   **soc** (:class:`float`) - tate of charge after charging
+             -   **grid_charge** (:class:`float`) -  portion of ``charge`` that came from
+                 the grid
+
+
+.. py:function:: validate_inputs(net_load, hr_to_cost_idx, historical_dispatch, ramp_mw, startup_cost, marginal_cost, storage_mw, storage_hrs, storage_eff, storage_dc_charge)
+
+   Validate shape of inputs.
+
+

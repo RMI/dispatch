@@ -1,0 +1,538 @@
+:py:mod:`dispatch.model`
+========================
+
+.. py:module:: dispatch.model
+
+.. autoapi-nested-parse::
+
+   Simple dispatch model interface.
+
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   dispatch.model.DispatchModel
+
+
+
+
+.. py:class:: DispatchModel(load_profile, dispatchable_specs, dispatchable_profiles, dispatchable_cost, storage_specs = None, re_profiles = None, re_plant_specs = None, jit = True, name = '')
+
+   Class to contain the core dispatch model functionality.
+
+   - allow the core dispatch model to accept data set up for different uses
+   - provide a nicer API on top of :func:`.dispatch_engine` that accepts
+     :mod:`pandas` objects
+   - methods for common analysis of dispatch results
+
+   Initialize DispatchModel.
+
+   :param load_profile: load profile that resources will be dispatched against. If
+                        ``re_profiles`` and ``re_plant_specs`` are not provided, this should
+                        be a net load profile. If they are provided, this *must* be a gross
+                        profile, or at least, gross of those RE resources.
+   :param dispatchable_specs: rows are dispatchable generators, columns must include:
+
+                              -   capacity_mw: generator nameplate/operating capacity
+                              -   ramp_rate: max 1-hr increase in output, in MW
+                              -   operating_date: the date the plant entered or will enter service
+                              -   retirement_date: the date the plant will retire
+                              -   exclude: (Optional) True means the generator will NOT be
+                                  redispatched. Its historical data will be preserved and redispatch
+                                  data will be zero.
+
+                              The index must be a :class:`pandas.MultiIndex` of
+                              ``['plant_id_eia', 'generator_id']``.
+   :param dispatchable_profiles: set the maximum output of each generator in
+                                 each hour.
+   :param dispatchable_cost: cost metrics for each dispatchable generator in
+                             each year must be tidy with :class:`pandas.MultiIndex` of
+                             ``['plant_id_eia', 'generator_id', 'datetime']``, columns must
+                             include:
+
+                             -   vom_per_mwh: variable O&M (USD/MWh)
+                             -   fuel_per_mwh: fuel cost (USD/MWh)
+                             -   fom_per_kw: fixed O&M (USD/kW)
+                             -   start_per_kw: generator startup cost (USD/kW)
+                             -   total_var_mwh: (Optional) total variable cost (USD/MWh), if not
+                                 provided it will be calculates as  vom_per_mwh + fuel_per_mwh.
+                                 If it is provided, this value will be used to determine marginal
+                                 cost rank but will not be used to calculate operating costs.
+                                 This allows for a kludgy kind of must-run or uneconomic dispatch.
+                             -   heat_rate: (Optional) (mmbtu/MWh)
+                             -   co2_factor: (Optional) (X/mmbtu) X should be tonnes or short
+                                 tonnes.
+   :param storage_specs: rows are storage facilities, for RE+Storage facilities,
+                         the ``plant_id_eia`` for the storage component must match the
+                         ``plant_id_eia`` for the RE component in ``re_profiles`` and
+                         ``re_plant_specs``. Columns must include:
+
+                         -   capacity_mw: max charge/discharge capacity in MW.
+                         -   duration_hrs: storage duration in hours.
+                         -   roundtrip_eff: roundtrip efficiency.
+                         -   operating_date: datetime unit starts operating.
+
+                         The index must be a :class:`pandas.MultiIndex` of
+                         ``['plant_id_eia', 'generator_id']``.
+   :param re_profiles: normalized renewable profiles, these should be DC profiles,
+                       especially when they are part of RE+Storage resources, if they are
+                       AC profiles, make sure the ilr in ``re_plant_specs`` is 1.0.
+   :param re_plant_specs: rows are renewable facilities, for RE+Storage facilities,
+                          the ``plant_id_eia`` for the RE component must match the
+                          ``plant_id_eia`` for the storage component in ``storage_specs``.
+                          Columns must include:
+
+                          -   capacity_mw: AC capacity of the generator
+                          -   ilr: inverter loading ratio, if ilr != 1, the corresponding
+                              profile must be a DC profile.
+                          -   operating_date: datetime unit starts operating
+                          -   interconnect_mw: (Optional) the interconnect capacity of the
+                              renewable facility. By default, this is the same as ``capacity_mw``
+                              but can be reduced to reflect facility-specific transmission /
+                              interconnection constraints. If the facility has storage, storage
+                              can be charged by the constrained excess.
+                          -   fom_per_kw: (Optional) fixed O&M (USD/kW)
+
+                          The index must be a :class:`pandas.MultiIndex` of
+                          ``['plant_id_eia', 'generator_id']``.
+   :param jit: if ``True``, use numba to compile the dispatch engine, ``False`` is
+               mostly for debugging
+   :param name: a name, only used in the ``repr``
+
+   >>> pd.options.display.width = 1000
+   >>> pd.options.display.max_columns = 6
+   >>> pd.options.display.max_colwidth = 30
+
+   .. rubric:: Examples
+
+   **Input Tables**
+
+   The load profile that resources will be dispatched against.
+
+   >>> load_profile = pd.Series(
+   ...     [
+   ...         600.0, 500.0, 100.0, 400.0, 800.0, 1000.0, 1200.0, 800.0,
+   ...         600.0, 500.0, 250.0, 100.0, 400.0, 800.0, 1000.0, 1200.0,
+   ...         800.0, 600.0, 500.0, 250.0, 100.0, 400.0, 800.0, 1000.0,
+   ...     ]
+   ...     * 366,
+   ...     index=pd.date_range(
+   ...         "2020-01-01", freq="H", periods=8784, name="datetime"
+   ...     ),
+   ... )
+   >>> load_profile.head()
+   datetime
+   2020-01-01 00:00:00    600.0
+   2020-01-01 01:00:00    500.0
+   2020-01-01 02:00:00    100.0
+   2020-01-01 03:00:00    400.0
+   2020-01-01 04:00:00    800.0
+   Freq: H, dtype: float64
+
+   Core specification of dispatchable generators.
+
+   >>> dispatchable_specs = pd.DataFrame(
+   ...     {
+   ...         "capacity_mw": [350, 500, 600],
+   ...         "ramp_rate": [350, 250, 100],
+   ...         "technology_description": ["Natural Gas Fired Combustion Turbine", "Natural Gas Fired Combined Cycle", "Conventional Steam Coal"]
+   ...     },
+   ...     index=pd.MultiIndex.from_tuples(
+   ...         [(1, "1"), (1, "2"), (2, "1")],
+   ...         names=["plant_id_eia", "generator_id"],
+   ...     ),
+   ... ).assign(
+   ...     operating_date=pd.Timestamp("2000-01-01"),
+   ...     retirement_date=pd.Timestamp("2050-01-01"),
+   ... )
+   >>> dispatchable_specs  # doctest: +NORMALIZE_WHITESPACE
+                              capacity_mw  ramp_rate         technology_description operating_date retirement_date
+   plant_id_eia generator_id
+   1            1                     350        350  Natural Gas Fired Combusti...     2000-01-01      2050-01-01
+                2                     500        250  Natural Gas Fired Combined...     2000-01-01      2050-01-01
+   2            1                     600        100        Conventional Steam Coal     2000-01-01      2050-01-01
+
+   Set the maximum output of each generator in each hour. In this case we set the
+   maximum in every hour as the generator's nameplate capacity.
+
+   >>> dispatchable_profiles = pd.DataFrame(
+   ...     np.tile(dispatchable_specs.capacity_mw.to_numpy(), (8784, 1)),
+   ...     index=pd.date_range(
+   ...         "2020-01-01", freq="H", periods=8784, name="datetime"
+   ...     ),
+   ...     columns=dispatchable_specs.index,
+   ... )
+   >>> dispatchable_profiles.head()  # doctest: +NORMALIZE_WHITESPACE
+   plant_id_eia           1         2
+   generator_id           1    2    1
+   datetime
+   2020-01-01 00:00:00  350  500  600
+   2020-01-01 01:00:00  350  500  600
+   2020-01-01 02:00:00  350  500  600
+   2020-01-01 03:00:00  350  500  600
+   2020-01-01 04:00:00  350  500  600
+
+   Cost metrics for each dispatchable generator in each year.
+
+   >>> dispatchable_cost = pd.DataFrame(
+   ...     {
+   ...         "vom_per_mwh": [15.0, 5.0, 2.0],
+   ...         "fuel_per_mwh": [45.0, 35.0, 20.0],
+   ...         "fom_per_kw": [2, 15, 25],
+   ...         "start_per_kw": [0.005, 0.01, 0.03],
+   ...         "heat_rate": [10.0, 6.5, 9.5],
+   ...         "co2_factor": [0.05291, 0.05291, 0.09713],
+   ...     },
+   ...     index=pd.MultiIndex.from_tuples(
+   ...         [
+   ...             (1, "1", pd.Timestamp("2020-01-01")),
+   ...             (1, "2", pd.Timestamp("2020-01-01")),
+   ...             (2, "1", pd.Timestamp("2020-01-01")),
+   ...         ],
+   ...         names=["plant_id_eia", "generator_id", "datetime"],
+   ...     ),
+   ... )
+   >>> dispatchable_cost.index.levels[2].freq = "AS-JAN"
+   >>> dispatchable_cost  # doctest: +NORMALIZE_WHITESPACE
+                                         vom_per_mwh  fuel_per_mwh  fom_per_kw  start_per_kw  heat_rate  co2_factor
+   plant_id_eia generator_id datetime
+   1            1            2020-01-01         15.0          45.0           2         0.005       10.0     0.05291
+                2            2020-01-01          5.0          35.0          15         0.010        6.5     0.05291
+   2            1            2020-01-01          2.0          20.0          25         0.030        9.5     0.09713
+
+   Specifications for storage facilities. For RE+Storage facilities, the
+   ``plant_id_eia`` for the storage component must match the ``plant_id_eia`` for
+   the RE component in ``re_profiles`` and ``re_plant_specs``.
+
+   >>> storage_specs = pd.DataFrame(
+   ...     {
+   ...         "capacity_mw": [250, 200],
+   ...         "duration_hrs": [4, 12],
+   ...         "roundtrip_eff": [0.9, 0.5],
+   ...         "technology_description": ["Solar Photovoltaic with Energy Storage", "Batteries"],
+   ...     },
+   ...     index=pd.MultiIndex.from_tuples(
+   ...         [(5, "es"), (7, "1")], names=["plant_id_eia", "generator_id"]
+   ...     ),
+   ... ).assign(operating_date=pd.Timestamp("2000-01-01 00:00:00"))
+   >>> storage_specs  # doctest: +NORMALIZE_WHITESPACE
+                              capacity_mw  duration_hrs  roundtrip_eff         technology_description operating_date
+   plant_id_eia generator_id
+   5            es                    250             4            0.9  Solar Photovoltaic with En...     2000-01-01
+   7            1                     200            12            0.5                      Batteries     2000-01-01
+
+   Specifications for renewable facilities. Becasue ``plant_id_eia`` 5 shows up in both
+   ``storage_specs`` and ``re_plant_specs``, those resources will be DC-coupled.
+
+   >>> re_plant_specs = pd.DataFrame(
+   ...     {
+   ...         "capacity_mw": [500, 500],
+   ...         "ilr": [1.3, 1.0],
+   ...         "technology_description": ["Solar Photovoltaic with Energy Storage", "Onshore Wind"],
+   ...     },
+   ...     index=pd.MultiIndex.from_tuples(
+   ...         [(5, "1"), (6, "1")], names=["plant_id_eia", "generator_id"]
+   ...     ),
+   ... ).assign(
+   ...     operating_date=pd.Timestamp("2000-01-01"),
+   ...     retirement_date=pd.Timestamp("2050-01-01"),
+   ... )
+   >>> re_plant_specs  # doctest: +NORMALIZE_WHITESPACE
+                              capacity_mw  ilr         technology_description operating_date retirement_date
+   plant_id_eia generator_id
+   5            1                     500  1.3  Solar Photovoltaic with En...     2000-01-01      2050-01-01
+   6            1                     500  1.0                   Onshore Wind     2000-01-01      2050-01-01
+
+   Normalized renewable DC profiles.
+
+   >>> re_profiles = pd.DataFrame(
+   ...     np.tile(
+   ...         np.vstack(
+   ...             (
+   ...                 np.sin(np.arange(24) / (3 * np.pi)) ** 8,
+   ...                 np.sin((np.arange(24) / (3 * np.pi)) - 3 * np.pi**2) ** 2,
+   ...             )
+   ...         ).T,
+   ...         (366, 1),
+   ...     ),
+   ...     columns=re_plant_specs.index,
+   ...     index=load_profile.index,
+   ... )
+   >>> re_profiles.round(2).head()  # doctest: +NORMALIZE_WHITESPACE
+   plant_id_eia           5     6
+   generator_id           1     1
+   datetime
+   2020-01-01 00:00:00  0.0  0.95
+   2020-01-01 01:00:00  0.0  0.89
+   2020-01-01 02:00:00  0.0  0.81
+   2020-01-01 03:00:00  0.0  0.72
+   2020-01-01 04:00:00  0.0  0.62
+
+   **Setting up the model**
+
+   Create the :class:`.DispatchModel` object:
+
+   >>> dm = DispatchModel(
+   ...     load_profile=load_profile,
+   ...     dispatchable_specs=dispatchable_specs,
+   ...     dispatchable_profiles=dispatchable_profiles,
+   ...     dispatchable_cost=dispatchable_cost,
+   ...     storage_specs=storage_specs,
+   ...     re_profiles=re_profiles,
+   ...     re_plant_specs=re_plant_specs,
+   ...     name="test",
+   ... )
+
+   Run the dispatch model, the model runs inplace but also returns itself for
+   convenience.
+
+   >>> dm = dm()
+
+   Explore the results, starting with how much load could not be met.
+
+   >>> dm.lost_load()  # doctest: +NORMALIZE_WHITESPACE
+   (-0.001, 0.0001]    8053
+   (0.0001, 0.02]         0
+   (0.02, 0.05]           0
+   (0.05, 0.1]          365
+   (0.1, 0.15]            0
+   (0.15, 0.2]            0
+   (0.2, 0.3]           366
+   (0.3, 0.4]             0
+   (0.4, 0.5]             0
+   (0.5, 0.75]            0
+   (0.75, 1.0]            0
+   dtype: int64
+
+   Generate a full, combined output of all resources at specified frequency (transposed for easier viewing).
+
+   >>> dm.full_output(freq="YS").round(1).T  # doctest: +NORMALIZE_WHITESPACE
+   plant_id_eia                       0                                         1  ...                              5                    6                    7
+   generator_id             curtailment    deficit                              1  ...                             es                    1                    1
+   datetime                  2020-01-01 2020-01-01                     2020-01-01  ...                     2020-01-01           2020-01-01           2020-01-01
+   capacity_mw                      NaN        NaN                          350.0  ...                          250.0                500.0                200.0
+   historical_mwh                   NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
+   historical_mmbtu                 NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
+   historical_co2                   NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
+   historical_cost_fuel             NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
+   historical_cost_vom              NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
+   historical_cost_startup          NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
+   redispatch_mwh              136842.7   123668.3                       462990.0  ...                       -43743.0            1724245.0            -138169.8
+   redispatch_mmbtu                 NaN        NaN                      4629900.1  ...                            NaN                  NaN                  NaN
+   redispatch_co2                   NaN        NaN                       244968.0  ...                            NaN                  NaN                  NaN
+   redispatch_cost_fuel             NaN        NaN                     20834550.4  ...                            NaN                  NaN                  NaN
+   redispatch_cost_vom              NaN        NaN                      6944850.1  ...                            NaN                  NaN                  NaN
+   redispatch_cost_startup          NaN        NaN                      3200750.0  ...                            NaN                  NaN                  NaN
+   redispatch_cost_fom              NaN        NaN                       700000.0  ...                            NaN                  0.0                  NaN
+   avoided_mwh                      NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
+   avoided_mmbtu                    NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
+   avoided_co2                      NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
+   avoided_cost_fuel                NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
+   avoided_cost_vom                 NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
+   avoided_cost_startup             NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
+   pct_replaced                     NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
+   technology_description   curtailment    deficit  Natural Gas Fired Combusti...  ...  Solar Photovoltaic with En...         Onshore Wind            Batteries
+   operating_date                   NaT        NaT            2000-01-01 00:00:00  ...            2000-01-01 00:00:00  2000-01-01 00:00:00  2000-01-01 00:00:00
+   retirement_date                  NaT        NaT            2050-01-01 00:00:00  ...                            NaT  2050-01-01 00:00:00                  NaT
+   ilr                              NaN        NaN                            NaN  ...                            NaN                  1.0                  NaN
+   interconnect_mw                  NaN        NaN                            NaN  ...                            NaN                500.0                  NaN
+   fom_per_kw                       NaN        NaN                            NaN  ...                            NaN                  NaN                  NaN
+   duration_hrs                     NaN        NaN                            NaN  ...                            4.0                  NaN                 12.0
+   roundtrip_eff                    NaN        NaN                            NaN  ...                            0.9                  NaN                  0.5
+   <BLANKLINE>
+   [29 rows x 9 columns]
+
+   .. py:property:: dispatch_func
+      :type: collections.abc.Callable
+
+      Appropriate dispatch engine depending on ``jit`` setting.
+
+   .. py:property:: is_redispatch
+      :type: bool
+
+      True if this is redispatch, i.e. has meaningful historical dispatch.
+
+   .. py:property:: historical_cost
+      :type: dict[str, pandas.DataFrame]
+
+      Total hourly historical cost by generator.
+
+   .. py:property:: historical_dispatch
+      :type: pandas.DataFrame
+
+      Total hourly historical cost by generator.
+
+   .. py:property:: redispatch_cost
+      :type: dict[str, pandas.DataFrame]
+
+      Total hourly redispatch cost by generator.
+
+   .. py:method:: re_and_net_load(re_profiles)
+
+      Create net_load_profile based on what RE data was provided.
+
+
+   .. py:method:: dc_charge()
+
+      Align excess_re to match the storage facilities it could charge.
+
+
+   .. py:method:: from_file(path)
+      :classmethod:
+
+      Recreate an instance of :class:`.DispatchModel` from disk.
+
+
+   .. py:method:: from_patio(net_load, dispatchable_profiles, plant_data, cost_data, storage_specs, jit = True)
+      :classmethod:
+
+      Create :class:`.DispatchModel` with data from patio.BAScenario.
+
+
+   .. py:method:: from_fresh(net_load_profile, dispatchable_specs, dispatchable_cost, storage_specs, jit = True)
+      :classmethod:
+
+      Run dispatch without historical hourly operating constraints.
+
+
+   .. py:method:: __call__()
+
+      Run dispatch model.
+
+
+   .. py:method:: grouper(df, by = 'technology_description', freq = 'YS', col_name = None)
+
+      Aggregate a df of generator profiles.
+
+      Columns are grouped using `by` column from
+      :attr:`.DispatchModel.dispatchable_specs` and `freq` determines
+      the output time resolution.
+
+      :param df: dataframe to apply grouping to, if a dict of dataframes, does the
+                 grouping on each and then concatenates them together with keys as
+                 column name suffix
+      :param by: column from :attr:`.DispatchModel.dispatchable_specs` to use for
+                 grouping df columns, if None, no column grouping
+      :param freq: output time resolution
+      :param col_name: if specified, stack the output and use this as the column name,
+                       if `df` is a dict, each df is stacked and `col_name` if any is
+                       prepended to the key to form the column name.
+
+
+   .. py:method:: strict_grouper(df, by, freq, col_name = None, freq_agg = 'sum')
+
+      Aggregate a df of generator profiles.
+
+      Columns are grouped using `by` column from
+      :attr:`.DispatchModel.dispatchable_specs` and `freq` determines
+      the output time resolution.
+
+      :param df: dataframe to apply grouping to
+      :param by: column from :attr:`.DispatchModel.dispatchable_specs` to use for
+                 grouping df columns, if None, no column grouping
+      :param freq: output time resolution
+      :param col_name: if specified, stack the output and use this as the column name
+      :param freq_agg: aggregation func to use in frequency groupby
+
+
+   .. py:method:: lost_load(comparison = None)
+
+      Number of hours during which deficit was in various duration bins.
+
+
+   .. py:method:: hrs_to_check(cutoff = 0.01, comparison = None)
+
+      Hours from dispatch to look at more closely.
+
+      Hours with positive deficits are ones where not all of net load was served
+      we want to be able to easily check the two hours immediately before these
+      positive deficit hours.
+
+
+   .. py:method:: hourly_data_check(cutoff = 0.01)
+
+      Aggregate data for :meth:`.DispatchModel.hrs_to_checl`.
+
+
+   .. py:method:: storage_capacity()
+
+      Number of hours when storage charge or discharge was in various bins.
+
+
+   .. py:method:: storage_durations()
+
+      Number of hours during which state of charge was in various duration bins.
+
+
+   .. py:method:: system_level_summary(freq = 'YS', **kwargs)
+
+      Create system and storage summary metrics.
+
+
+   .. py:method:: re_summary(by = 'technology_description', freq = 'YS', **kwargs)
+
+      Create granular summary of renewable plant metrics.
+
+
+   .. py:method:: storage_summary(by = 'technology_description', freq = 'YS', **kwargs)
+
+      Create granular summary of storage plant metrics.
+
+
+   .. py:method:: full_output(freq = 'YS')
+
+      Create full operations output.
+
+
+   .. py:method:: load_summary(**kwargs)
+
+      Create summary of load data.
+
+
+   .. py:method:: dispatchable_summary(by = 'technology_description', freq = 'YS', augment = False, **kwargs)
+
+      Create granular summary of dispatchable plant metrics.
+
+      :param by: column from :attr:`.DispatchModel.dispatchable_specs` to use for
+                 grouping dispatchable plants, if None, no column grouping
+      :param freq: output time resolution
+      :param augment: include columns from plant_specs columns
+
+
+   .. py:method:: to_file(path, include_output = False, compression=ZIP_STORED, clobber=False, **kwargs)
+
+      Save :class:`.DispatchModel` to disk.
+
+
+   .. py:method:: plot_period(begin, end=None, by_gen=True, compare_hist=False)
+
+      Plot hourly dispatch by generator.
+
+
+   .. py:method:: plot_year(year, freq='D')
+
+      Monthly facet plot of daily dispatch for a year.
+
+
+   .. py:method:: plot_all_years()
+
+      Facet plot of daily dispatch for all years.
+
+
+   .. py:method:: plot_output(y, color='resource', freq='YS')
+
+      Plot a columns from :meth:`.DispatchModel.full_output`.
+
+
+   .. py:method:: __repr__()
+
+      Return repr(self).
+
+
+
