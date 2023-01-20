@@ -87,6 +87,8 @@ What's New?
     historical, redispatch, and avoided column groupings. These metrics are based on
     `heat_rate` and `co2_factor` columns in `dispatchable_cost`, these columns are
     optional.
+*   Updates to :class:`.DispatchModel` to work with the new simpler, cleaner
+    :class:`.DataZip`.
 
 
 Bug Fixes

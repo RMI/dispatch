@@ -1,13 +1,9 @@
 """Simple dispatch model interface."""
 from __future__ import annotations
 
-import inspect
 import logging
 from collections.abc import Callable
 from datetime import datetime
-from io import BytesIO
-from pathlib import Path
-from zipfile import ZIP_STORED
 
 import numpy as np
 import pandas as pd
@@ -25,7 +21,7 @@ except ModuleNotFoundError:
 
 __all__ = ["DispatchModel"]
 
-from etoolbox.datazip import DataZip
+from etoolbox.datazip import IOMixin
 
 from dispatch import __version__
 from dispatch.constants import COLOR_MAP, MTDF, PLOT_MAP
@@ -36,7 +32,7 @@ from dispatch.metadata import LOAD_PROFILE_SCHEMA, Validator
 LOGGER = logging.getLogger(__name__)
 
 
-class DispatchModel:
+class DispatchModel(IOMixin):
     """Class to contain the core dispatch model functionality.
 
     - allow the core dispatch model to accept data set up for different uses
@@ -63,20 +59,6 @@ class DispatchModel:
         "starts",
         "_metadata",
         "_cached",
-    )
-    _parquet_out = (
-        "re_profiles_ac",
-        "re_excess",
-        "re_plant_specs",
-        "storage_dispatch",
-        "system_data",
-        "storage_specs",
-        "dispatchable_specs",
-        "dispatchable_cost",
-        "dispatchable_profiles",
-        "redispatch",
-        "load_profile",
-        "net_load_profile",
     )
 
     def __init__(
@@ -543,34 +525,24 @@ class DispatchModel:
             return df
         return df.assign(exclude=False)
 
-    @classmethod
-    def from_file(cls, path: Path | str | BytesIO) -> DispatchModel:
-        """Recreate an instance of :class:`.DispatchModel` from disk."""
-        if isinstance(path, str):
-            path = Path(path)
-
-        def _type_check(meta):
-            if meta["__qualname__"] != cls.__qualname__:
-                raise TypeError(
-                    f"{path.name} represents a `{meta['__qualname__']}` which "
-                    f"is not compatible with `{cls.__qualname__}.from_file()`"
-                )
-            del meta["__qualname__"]
-
-        with DataZip(path, "r") as z:
-            metadata = z.readm()
-            _type_check(metadata)
-            data_dict = dict(z.read_dfs())
-
-        sig = inspect.signature(cls).parameters
-        self = cls(
-            **{k: v for k, v in (data_dict | metadata).items() if k in sig},
-        )
-        for k, v in data_dict.items():
-            if k not in sig:
+    def __setstate__(self, state: dict):
+        for k, v in state.items():
+            if k in self.__slots__:
                 setattr(self, k, v)
-        self._metadata.update({k: v for k, v in metadata.items() if k not in sig})
-        return self
+        self.dt_idx = self.load_profile.index
+
+    def __getstate__(self):
+        state = {}
+        for name in self.__slots__:
+            if all((hasattr(self, name), name not in ("_cached", "dt_idx"))):
+                state[name] = getattr(self, name)
+        if not self.redispatch.empty:
+            for df_name in ("full_output", "load_summary"):
+                try:
+                    state[df_name] = getattr(self, df_name)()
+                except Exception as exc:
+                    LOGGER.warning("unable to write %s, %r", df_name, exc)
+        return state
 
     @classmethod
     def from_patio(
@@ -1389,38 +1361,6 @@ class DispatchModel:
                 + [col for col in cols if col in self.dispatchable_specs]
             ]
         )
-
-    def to_file(
-        self,
-        path: Path | str | BytesIO,
-        include_output: bool = False,
-        compression=ZIP_STORED,
-        clobber=False,
-        **kwargs,
-    ) -> None:
-        """Save :class:`.DispatchModel` to disk."""
-        if isinstance(path, (str, Path)):
-            if Path(path).with_suffix(".zip").exists() and not clobber:
-                raise FileExistsError(f"{path} exists, to overwrite set `clobber=True`")
-            if clobber:
-                Path(path).with_suffix(".zip").unlink(missing_ok=True)
-
-        with DataZip(path, "w", compression=compression) as z:
-            for df_name in self._parquet_out:
-                z.writed(df_name, getattr(self, df_name))
-            if include_output and not self.redispatch.empty:
-                for df_name in ("full_output", "load_summary"):
-                    z.writed(
-                        df_name,
-                        getattr(self, df_name)(**kwargs),
-                    )
-            z.writem(
-                None,
-                {
-                    **self._metadata,
-                    "__qualname__": self.__class__.__qualname__,
-                },
-            )
 
     def _plot_prep(self):
         if "plot_prep" not in self._cached:
