@@ -286,6 +286,22 @@ def test_outputs_parametric(ent_dm, func, args, drop_cols, expected):
         assert False
 
 
+@pytest.mark.parametrize(
+    "attr, expected",
+    [
+        ("redispatch", {"f": 421292628, "r": 389777545}),
+        ("storage_dispatch", {"f": 152460988, "r": 144263839}),
+        ("system_data", {"f": 81154038, "r": 99539021}),
+        ("starts", {"f": 113795, "r": 68253}),
+    ],
+    ids=idfn,
+)
+def test_redispatch_total(ent_dm, attr, expected):
+    """High-level test that results have not changed."""
+    ind, ent_dm = ent_dm
+    assert getattr(ent_dm, attr).sum().sum() == pytest.approx(expected[ind])
+
+
 def test_plot_all_years(ent_dm, temp_dir):
     """Test that outputs are not empty or do not have unexpected nans."""
     ind, ent_dm = ent_dm
