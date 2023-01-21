@@ -163,23 +163,22 @@ class DispatchModel(IOMixin):
         The load profile that resources will be dispatched against.
 
         >>> load_profile = pd.Series(
-        ...     [
-        ...         600.0, 500.0, 100.0, 400.0, 800.0, 1000.0, 1200.0, 800.0,
-        ...         600.0, 500.0, 250.0, 100.0, 400.0, 800.0, 1000.0, 1200.0,
-        ...         800.0, 600.0, 500.0, 250.0, 100.0, 400.0, 800.0, 1000.0,
-        ...     ]
-        ...     * 366,
+        ...     550
+        ...     + 40 * (np.sin(np.pi * np.arange(8784) / 24 - np.pi / 6)) ** 2
+        ...     + 20 * (np.sin(np.pi * np.arange(8784) / 12)) ** 2
+        ...     + 250 * (np.cos(np.pi * np.arange(8784) / 4392) ** 2)
+        ...     + 200 * (np.sin(np.pi * np.arange(8784) / 8784) ** 2),
         ...     index=pd.date_range(
         ...         "2020-01-01", freq="H", periods=8784, name="datetime"
         ...     ),
         ... )
         >>> load_profile.head()
         datetime
-        2020-01-01 00:00:00    600.0
-        2020-01-01 01:00:00    500.0
-        2020-01-01 02:00:00    100.0
-        2020-01-01 03:00:00    400.0
-        2020-01-01 04:00:00    800.0
+        2020-01-01 00:00:00    810.000000
+        2020-01-01 01:00:00    807.197508
+        2020-01-01 02:00:00    807.679083
+        2020-01-01 03:00:00    810.680563
+        2020-01-01 04:00:00    814.998363
         Freq: H, dtype: float64
 
         Core specification of dispatchable generators.
@@ -188,7 +187,11 @@ class DispatchModel(IOMixin):
         ...     {
         ...         "capacity_mw": [350, 500, 600],
         ...         "ramp_rate": [350, 250, 100],
-        ...         "technology_description": ["Natural Gas Fired Combustion Turbine", "Natural Gas Fired Combined Cycle", "Conventional Steam Coal"]
+        ...         "technology_description": [
+        ...             "Natural Gas Fired Combustion Turbine",
+        ...             "Natural Gas Fired Combined Cycle",
+        ...             "Conventional Steam Coal",
+        ...         ],
         ...     },
         ...     index=pd.MultiIndex.from_tuples(
         ...         [(1, "1"), (1, "2"), (2, "1")],
@@ -262,7 +265,10 @@ class DispatchModel(IOMixin):
         ...         "capacity_mw": [250, 200],
         ...         "duration_hrs": [4, 12],
         ...         "roundtrip_eff": [0.9, 0.5],
-        ...         "technology_description": ["Solar Photovoltaic with Energy Storage", "Batteries"],
+        ...         "technology_description": [
+        ...             "Solar Photovoltaic with Energy Storage",
+        ...             "Batteries",
+        ...         ],
         ...     },
         ...     index=pd.MultiIndex.from_tuples(
         ...         [(5, "es"), (7, "1")], names=["plant_id_eia", "generator_id"]
@@ -281,7 +287,10 @@ class DispatchModel(IOMixin):
         ...     {
         ...         "capacity_mw": [500, 500],
         ...         "ilr": [1.3, 1.0],
-        ...         "technology_description": ["Solar Photovoltaic with Energy Storage", "Onshore Wind"],
+        ...         "technology_description": [
+        ...             "Solar Photovoltaic with Energy Storage",
+        ...             "Onshore Wind",
+        ...         ],
         ...     },
         ...     index=pd.MultiIndex.from_tuples(
         ...         [(5, "1"), (6, "1")], names=["plant_id_eia", "generator_id"]
@@ -299,15 +308,12 @@ class DispatchModel(IOMixin):
         Normalized renewable DC profiles.
 
         >>> re_profiles = pd.DataFrame(
-        ...     np.tile(
-        ...         np.vstack(
-        ...             (
-        ...                 np.sin(np.arange(24) / (3 * np.pi)) ** 8,
-        ...                 np.sin((np.arange(24) / (3 * np.pi)) - 3 * np.pi**2) ** 2,
-        ...             )
-        ...         ).T,
-        ...         (366, 1),
-        ...     ),
+        ...     np.vstack(
+        ...         (
+        ...             np.sin(np.pi * np.arange(8784) / 24) ** 8,
+        ...             np.cos(np.pi * np.arange(8784) / 24) ** 2,
+        ...         )
+        ...     ).T,
         ...     columns=re_plant_specs.index,
         ...     index=load_profile.index,
         ... )
@@ -315,11 +321,11 @@ class DispatchModel(IOMixin):
         plant_id_eia           5     6
         generator_id           1     1
         datetime
-        2020-01-01 00:00:00  0.0  0.95
-        2020-01-01 01:00:00  0.0  0.89
-        2020-01-01 02:00:00  0.0  0.81
-        2020-01-01 03:00:00  0.0  0.72
-        2020-01-01 04:00:00  0.0  0.62
+        2020-01-01 00:00:00  0.0  1.00
+        2020-01-01 01:00:00  0.0  0.98
+        2020-01-01 02:00:00  0.0  0.93
+        2020-01-01 03:00:00  0.0  0.85
+        2020-01-01 04:00:00  0.0  0.75
 
         **Setting up the model**
 
@@ -344,13 +350,13 @@ class DispatchModel(IOMixin):
         Explore the results, starting with how much load could not be met.
 
         >>> dm.lost_load()  # doctest: +NORMALIZE_WHITESPACE
-        (-0.001, 0.0001]    8053
+        (-0.001, 0.0001]    8784
         (0.0001, 0.02]         0
         (0.02, 0.05]           0
-        (0.05, 0.1]          365
+        (0.05, 0.1]            0
         (0.1, 0.15]            0
         (0.15, 0.2]            0
-        (0.2, 0.3]           366
+        (0.2, 0.3]             0
         (0.3, 0.4]             0
         (0.4, 0.5]             0
         (0.5, 0.75]            0
@@ -370,12 +376,12 @@ class DispatchModel(IOMixin):
         historical_cost_fuel             NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
         historical_cost_vom              NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
         historical_cost_startup          NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
-        redispatch_mwh              136842.7   123668.3                       462990.0  ...                       -43743.0            1724245.0            -138169.8
-        redispatch_mmbtu                 NaN        NaN                      4629900.1  ...                            NaN                  NaN                  NaN
-        redispatch_co2                   NaN        NaN                       244968.0  ...                            NaN                  NaN                  NaN
-        redispatch_cost_fuel             NaN        NaN                     20834550.4  ...                            NaN                  NaN                  NaN
-        redispatch_cost_vom              NaN        NaN                      6944850.1  ...                            NaN                  NaN                  NaN
-        redispatch_cost_startup          NaN        NaN                      3200750.0  ...                            NaN                  NaN                  NaN
+        redispatch_mwh                   0.0        0.0                        57372.8  ...                         -303.1            2196000.0                -92.1
+        redispatch_mmbtu                 NaN        NaN                       573728.0  ...                            NaN                  NaN                  NaN
+        redispatch_co2                   NaN        NaN                        30356.0  ...                            NaN                  NaN                  NaN
+        redispatch_cost_fuel             NaN        NaN                      2581776.2  ...                            NaN                  NaN                  NaN
+        redispatch_cost_vom              NaN        NaN                       860592.1  ...                            NaN                  NaN                  NaN
+        redispatch_cost_startup          NaN        NaN                      1811250.0  ...                            NaN                  NaN                  NaN
         redispatch_cost_fom              NaN        NaN                       700000.0  ...                            NaN                  0.0                  NaN
         avoided_mwh                      NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
         avoided_mmbtu                    NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
