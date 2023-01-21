@@ -365,41 +365,20 @@ class DispatchModel(IOMixin):
 
         Generate a full, combined output of all resources at specified frequency (transposed for easier viewing).
 
-        >>> dm.full_output(freq="YS").round(1).T  # doctest: +NORMALIZE_WHITESPACE
-        plant_id_eia                       0                                         1  ...                              5                    6                    7
-        generator_id             curtailment    deficit                              1  ...                             es                    1                    1
-        datetime                  2020-01-01 2020-01-01                     2020-01-01  ...                     2020-01-01           2020-01-01           2020-01-01
-        capacity_mw                      NaN        NaN                          350.0  ...                          250.0                500.0                200.0
-        historical_mwh                   NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
-        historical_mmbtu                 NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
-        historical_co2                   NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
-        historical_cost_fuel             NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
-        historical_cost_vom              NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
-        historical_cost_startup          NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
-        redispatch_mwh                   0.0        0.0                        57372.8  ...                         -303.1            2196000.0                -92.1
-        redispatch_mmbtu                 NaN        NaN                       573728.0  ...                            NaN                  NaN                  NaN
-        redispatch_co2                   NaN        NaN                        30356.0  ...                            NaN                  NaN                  NaN
-        redispatch_cost_fuel             NaN        NaN                      2581776.2  ...                            NaN                  NaN                  NaN
-        redispatch_cost_vom              NaN        NaN                       860592.1  ...                            NaN                  NaN                  NaN
-        redispatch_cost_startup          NaN        NaN                      1811250.0  ...                            NaN                  NaN                  NaN
-        redispatch_cost_fom              NaN        NaN                       700000.0  ...                            NaN                  0.0                  NaN
-        avoided_mwh                      NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
-        avoided_mmbtu                    NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
-        avoided_co2                      NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
-        avoided_cost_fuel                NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
-        avoided_cost_vom                 NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
-        avoided_cost_startup             NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
-        pct_replaced                     NaN        NaN                            0.0  ...                            NaN                  NaN                  NaN
-        technology_description   curtailment    deficit  Natural Gas Fired Combusti...  ...  Solar Photovoltaic with En...         Onshore Wind            Batteries
-        operating_date                   NaT        NaT            2000-01-01 00:00:00  ...            2000-01-01 00:00:00  2000-01-01 00:00:00  2000-01-01 00:00:00
-        retirement_date                  NaT        NaT            2050-01-01 00:00:00  ...                            NaT  2050-01-01 00:00:00                  NaT
-        ilr                              NaN        NaN                            NaN  ...                            NaN                  1.0                  NaN
-        interconnect_mw                  NaN        NaN                            NaN  ...                            NaN                500.0                  NaN
-        fom_per_kw                       NaN        NaN                            NaN  ...                            NaN                  NaN                  NaN
-        duration_hrs                     NaN        NaN                            NaN  ...                            4.0                  NaN                 12.0
-        roundtrip_eff                    NaN        NaN                            NaN  ...                            0.9                  NaN                  0.5
+        >>> dm.full_output(freq="YS").round(1)  # doctest: +NORMALIZE_WHITESPACE
+                                              capacity_mw  historical_mwh  historical_mmbtu  ...  fom_per_kw  duration_hrs  roundtrip_eff
+        plant_id_eia generator_id datetime                                                   ...
+        0            curtailment  2020-01-01          NaN             NaN               NaN  ...         NaN           NaN            NaN
+                     deficit      2020-01-01          NaN             NaN               NaN  ...         NaN           NaN            NaN
+        1            1            2020-01-01        350.0             0.0               0.0  ...         NaN           NaN            NaN
+                     2            2020-01-01        500.0             0.0               0.0  ...         NaN           NaN            NaN
+        2            1            2020-01-01        600.0             0.0               0.0  ...         NaN           NaN            NaN
+        5            1            2020-01-01        500.0             NaN               NaN  ...         NaN           NaN            NaN
+                     es           2020-01-01        250.0             NaN               NaN  ...         NaN           4.0            0.9
+        6            1            2020-01-01        500.0             NaN               NaN  ...         NaN           NaN            NaN
+        7            1            2020-01-01        200.0             NaN               NaN  ...         NaN          12.0            0.5
         <BLANKLINE>
-        [29 rows x 9 columns]
+        [9 rows x 29 columns]
 
         """
         if not name and "balancing_authority_code_eia" in dispatchable_specs:
