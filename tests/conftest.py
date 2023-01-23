@@ -1,4 +1,7 @@
-"""PyTest configuration module. Defines useful fixtures, command line args."""
+"""PyTest configuration module.
+
+Defines useful fixtures, command line args.
+"""
 import logging
 import shutil
 from pathlib import Path
@@ -16,9 +19,9 @@ logger = logging.getLogger(__name__)
 def pytest_addoption(parser: pytest.Parser) -> None:
     """Add package-specific command line options to pytest.
 
-    This is slightly magical -- pytest has a hook that will run this function
-    automatically, adding any options defined here to the internal pytest options that
-    already exist.
+    This is slightly magical -- pytest has a hook that will run this
+    function automatically, adding any options defined here to the
+    internal pytest options that already exist.
     """
     parser.addoption(
         "--sandbox",

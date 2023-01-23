@@ -363,7 +363,7 @@ class DispatchModel(IOMixin):
         (0.75, 1.0]            0
         dtype: int64
 
-        Generate a full, combined output of all resources at specified frequency (transposed for easier viewing).
+        Generate a full, combined output of all resources at specified frequency.
 
         >>> dm.full_output(freq="YS").round(1)  # doctest: +NORMALIZE_WHITESPACE
                                               capacity_mw  historical_mwh  historical_mmbtu  ...  fom_per_kw  duration_hrs  roundtrip_eff
@@ -379,7 +379,6 @@ class DispatchModel(IOMixin):
         7            1            2020-01-01        200.0             NaN               NaN  ...         NaN          12.0            0.5
         <BLANKLINE>
         [9 rows x 29 columns]
-
         """
         if not name and "balancing_authority_code_eia" in dispatchable_specs:
             name = dispatchable_specs.balancing_authority_code_eia.mode().iloc[0]
@@ -480,7 +479,11 @@ class DispatchModel(IOMixin):
         )
 
     def _add_total_and_missing_cols(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Add columns for total FOM and total startup from respective unit costs."""
+        """Add optional columns if they are missing.
+
+        Add columns for total FOM and total startup from respective unit
+        costs.
+        """
         df = (
             df.reset_index()
             .merge(
@@ -510,7 +513,8 @@ class DispatchModel(IOMixin):
             return df
         return df.assign(exclude=False)
 
-    def __setstate__(self, state: dict):
+    def __setstate__(self, state: tuple[Any, dict]):
+        _, state = state
         for k, v in state.items():
             if k in self.__slots__:
                 setattr(self, k, v)
@@ -527,7 +531,7 @@ class DispatchModel(IOMixin):
                     state[df_name] = getattr(self, df_name)()
                 except Exception as exc:
                     LOGGER.warning("unable to write %s, %r", df_name, exc)
-        return state
+        return None, state
 
     @classmethod
     def from_patio(
@@ -620,7 +624,11 @@ class DispatchModel(IOMixin):
 
     @property
     def is_redispatch(self) -> bool:
-        """True if this is redispatch, i.e. has meaningful historical dispatch."""
+        """Is this a redispatch?
+
+        True if this is redispatch, i.e. has meaningful historical
+        dispatch.
+        """
         # more than 2 unique values are required because any plant that begins
         # operation during the period will have both 0 and its capacity
         return self.dispatchable_profiles.nunique().max() > 2
@@ -781,7 +789,6 @@ class DispatchModel(IOMixin):
             col_name: if specified, stack the output and use this as the column name,
                 if `df` is a dict, each df is stacked and `col_name` if any is
                 prepended to the key to form the column name.
-
         """
         if isinstance(df, dict):
             pref = "" if col_name is None else col_name + "_"
@@ -817,7 +824,6 @@ class DispatchModel(IOMixin):
             freq: output time resolution
             col_name: if specified, stack the output and use this as the column name
             freq_agg: aggregation func to use in frequency groupby
-
         """
         if by is None:
             out = df.groupby([pd.Grouper(freq=freq)]).agg(freq_agg)
@@ -847,7 +853,11 @@ class DispatchModel(IOMixin):
     def lost_load(
         self, comparison: pd.Series[float] | np.ndarray | float | None = None
     ) -> pd.Series[int]:
-        """Number of hours during which deficit was in various duration bins."""
+        """Value counts of deficit.
+
+        Number of hours during which deficit was in various duration
+        bins.
+        """
         if comparison is None:
             durs = self.system_data.deficit / self.load_profile
         else:
@@ -867,9 +877,9 @@ class DispatchModel(IOMixin):
     ) -> list[pd.Timestamp]:
         """Hours from dispatch to look at more closely.
 
-        Hours with positive deficits are ones where not all of net load was served
-        we want to be able to easily check the two hours immediately before these
-        positive deficit hours.
+        Hours with positive deficits are ones where not all of net load
+        was served we want to be able to easily check the two hours
+        immediately before these positive deficit hours.
         """
         if comparison is None:
             comparison = self.load_profile.groupby([pd.Grouper(freq="YS")]).transform(
@@ -888,7 +898,7 @@ class DispatchModel(IOMixin):
         )
 
     def hourly_data_check(self, cutoff: float = 0.01):
-        """Aggregate data for :meth:`.DispatchModel.hrs_to_checl`."""
+        """Aggregate data for :meth:`.DispatchModel.hrs_to_check`."""
         max_disp = apply_op_ret_date(
             pd.DataFrame(
                 1.0,
@@ -922,7 +932,11 @@ class DispatchModel(IOMixin):
         return out
 
     def storage_capacity(self) -> pd.DataFrame:
-        """Number of hours when storage charge or discharge was in various bins."""
+        """Value counts of charge and discharge.
+
+        Number of hours when storage charge or discharge was in various
+        bins.
+        """
         rates = self.storage_dispatch.filter(like="charge")
         # a mediocre way to define the bins...
         d_max = int(np.ceil(rates.max().max()))
@@ -938,7 +952,11 @@ class DispatchModel(IOMixin):
         ).sort_index()
 
     def storage_durations(self) -> pd.DataFrame:
-        """Number of hours during which state of charge was in various duration bins."""
+        """Value counts of state of charge hours.
+
+        Number of hours during which state of charge was in various
+        duration bins.
+        """
         df = self.storage_dispatch.filter(like="soc")
         durs = df / self.storage_specs.capacity_mw.to_numpy(dtype=float)
         # a mediocre way to define the bins...

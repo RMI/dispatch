@@ -3,6 +3,7 @@
 
 import numpy as np
 import pytest
+from etoolbox.utils.testing import idfn
 
 from dispatch.engine import (
     charge_storage,
@@ -10,7 +11,6 @@ from dispatch.engine import (
     make_rank_arrays,
     validate_inputs,
 )
-from dispatch.helpers import idfn
 
 NL = [
     -500.0,

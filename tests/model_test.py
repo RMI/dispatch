@@ -4,9 +4,10 @@ from io import BytesIO
 import numpy as np
 import pandas as pd
 import pytest
+from etoolbox.utils.testing import idfn
 
 from dispatch import DispatchModel
-from dispatch.helpers import apply_op_ret_date, idfn
+from dispatch.helpers import apply_op_ret_date
 
 
 def test_new(fossil_profiles, re_profiles, fossil_specs, fossil_cost):
@@ -158,7 +159,11 @@ def test_marginal_cost(mini_dm):
 def test_alt_total_var_mwh(
     mini_dm, fossil_specs, fossil_profiles, re_profiles, fossil_cost
 ):
-    """Test that changing total_var_mwh changes dispatch but not cost calculations."""
+    """Test impact of total_var_mwh.
+
+    Test that changing total_var_mwh changes dispatch but not cost
+    calculations.
+    """
     fossil_cost = fossil_cost.copy()
     fossil_cost.loc[(3648, "4", "2018-01-01"), "total_var_mwh"] = 0.0
     re = np.array([5000.0, 5000.0, 0.0, 0.0])
@@ -408,7 +413,7 @@ def test_redispatch_different(ent_redispatch, existing):
 
 @pytest.mark.parametrize("existing", ["existing", "additions"], ids=idfn)
 def test_fresh_different(ent_fresh, existing):
-    """Test that dispatch and full capacity profiles (fresh) are not the same."""
+    """Test that dispatch and full capacity profiles are not the same."""
     self = DispatchModel(**ent_fresh)
     self()
     if existing == "existing":
@@ -474,7 +479,7 @@ def test_dispatchable_exclude(
 
 
 def test_interconnect_mw(ent_fresh):
-    """Test that interconnect_mw produces expected re_profiles and excess_re."""
+    """Test that interconnect_mw affects re_profiles and excess_re."""
     raw = DispatchModel(**ent_fresh)
     re_specs = (
         ent_fresh["re_plant_specs"]

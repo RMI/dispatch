@@ -71,6 +71,13 @@ repos:
       - id: black
         language_version: python3.10
 
+  # Format docstrings
+  - repo: https://github.com/PyCQA/docformatter
+    rev: v1.5.0
+    hooks:
+      - id: docformatter
+        args: ["--in-place", "--config", "pyproject.toml"]
+
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v3.0.0-alpha.4
     hooks:

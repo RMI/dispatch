@@ -133,7 +133,6 @@ class Validator:
         E                           index  failure_case
         E           0 2011-03-08 18:00:00  10842.857422
         E           1 2011-03-10 09:00:00  12690.857422
-
         """
         dispatchable_profiles = pa.DataFrameSchema(
             index=DT_SCHEMA,
