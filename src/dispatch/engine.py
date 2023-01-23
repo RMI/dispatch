@@ -60,7 +60,6 @@ def dispatch_engine(
             and total curtailment dat
         -   **starts** (:class:`numpy.ndarray`) - count of starts for each plant in
             each year
-
     """
     validate_inputs(
         net_load,
@@ -355,14 +354,13 @@ def charge_storage(
 
     Returns:
         A tuple with the same organization of columns of internal ``storage`` in
-        :func:`.dispatch_engine_py`.
+        :func:`.dispatch_engine`.
 
         -   **charge** (:class:`float`) - total charge in the hour
         -   **discharge** (:class:`float`) - always 0.0, a placeholder
         -   **soc** (:class:`float`) - tate of charge after charging
         -   **grid_charge** (:class:`float`) -  portion of ``charge`` that came from
             the grid
-
     """
     # because we can now end up in this loop when deficit is positive,
     # we need to prevent that positive deficit from mucking up our

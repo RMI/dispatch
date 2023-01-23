@@ -1,4 +1,4 @@
-"""A template repository for a Python package created by Catalyst Cooperative."""
+"""RMI's electricity dispatch model."""
 import logging
 
 __author__ = "RMI"
@@ -14,7 +14,7 @@ try:
 except ImportError:
     __version__ = "unknown"
 
-from dispatch.helpers import DataZip, apply_op_ret_date, copy_profile
+from dispatch.helpers import apply_op_ret_date, copy_profile
 from dispatch.model import DispatchModel
 
 __all__ = [

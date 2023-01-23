@@ -2,14 +2,9 @@
 from __future__ import annotations
 
 import logging
-import warnings
-from io import BytesIO
-from pathlib import Path
-from typing import NamedTuple
 
 import numpy as np
 import pandas as pd
-from etoolbox.datazip import DataZip as EtDataZip
 
 from dispatch.constants import ORDERING
 
@@ -26,8 +21,8 @@ def copy_profile(
         years: the years, each of which will be a copy
             of ``profile``.
 
-    Returns: Copied profiles.
-
+    Returns:
+        Copied profiles.
     """
     dfs = []
     assert isinstance(profiles.index, pd.DatetimeIndex)
@@ -60,8 +55,8 @@ def apply_op_ret_date(
         capacity_mw: capacity of each plant (only used when ``profiles`` are
             normalized)
 
-    Returns: Profiles reflecting operating and retirement dates.
-
+    Returns:
+        Profiles reflecting operating and retirement dates.
     """
     assert isinstance(profiles.index, pd.DatetimeIndex)
     if capacity_mw is None:
@@ -111,56 +106,3 @@ def dispatch_key(item):
     if isinstance(item, pd.Index):
         return pd.Index([ORDERING.get(x.casefold(), str(x)) for x in item])
     return ORDERING.get(item.casefold(), str(item))
-
-
-class ObjMeta(NamedTuple):
-    """NamedTuple for testing."""
-
-    module: str
-    qualname: str
-    constructor: str | None = None
-
-
-class DataZip(EtDataZip):
-    """SubClass of :class:`ZipFile` with methods for easier use with :mod:`pandas`.
-
-    z = DataZip(file, mode="r", compression=ZIP_STORED, allowZip64=True,
-                compresslevel=None)
-
-    """
-
-    def __init__(self, file: str | Path | BytesIO, mode="r", *args, **kwargs):
-        """Open the ZIP file.
-
-        Args:
-            file: Either the path to the file, or a file-like object.
-                  If it is a path, the file will be opened and closed by ZipFile.
-            mode: The mode can be either read 'r', write 'w', exclusive create 'x',
-                  or append 'a'.
-            compression: ZIP_STORED (no compression), ZIP_DEFLATED (requires zlib),
-                         ZIP_BZIP2 (requires bz2) or ZIP_LZMA (requires lzma).
-            allowZip64: if True ZipFile will create files with ZIP64 extensions when
-                        needed, otherwise it will raise an exception when this would
-                        be necessary.
-            compresslevel: None (default for the given compression type) or an integer
-                           specifying the level to pass to the compressor.
-                           When using ZIP_STORED or ZIP_LZMA this keyword has no effect.
-                           When using ZIP_DEFLATED integers 0 through 9 are accepted.
-                           When using ZIP_BZIP2 integers 1 through 9 are accepted.
-        """
-        warnings.simplefilter("once")
-        warnings.warn(
-            "DataZip is now in rmi.etoolbox (https://github.com/rmi/etoolbox)"
-            " and will be removed from rmi.dispatch",
-            DeprecationWarning,
-        )
-        warnings.simplefilter("default")
-
-        super().__init__(file, mode, *args, **kwargs)
-
-
-def idfn(val):
-    """ID function for pytest parameterization."""
-    if isinstance(val, float):
-        return None
-    return str(val)

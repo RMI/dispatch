@@ -31,6 +31,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "black[jupyter] >= 22,<23",
+    "docformatter>=1.5,<1.6",
     "isort>=5.0,<5.12",
     "tox>=3.20,<4.4",
     "twine>=3.3,<4.1",  # Used to make releases to PyPI
@@ -71,14 +72,15 @@ viz = [
     "kaleido>0.2,<0.2.2",
 ]
 
+[tool.setuptools.dynamic]
+version = {attr = "dispatch._version.__version__"}
+
 [tool.setuptools_scm]
 write_to = "src/dispatch/_version.py"
 
-[tool.setuptools]
-include-package-data = true
-
-[tool.setuptools.dynamic]
-version = {attr = "dispatch._version.__version__"}
+#######################################################################################
+# Configurations for linters and other tools
+#######################################################################################
 
 [tool.bandit]
 exclude_dirs = ["tests"]
@@ -86,8 +88,12 @@ skips = ["B101"]
 
 [tool.black]
 line-length = 88
-target-version = ["py39", "py310", "py311"]
+target-version = ["py310", "py311"]
 include = "\\.pyi?$"
+
+[tool.docformatter]
+wrap-summaries = 88
+wrap-descriptions = 88
 
 [tool.doc8]
 max-line-length = 88
