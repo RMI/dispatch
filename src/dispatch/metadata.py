@@ -127,7 +127,9 @@ class Validator:
 
         changed the limit to 2e4 but these look like errors...
 
-        E           pandera.errors.SchemaError: <Schema Column(name=(55178, 'CT-1'), type=DataType(float64))> failed element-wise validator 0:
+        E           pandera.errors.SchemaError: <Schema
+        Column(name=(55178, 'CT-1'), type=DataType(float64))> failed
+        element-wise validator 0:
         E           <Check in_range: in_range(0.0, 10000.0)>
         E           failure cases:
         E                           index  failure_case
