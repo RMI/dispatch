@@ -80,7 +80,11 @@ def fossil_cost(test_dir) -> pd.DataFrame:
 @pytest.fixture
 def ent_fresh(test_dir) -> dict:
     """Fossil Profiles."""
-    out = DataZip.dfs_from_zip(test_dir / "data/8fresh.zip")
+    out = {
+        k: v
+        for k, v in DataZip(test_dir / "data/8fresh.zip").items()
+        if k != "other_stuff"
+    }
     out["load_profile"] = out["load_profile"].squeeze()
     return out
 
@@ -88,7 +92,11 @@ def ent_fresh(test_dir) -> dict:
 @pytest.fixture
 def ent_redispatch(test_dir) -> dict:
     """Fossil Profiles."""
-    out = DataZip.dfs_from_zip(test_dir / "data/8redispatch.zip")
+    out = {
+        k: v
+        for k, v in DataZip(test_dir / "data/8redispatch.zip").items()
+        if k != "other_stuff"
+    }
     out["load_profile"] = out["load_profile"].squeeze()
     return out
 
@@ -97,7 +105,11 @@ def ent_redispatch(test_dir) -> dict:
 def ent_dm(test_dir, request) -> tuple[str, DispatchModel]:
     """Fossil Profiles."""
     indicator = {"8fresh": "f", "8redispatch": "r"}
-    data = DataZip.dfs_from_zip(test_dir / f"data/{request.param}.zip")
+    data = {
+        k: v
+        for k, v in DataZip(test_dir / f"data/{request.param}.zip").items()
+        if k != "other_stuff"
+    }
     data["load_profile"] = data["load_profile"].squeeze()
     return (
         indicator[request.param],
@@ -108,7 +120,11 @@ def ent_dm(test_dir, request) -> tuple[str, DispatchModel]:
 @pytest.fixture(scope="session")
 def ent_out_for_excl_test(test_dir):
     """Dispatchable_summary with excluded generator."""
-    ent_redispatch = DataZip.dfs_from_zip(test_dir / "data/8redispatch.zip")
+    ent_redispatch = {
+        k: v
+        for k, v in DataZip(test_dir / "data/8redispatch.zip").items()
+        if k != "other_stuff"
+    }
     ent_redispatch["load_profile"] = ent_redispatch["load_profile"].squeeze()
 
     ent_redispatch["dispatchable_specs"] = ent_redispatch["dispatchable_specs"].assign(
@@ -123,7 +139,11 @@ def ent_out_for_excl_test(test_dir):
 @pytest.fixture(scope="session")
 def ent_out_for_test(test_dir):
     """Dispatchable_summary without excluded generator."""
-    ent_redispatch = DataZip.dfs_from_zip(test_dir / "data/8redispatch.zip")
+    ent_redispatch = {
+        k: v
+        for k, v in DataZip(test_dir / "data/8redispatch.zip").items()
+        if k != "other_stuff"
+    }
     ent_redispatch["load_profile"] = ent_redispatch["load_profile"].squeeze()
 
     self = DispatchModel(**ent_redispatch)

@@ -4,6 +4,7 @@ from io import BytesIO
 import numpy as np
 import pandas as pd
 import pytest
+from etoolbox.datazip import DataZip
 from etoolbox.utils.testing import idfn
 
 from dispatch import DispatchModel
@@ -334,6 +335,8 @@ def test_plot_detail_ent(ent_fresh, temp_dir):
     img_path = temp_dir / "test_plot_detail_ent.pdf"
     self = DispatchModel(**ent_fresh)()
     x = self.plot_period("2034-01-01", "2034-01-05", compare_hist=True)
+    with DataZip(temp_dir / "test_img", "w") as dz:
+        dz["img"] = x
     try:
         x.write_image(img_path)
     except Exception as exc:
