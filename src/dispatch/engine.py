@@ -226,13 +226,14 @@ def dispatch_engine(
             storage[hr, 2, es_i] = storage[hr - 1, 2, es_i] - discharge
             deficit -= discharge
 
-        assert (
-            deficit >= 0.0
-        ), "negative deficit after, discharge, this shouldn't happen"
         # once we've dealt with operating plants and storage, if there is no positive
         # deficit we can skip startups and go on to the next hour
         if deficit == 0.0:
             continue
+
+        # we also need to make sure that the deficit is not negative, if it is,
+        # something has gone wrong
+        assert deficit >= 0.0, "negative deficit after discharge, this shouldn't happen"
 
         # TODO check that this start_ranks ordering system is working properly
         for r in start_ranks[:, yr]:

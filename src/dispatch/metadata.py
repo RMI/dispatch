@@ -2,7 +2,6 @@
 import logging
 from typing import Any
 
-import numpy as np
 import pandas as pd
 import pandera as pa
 
@@ -143,10 +142,14 @@ class Validator:
             coerce=True,
             strict=True,
         ).validate(dispatchable_profiles)
-        if not np.all(dispatchable_profiles.index == self.load_profile.index):
+        try:
+            pd.testing.assert_index_equal(
+                dispatchable_profiles.index, self.load_profile.index
+            )
+        except AssertionError as exc:
             raise AssertionError(
                 "`dispatchable_profiles` and `load_profile` indexes must match"
-            )
+            ) from exc
 
         return dispatchable_profiles
 
@@ -163,15 +166,17 @@ class Validator:
 
         dispatchable_cost = self.dispatchable_cost_schema.validate(dispatchable_cost)
         # make sure al
-        if not np.all(
-            dispatchable_cost.reset_index(
-                level="datetime", drop=True
-            ).index.drop_duplicates()
-            == self.gen_set
-        ):
+        try:
+            pd.testing.assert_index_equal(
+                dispatchable_cost.reset_index(
+                    level="datetime", drop=True
+                ).index.drop_duplicates(),
+                self.gen_set,
+            )
+        except AssertionError as exc:
             raise AssertionError(
                 "generators in `dispatchable_cost` do not match generators in `dispatchable_specs`"
-            )
+            ) from exc
         self.obj._metadata["marginal_cost_freq"] = marg_freq
         if "YS" not in marg_freq and "AS" not in marg_freq:
             raise AssertionError("Cost data must be `YS`")
@@ -206,4 +211,10 @@ class Validator:
             coerce=True,
             strict=True,
         ).validate(re_profiles)
+        try:
+            pd.testing.assert_index_equal(re_profiles.index, self.load_profile.index)
+        except AssertionError as exc:
+            raise AssertionError(
+                "`re_profiles` and `load_profile` indexes must match"
+            ) from exc
         return re_plant_specs, re_profiles

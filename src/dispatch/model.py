@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import warnings
 from collections.abc import Callable
 from datetime import datetime
 
@@ -439,6 +440,10 @@ class DispatchModel(IOMixin):
     def re_and_net_load(self, re_profiles):
         """Create net_load_profile based on what RE data was provided."""
         if self.re_plant_specs is None or re_profiles is None:
+            warnings.warn(
+                "In future versions, `re_plant_specs` and `re_profiles` will be required.",
+                FutureWarning,
+            )
             return (
                 self.load_profile,
                 None,
@@ -534,32 +539,9 @@ class DispatchModel(IOMixin):
         return None, state
 
     @classmethod
-    def from_patio(
-        cls,
-        net_load: pd.Series[float],
-        dispatchable_profiles: pd.DataFrame,
-        plant_data: pd.DataFrame,
-        cost_data: pd.DataFrame,
-        storage_specs: pd.DataFrame,
-        jit: bool = True,
-    ) -> DispatchModel:
+    def from_patio(cls, *args, **kwargs) -> DispatchModel:
         """Create :class:`.DispatchModel` with data from patio.BAScenario."""
-        if "operating_date" not in storage_specs:
-            storage_specs = storage_specs.assign(
-                operating_date=net_load.index.min(),
-                plant_id_eia=lambda x: x.index.to_series() * -1,
-                generator_id=lambda x: (
-                    x.groupby(["plant_id_eia"]).transform("cumcount") + 1
-                ).astype(str),
-            ).set_index(["plant_id_eia", "generator_id"])
-        return cls(
-            load_profile=net_load,
-            dispatchable_specs=plant_data,
-            dispatchable_cost=cost_data,
-            dispatchable_profiles=dispatchable_profiles,
-            storage_specs=storage_specs,
-            jit=jit,
-        )
+        raise DeprecationWarning("`from_patio` is no longer supported.")
 
     @classmethod
     def from_fresh(
@@ -571,6 +553,9 @@ class DispatchModel(IOMixin):
         jit: bool = True,
     ) -> DispatchModel:
         """Run dispatch without historical hourly operating constraints."""
+        warnings.warn(
+            "`from_fresh` will be removed in a future version.", DeprecationWarning
+        )
         if "operating_date" not in storage_specs:
             storage_specs = storage_specs.assign(
                 operating_date=net_load_profile.index.min()

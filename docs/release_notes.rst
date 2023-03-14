@@ -89,6 +89,10 @@ What's New?
     optional.
 *   Updates to :class:`.DispatchModel` to work with the new simpler, cleaner
     :class:`.DataZip`.
+*   Added checks to make sure that the datetime indexes of ``load_profile``,
+    ``dispatchable_profiles``, and ``re_profiles`` match.
+*   Prep for deprecating :meth:`.DispatchModel.from_patio` and
+    :meth:`.DispatchModel.from_fresh`.
 
 
 Bug Fixes
@@ -102,7 +106,7 @@ Bug Fixes
     cases of division be zero in these calculations, the result is now 0 rather than
     :class:`numpy.nan`. Tests now make sure that no new :class:`numpy.nan` show up.
 *   Fixed a bug in :meth:`.DispatchModel.dispatchable_summary` where ``pct_replaced``
-    would be :class:`numpy.nan` because of division be zero in these calculations, the
+    would be :class:`numpy.nan` because of division by zero in these calculations, the
     result is now 0 rather than :class:`numpy.nan`. Tests now make sure that no new
     :class:`numpy.nan` show up.
 *   Fixed an issue where :meth:`.DispatchModel.full_output` and methods that use it,

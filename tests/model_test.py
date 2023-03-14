@@ -3,6 +3,7 @@ from io import BytesIO
 
 import numpy as np
 import pandas as pd
+import pandera as pa
 import pytest
 from etoolbox.datazip import DataZip
 from etoolbox.utils.testing import idfn
@@ -11,30 +12,8 @@ from dispatch import DispatchModel
 from dispatch.helpers import apply_op_ret_date
 
 
-def test_new(fossil_profiles, re_profiles, fossil_specs, fossil_cost):
-    """Dummy test to quiet pytest."""
-    fossil_specs.iloc[
-        0, fossil_specs.columns.get_loc("retirement_date")
-    ] = fossil_profiles.index.max() - pd.Timedelta(weeks=15)
-    self = DispatchModel.from_fresh(
-        net_load_profile=fossil_profiles.sum(axis=1),
-        dispatchable_specs=fossil_specs,
-        dispatchable_cost=fossil_cost,
-        storage_specs=pd.DataFrame(
-            [(5000, 4, 0.9), (2000, 8760, 0.5)],
-            columns=["capacity_mw", "duration_hrs", "roundtrip_eff"],
-            index=pd.MultiIndex.from_tuples(
-                [(-99, "es"), (-98, "es")], names=["plant_id_eia", "generator_id"]
-            ),
-        ),
-        jit=True,
-    )
-    self()
-    assert self
-
-
 def test_new_no_dates(fossil_profiles, re_profiles, fossil_specs, fossil_cost):
-    """Dummy test to quiet pytest."""
+    """Test that :meth:`.DispatchModel.from_fresh` fills in missing dates."""
     fossil_specs.iloc[
         0, fossil_specs.columns.get_loc("retirement_date")
     ] = fossil_profiles.index.max() - pd.Timedelta(weeks=15)
@@ -60,101 +39,232 @@ def test_new_no_dates(fossil_profiles, re_profiles, fossil_specs, fossil_cost):
     assert fossil_profiles.index.max() == dates.retirement_date.item()
 
 
-def test_new_with_dates(fossil_profiles, re_profiles, fossil_specs, fossil_cost):
-    """Test operating and retirement dates for fossil and storage."""
-    fossil_specs.iloc[
-        0, fossil_specs.columns.get_loc("retirement_date")
-    ] = fossil_profiles.index.max() - pd.Timedelta(weeks=15)
-    fossil_specs.loc[8066, "retirement_date"] = pd.Timestamp(
-        year=2018, month=12, day=31
-    )
-    self = DispatchModel.from_fresh(
-        net_load_profile=fossil_profiles.sum(axis=1),
-        dispatchable_specs=fossil_specs,
-        dispatchable_cost=fossil_cost,
-        storage_specs=pd.DataFrame(
-            [
-                (5000, 4, 0.9, pd.Timestamp(year=2016, month=1, day=1)),
-                (2000, 8760, 0.5, pd.Timestamp(year=2019, month=1, day=1)),
-            ],
-            columns=["capacity_mw", "duration_hrs", "roundtrip_eff", "operating_date"],
-            index=pd.MultiIndex.from_tuples(
-                [(-99, "es"), (-98, "es")], names=["plant_id_eia", "generator_id"]
-            ),
-        ),
-        jit=True,
-    )
-    self()
-    assert self
+@pytest.mark.parametrize(
+    "attr, expected",
+    [
+        ("redispatch", {"f": 421292628, "r": 389777545}),
+        ("storage_dispatch", {"f": 152460988, "r": 144263839}),
+        ("system_data", {"f": 81154038, "r": 99539021}),
+        ("starts", {"f": 113795, "r": 68253}),
+    ],
+    ids=idfn,
+)
+def test_redispatch_total(ent_dm, attr, expected):
+    """High-level test that results have not changed."""
+    ind, ent_dm = ent_dm
+    assert getattr(ent_dm, attr).sum().sum() == pytest.approx(expected[ind])
 
 
 def test_low_lost_load(mini_dm):
-    """Dummy test to quiet pytest."""
+    """Dummy test that there isn't much lost load."""
     assert (mini_dm.lost_load() / mini_dm.lost_load().sum()).iloc[0] > 0.998
-
-
-def test_write_and_read(
-    fossil_profiles, re_profiles, fossil_specs, temp_dir, fossil_cost
-):
-    """Test that DispatchModel can be written and read."""
-    fossil_profiles.columns = fossil_specs.index
-    dm = DispatchModel.from_patio(
-        fossil_profiles.sum(axis=1)
-        - re_profiles @ np.array([5000.0, 5000.0, 0.0, 0.0]),
-        dispatchable_profiles=fossil_profiles,
-        cost_data=fossil_cost,
-        plant_data=fossil_specs,
-        storage_specs=pd.DataFrame(
-            [(5000, 4, 0.9), (2000, 8760, 0.5)],
-            columns=["capacity_mw", "duration_hrs", "roundtrip_eff"],
-        ),
-    )
-    file = temp_dir / "test_write_and_read.zip"
-    try:
-        dm.to_file(file)
-        x = DispatchModel.from_file(file)
-        x()
-        x.to_file(file, clobber=True, include_output=False)
-    except Exception as exc:
-        raise AssertionError(f"{exc!r}") from exc
-    else:
-        assert True
-
-
-def test_write_and_read_full(temp_dir, ent_fresh):
-    """Test that DispatchModel can be written and read."""
-    dm = DispatchModel(**ent_fresh)
-    file = temp_dir / "test_write_and_read_full.zip"
-    try:
-        dm.to_file(file)
-        x = DispatchModel.from_file(file)
-        x()
-        x.to_file(file, clobber=True, include_output=True)
-    except Exception as exc:
-        raise AssertionError(f"{exc!r}") from exc
-    else:
-        assert True
-
-
-def test_write_and_read_bytes(ent_fresh):
-    """Test that DispatchModel can be written and read."""
-    dm = DispatchModel(**ent_fresh)
-    file = BytesIO()
-    try:
-        dm.to_file(file)
-        x = DispatchModel.from_file(file)
-        x()
-        x.to_file(file, clobber=True, include_output=True)
-    except Exception as exc:
-        raise AssertionError(f"{exc!r}") from exc
-    else:
-        assert True
 
 
 def test_marginal_cost(mini_dm):
     """Setup for testing cost and grouper methods."""
     x = mini_dm.grouper(mini_dm.historical_cost, "technology_description")
     assert not x.empty
+
+
+class TestIO:
+    """Tests for IO functionality."""
+
+    def test_write_and_read_full(self, temp_dir, ent_fresh):
+        """Test that DispatchModel can be written and read."""
+        dm = DispatchModel(**ent_fresh)
+        file = temp_dir / "test_write_and_read_full.zip"
+        try:
+            dm.to_file(file)
+            x = DispatchModel.from_file(file)
+            x()
+            x.to_file(file, clobber=True, include_output=True)
+        except Exception as exc:
+            raise AssertionError(f"{exc!r}") from exc
+        else:
+            assert True
+
+    def test_write_and_read_bytes(self, ent_fresh):
+        """Test that DispatchModel can be saved to and read from BytesIO."""
+        dm = DispatchModel(**ent_fresh)
+        file = BytesIO()
+        try:
+            dm.to_file(file)
+            x = DispatchModel.from_file(file)
+            x()
+            x.to_file(file, clobber=True, include_output=True)
+        except Exception as exc:
+            raise AssertionError(f"{exc!r}") from exc
+        else:
+            assert True
+
+
+class TestOutputs:
+    """Tests for summaries and outputs."""
+
+    def test_operations_summary(self, mini_dm):
+        """Setup for testing cost and grouper methods."""
+        x = mini_dm.dispatchable_summary(by=None)
+        assert x.notna().all().all()
+
+    def test_storage_summary(self, mini_dm):
+        """Setup for testing cost and grouper methods."""
+        x = mini_dm.storage_summary(by=None)
+        assert not x.empty
+
+    @pytest.mark.parametrize(
+        "func, args, drop_cols, expected",
+        [
+            (
+                "dispatchable_summary",
+                {"by": None, "augment": True},
+                (
+                    "utility_id_eia",
+                    "final_respondent_id",
+                    "retirement_date",
+                    "final_ba_code",
+                    "respondent_name",
+                    "balancing_authority_code_eia",
+                    "plant_name_eia",
+                    "prime_mover_code",
+                    "state",
+                    "latitude",
+                    "longitude",
+                ),
+                "notna",
+            ),
+            ("dispatchable_summary", {"by": None}, (), "notna"),
+            (
+                "re_summary",
+                {"by": None},
+                ("owned_pct", "retirement_date", "fom_per_kw"),
+                "notna",
+            ),
+            ("system_level_summary", {}, (), "notna"),
+            ("load_summary", {}, (), "notna"),
+            ("storage_durations", {}, (), "notna"),
+            ("storage_capacity", {}, (), "notna"),
+            ("hourly_data_check", {}, (), "notna"),
+            ("dc_charge", {}, (), "notna"),
+            pytest.param("full_output", {}, (), "notna", marks=pytest.mark.xfail),
+            (
+                "dispatchable_summary",
+                {"by": None, "augment": True},
+                (
+                    "utility_id_eia",
+                    "final_respondent_id",
+                    "retirement_date",
+                    "final_ba_code",
+                    "respondent_name",
+                    "balancing_authority_code_eia",
+                    "plant_name_eia",
+                    "prime_mover_code",
+                ),
+                "notempty",
+            ),
+            ("dispatchable_summary", {"by": None}, (), "notempty"),
+            ("re_summary", {"by": None}, ("owned_pct", "retirement_date"), "notempty"),
+            ("system_level_summary", {}, (), "notempty"),
+            ("load_summary", {}, (), "notempty"),
+            ("storage_durations", {}, (), "notempty"),
+            ("storage_capacity", {}, (), "notempty"),
+            ("hourly_data_check", {}, (), "notempty"),
+            ("dc_charge", {}, (), "notempty"),
+            ("full_output", {}, (), "notempty"),
+        ],
+        ids=idfn,
+    )
+    def test_outputs_parametric(self, ent_dm, func, args, drop_cols, expected):
+        """Test that outputs are not empty or do not have unexpected nans."""
+        ind, ent_dm = ent_dm
+        df = getattr(ent_dm, func)(**args)
+        df = df[[c for c in df if c not in drop_cols]]
+        if expected == "notna":
+            assert df.notna().all().all()
+        elif expected == "notempty":
+            assert not df.empty
+        else:
+            assert False
+
+
+class TestPlotting:
+    """Tests for plotting methods."""
+
+    def test_plot_all_years(self, ent_dm, temp_dir):
+        """Test that outputs are not empty or do not have unexpected nans."""
+        ind, ent_dm = ent_dm
+        y = ent_dm.plot_all_years()
+        img_path = temp_dir / "test_plot_all_years.pdf"
+        try:
+            y.write_image(str(img_path))
+        except Exception as exc:
+            raise AssertionError("unable to write image") from exc
+
+    @pytest.mark.parametrize("freq", ["D", "H"], ids=idfn)
+    def test_plotting(self, mini_dm, temp_dir, freq):
+        """Testing plotting function."""
+        y = mini_dm.plot_year(2015, freq=freq)
+        img_path = temp_dir / f"test_plotting_{freq}.pdf"
+        try:
+            y.write_image(str(img_path))
+        except Exception as exc:
+            raise AssertionError("unable to write image") from exc
+
+    def test_plot_detail_ent(self, ent_fresh, temp_dir):
+        """Testing plotting function."""
+        img_path = temp_dir / "test_plot_detail_ent.pdf"
+        self = DispatchModel(**ent_fresh)()
+        x = self.plot_period("2034-01-01", "2034-01-05", compare_hist=True)
+        with DataZip(temp_dir / "test_img", "w") as dz:
+            dz["img"] = x
+        try:
+            x.write_image(img_path)
+        except Exception as exc:
+            raise AssertionError("unable to write image") from exc
+        else:
+            assert True
+
+    def test_plot_period_comp(self, ent_redispatch, temp_dir):
+        """Testing plotting function."""
+        img_path = temp_dir / "test_plot_period_comp.pdf"
+        self = DispatchModel(**ent_redispatch)()
+        x = self.plot_period("2034-01-01", "2034-01-05", compare_hist=False)
+        try:
+            x.write_image(img_path)
+        except Exception as exc:
+            raise AssertionError("unable to write image") from exc
+        else:
+            assert True
+
+    def test_plot_year_ent(self, ent_fresh, temp_dir):
+        """Testing plotting function."""
+        img_path = temp_dir / "test_plot_year_ent.pdf"
+        self = DispatchModel(**ent_fresh)()
+        x = self.plot_year(2034)
+        try:
+            x.write_image(img_path)
+        except Exception as exc:
+            raise AssertionError("unable to write image") from exc
+        else:
+            assert True
+        finally:
+            img_path.unlink(missing_ok=True)
+
+    @pytest.mark.parametrize(
+        "col, freq",
+        [("capacity_mw", "YS"), ("redispatch_mwh", "YS"), ("redispatch_mwh", "MS")],
+        ids=idfn,
+    )
+    def test_plot_output(self, ent_dm, temp_dir, col, freq):
+        """Testing plotting function."""
+        ind, ent_dm = ent_dm
+        img_path = temp_dir / f"test_plot_output_{ind}_{col}_{freq}.pdf"
+        x = ent_dm.plot_output(col, freq=freq)
+        try:
+            x.write_image(img_path)
+        except Exception as exc:
+            raise AssertionError("unable to write image") from exc
+        else:
+            assert True
 
 
 def test_alt_total_var_mwh(
@@ -172,16 +282,28 @@ def test_alt_total_var_mwh(
     fossil_profiles = apply_op_ret_date(
         fossil_profiles, fossil_specs.operating_date, fossil_specs.retirement_date
     )
-    alt = DispatchModel.from_patio(
-        fossil_profiles.sum(axis=1) - re_profiles @ re,
+
+    alt = DispatchModel(
+        load_profile=fossil_profiles.sum(axis=1) - re_profiles @ re,
         dispatchable_profiles=fossil_profiles,
-        cost_data=fossil_cost,
-        plant_data=fossil_specs,
+        dispatchable_cost=fossil_cost,
+        dispatchable_specs=fossil_specs,
         storage_specs=pd.DataFrame(
-            [(5000, 4, 0.9), (2000, 8760, 0.5)],
-            columns=["capacity_mw", "duration_hrs", "roundtrip_eff"],
-        ),
+            [
+                (-1, "es", 5000, 4, 0.9, fossil_profiles.index.min()),
+                (-2, "es", 2000, 8760, 0.5, fossil_profiles.index.min()),
+            ],
+            columns=[
+                "plant_id_eia",
+                "generator_id",
+                "capacity_mw",
+                "duration_hrs",
+                "roundtrip_eff",
+                "operating_date",
+            ],
+        ).set_index(["plant_id_eia", "generator_id"]),
     )()
+
     assert (
         alt.redispatch.loc["2017", :].compare(mini_dm.redispatch.loc["2017", :]).empty
     )
@@ -202,222 +324,9 @@ def test_alt_total_var_mwh(
     )
 
 
-def test_operations_summary(mini_dm):
-    """Setup for testing cost and grouper methods."""
-    x = mini_dm.dispatchable_summary(by=None)
-    assert x.notna().all().all()
-
-
-def test_storage_summary(mini_dm):
-    """Setup for testing cost and grouper methods."""
-    x = mini_dm.storage_summary(by=None)
-    assert not x.empty
-
-
-out_params = [
-    (
-        "dispatchable_summary",
-        {"by": None, "augment": True},
-        (
-            "utility_id_eia",
-            "final_respondent_id",
-            "retirement_date",
-            "final_ba_code",
-            "respondent_name",
-            "balancing_authority_code_eia",
-            "plant_name_eia",
-            "prime_mover_code",
-            "state",
-            "latitude",
-            "longitude",
-        ),
-        "notna",
-    ),
-    ("dispatchable_summary", {"by": None}, (), "notna"),
-    (
-        "re_summary",
-        {"by": None},
-        ("owned_pct", "retirement_date", "fom_per_kw"),
-        "notna",
-    ),
-    ("system_level_summary", {}, (), "notna"),
-    ("load_summary", {}, (), "notna"),
-    ("storage_durations", {}, (), "notna"),
-    ("storage_capacity", {}, (), "notna"),
-    ("hourly_data_check", {}, (), "notna"),
-    ("dc_charge", {}, (), "notna"),
-    pytest.param("full_output", {}, (), "notna", marks=pytest.mark.xfail),
-    (
-        "dispatchable_summary",
-        {"by": None, "augment": True},
-        (
-            "utility_id_eia",
-            "final_respondent_id",
-            "retirement_date",
-            "final_ba_code",
-            "respondent_name",
-            "balancing_authority_code_eia",
-            "plant_name_eia",
-            "prime_mover_code",
-        ),
-        "notempty",
-    ),
-    ("dispatchable_summary", {"by": None}, (), "notempty"),
-    ("re_summary", {"by": None}, ("owned_pct", "retirement_date"), "notempty"),
-    ("system_level_summary", {}, (), "notempty"),
-    ("load_summary", {}, (), "notempty"),
-    ("storage_durations", {}, (), "notempty"),
-    ("storage_capacity", {}, (), "notempty"),
-    ("hourly_data_check", {}, (), "notempty"),
-    ("dc_charge", {}, (), "notempty"),
-    ("full_output", {}, (), "notempty"),
-]
-
-
-@pytest.mark.parametrize(
-    "func, args, drop_cols, expected",
-    out_params,
-    ids=idfn,
-)
-def test_outputs_parametric(ent_dm, func, args, drop_cols, expected):
-    """Test that outputs are not empty or do not have unexpected nans."""
-    ind, ent_dm = ent_dm
-    df = getattr(ent_dm, func)(**args)
-    df = df[[c for c in df if c not in drop_cols]]
-    if expected == "notna":
-        assert df.notna().all().all()
-    elif expected == "notempty":
-        assert not df.empty
-    else:
-        assert False
-
-
-@pytest.mark.parametrize(
-    "attr, expected",
-    [
-        ("redispatch", {"f": 421292628, "r": 389777545}),
-        ("storage_dispatch", {"f": 152460988, "r": 144263839}),
-        ("system_data", {"f": 81154038, "r": 99539021}),
-        ("starts", {"f": 113795, "r": 68253}),
-    ],
-    ids=idfn,
-)
-def test_redispatch_total(ent_dm, attr, expected):
-    """High-level test that results have not changed."""
-    ind, ent_dm = ent_dm
-    assert getattr(ent_dm, attr).sum().sum() == pytest.approx(expected[ind])
-
-
-def test_plot_all_years(ent_dm, temp_dir):
-    """Test that outputs are not empty or do not have unexpected nans."""
-    ind, ent_dm = ent_dm
-    y = ent_dm.plot_all_years()
-    img_path = temp_dir / "test_plot_all_years.pdf"
-    try:
-        y.write_image(str(img_path))
-    except Exception as exc:
-        raise AssertionError("unable to write image") from exc
-
-
-@pytest.mark.parametrize("freq", ["D", "H"], ids=idfn)
-def test_plotting(mini_dm, temp_dir, freq):
-    """Testing plotting function."""
-    y = mini_dm.plot_year(2015, freq=freq)
-    img_path = temp_dir / f"test_plotting_{freq}.pdf"
-    try:
-        y.write_image(str(img_path))
-    except Exception as exc:
-        raise AssertionError("unable to write image") from exc
-
-
-def test_plot_detail_ent(ent_fresh, temp_dir):
-    """Testing plotting function."""
-    img_path = temp_dir / "test_plot_detail_ent.pdf"
-    self = DispatchModel(**ent_fresh)()
-    x = self.plot_period("2034-01-01", "2034-01-05", compare_hist=True)
-    with DataZip(temp_dir / "test_img", "w") as dz:
-        dz["img"] = x
-    try:
-        x.write_image(img_path)
-    except Exception as exc:
-        raise AssertionError("unable to write image") from exc
-    else:
-        assert True
-
-
-def test_plot_period_comp(ent_redispatch, temp_dir):
-    """Testing plotting function."""
-    img_path = temp_dir / "test_plot_period_comp.pdf"
-    self = DispatchModel(**ent_redispatch)()
-    x = self.plot_period("2034-01-01", "2034-01-05", compare_hist=False)
-    try:
-        x.write_image(img_path)
-    except Exception as exc:
-        raise AssertionError("unable to write image") from exc
-    else:
-        assert True
-
-
-def test_plot_year_ent(ent_fresh, temp_dir):
-    """Testing plotting function."""
-    img_path = temp_dir / "test_plot_year_ent.pdf"
-    self = DispatchModel(**ent_fresh)()
-    x = self.plot_year(2034)
-    try:
-        x.write_image(img_path)
-    except Exception as exc:
-        raise AssertionError("unable to write image") from exc
-    else:
-        assert True
-    finally:
-        img_path.unlink(missing_ok=True)
-
-
-@pytest.mark.parametrize(
-    "col, freq",
-    [("capacity_mw", "YS"), ("redispatch_mwh", "YS"), ("redispatch_mwh", "MS")],
-    ids=idfn,
-)
-def test_plot_output(ent_dm, temp_dir, col, freq):
-    """Testing plotting function."""
-    ind, ent_dm = ent_dm
-    img_path = temp_dir / f"test_plot_output_{ind}_{col}_{freq}.pdf"
-    x = ent_dm.plot_output(col, freq=freq)
-    try:
-        x.write_image(img_path)
-    except Exception as exc:
-        raise AssertionError("unable to write image") from exc
-    else:
-        assert True
-
-
-def test_repr(ent_fresh):
-    """Test repr."""
-    self = DispatchModel(**ent_fresh)
-    assert "n_dispatchable=24" in repr(self)
-
-
-@pytest.mark.parametrize("existing", ["existing", "additions"], ids=idfn)
-def test_redispatch_different(ent_redispatch, existing):
-    """Test that redispatch and historical are not the same."""
-    self = DispatchModel(**ent_redispatch)
-    self()
-    if existing == "existing":
-        cols = [tup for tup in self.dispatchable_profiles.columns if tup[0] > 0]
-    else:
-        cols = [tup for tup in self.dispatchable_profiles.columns if tup[0] < 0]
-    comp = (
-        self.redispatch.loc[:, cols]
-        .round(0)
-        .compare(self.dispatchable_profiles.loc[:, cols].round(0))
-    )
-    assert not comp.empty
-
-
-@pytest.mark.parametrize("existing", ["existing", "additions"], ids=idfn)
-def test_fresh_different(ent_fresh, existing):
-    """Test that dispatch and full capacity profiles are not the same."""
-    self = DispatchModel(**ent_fresh)
+def assert_dispatch_is_different(data, existing):
+    """Assert that dispatch and given profiles are not the same."""
+    self = DispatchModel(**data)
     self()
     if existing == "existing":
         cols = [tup for tup in self.dispatchable_profiles.columns if tup[0] > 0]
@@ -429,6 +338,18 @@ def test_fresh_different(ent_fresh, existing):
         .compare(self.dispatchable_profiles.loc[:, cols].round(0))
     )
     assert not comp.empty, f"dispatch of {existing} failed"
+
+
+@pytest.mark.parametrize("existing", ["existing", "additions"], ids=idfn)
+def test_redispatch_different(ent_redispatch, existing):
+    """Test that redispatch and historical are not the same."""
+    assert_dispatch_is_different(ent_redispatch, existing)
+
+
+@pytest.mark.parametrize("existing", ["existing", "additions"], ids=idfn)
+def test_fresh_different(ent_fresh, existing):
+    """Test that dispatch and full capacity profiles are not the same."""
+    assert_dispatch_is_different(ent_fresh, existing)
 
 
 @pytest.mark.parametrize(
@@ -481,6 +402,30 @@ def test_dispatchable_exclude(
         )
 
 
+@pytest.mark.parametrize(
+    "idx_to_change, exception",
+    [
+        ("dispatchable_specs", AssertionError),
+        ("dispatchable_cost", AssertionError),
+        ("re_plant_specs", pa.errors.SchemaError),
+        ("dispatchable_profiles", AssertionError),
+        ("re_profiles", AssertionError),
+    ],
+    ids=idfn,
+)
+def test_bad_index(ent_fresh, idx_to_change, exception):
+    """Test that removing data from inputs raises errors."""
+    if idx_to_change == "dispatchable_cost":
+        to_drop = len(
+            ent_fresh["dispatchable_cost"].index.get_level_values("datetime").unique()
+        )
+    else:
+        to_drop = 2
+    ent_fresh[idx_to_change] = ent_fresh[idx_to_change].iloc[:-to_drop, :]
+    with pytest.raises(exception):
+        DispatchModel(**ent_fresh)
+
+
 def test_interconnect_mw(ent_fresh):
     """Test that interconnect_mw affects re_profiles and excess_re."""
     raw = DispatchModel(**ent_fresh)
@@ -500,6 +445,12 @@ def test_interconnect_mw(ent_fresh):
     )
     assert changed.re_excess.iloc[:, 0].sum() > 0.0
     assert raw.re_excess.iloc[:, 0].sum() == 0.0
+
+
+def test_repr(ent_fresh):
+    """Test repr."""
+    self = DispatchModel(**ent_fresh)
+    assert "n_dispatchable=24" in repr(self)
 
 
 @pytest.mark.skip(reason="for debugging only")
