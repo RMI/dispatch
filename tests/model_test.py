@@ -55,9 +55,16 @@ def test_redispatch_total(ent_dm, attr, expected):
     assert getattr(ent_dm, attr).sum().sum() == pytest.approx(expected[ind])
 
 
-def test_low_lost_load(mini_dm):
+@pytest.mark.parametrize("comparison", [None, "load_max"], ids=idfn)
+def test_low_lost_load(mini_dm, comparison):
     """Dummy test that there isn't much lost load."""
-    assert (mini_dm.lost_load() / mini_dm.lost_load().sum()).iloc[0] > 0.998
+    if comparison is None:
+        assert (mini_dm.lost_load() / mini_dm.lost_load().sum()).iloc[0] > 0.998
+    else:
+        assert (
+            mini_dm.lost_load(mini_dm.load_profile.max())
+            / mini_dm.lost_load(mini_dm.load_profile.max()).sum()
+        ).iloc[0] > 0.998
 
 
 def test_marginal_cost(mini_dm):
