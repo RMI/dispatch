@@ -9,7 +9,7 @@ from etoolbox.datazip import DataZip
 from etoolbox.utils.testing import idfn
 
 from dispatch import DispatchModel
-from dispatch.helpers import apply_op_ret_date
+from dispatch.helpers import zero_profiles_outside_operating_dates
 
 
 def test_new_no_dates(fossil_profiles, re_profiles, fossil_specs, fossil_cost):
@@ -286,7 +286,7 @@ def test_alt_total_var_mwh(
     fossil_cost.loc[(3648, "4", "2018-01-01"), "total_var_mwh"] = 0.0
     re = np.array([5000.0, 5000.0, 0.0, 0.0])
     fossil_profiles.columns = fossil_specs.index
-    fossil_profiles = apply_op_ret_date(
+    fossil_profiles = zero_profiles_outside_operating_dates(
         fossil_profiles, fossil_specs.operating_date, fossil_specs.retirement_date
     )
 

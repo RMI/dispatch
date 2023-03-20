@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -39,7 +40,7 @@ def copy_profile(
     return pd.concat(dfs, axis=0).squeeze()
 
 
-def apply_op_ret_date(
+def zero_profiles_outside_operating_dates(
     profiles: pd.DataFrame,
     operating_date: pd.Series,
     retirement_date: pd.Series,
@@ -95,8 +96,24 @@ def apply_op_ret_date(
     )
 
 
-def _str_cols(df, *args):
-    return df.set_axis(list(map(str, range(df.shape[1]))), axis="columns")
+def apply_op_ret_date(
+    profiles: pd.DataFrame,
+    operating_date: pd.Series,
+    retirement_date: pd.Series,
+    capacity_mw: pd.Series | None = None,
+) -> pd.DataFrame:
+    """Renamed to :func:`.zero_profiles_outside_operating_dates`."""
+    warnings.warn(
+        "This is now an alias for the better named `zero_profiles_outside_operating_dates "
+        "function, this version will be removed in future versions.",
+        FutureWarning,
+    )
+    return zero_profiles_outside_operating_dates(
+        profiles=profiles,
+        operating_date=operating_date,
+        retirement_date=retirement_date,
+        capacity_mw=capacity_mw,
+    )
 
 
 def dispatch_key(item):

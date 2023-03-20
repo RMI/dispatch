@@ -14,12 +14,17 @@ try:
 except ImportError:
     __version__ = "unknown"
 
-from dispatch.helpers import apply_op_ret_date, copy_profile
+from dispatch.helpers import (
+    apply_op_ret_date,
+    copy_profile,
+    zero_profiles_outside_operating_dates,
+)
 from dispatch.model import DispatchModel
 
 __all__ = [
     "DispatchModel",
     "copy_profile",
+    "zero_profiles_outside_operating_dates",
     "apply_op_ret_date",
     "__version__",
 ]

@@ -6,6 +6,7 @@ import pytest
 from etoolbox.utils.testing import idfn
 
 from dispatch.engine import (
+    calculate_generator_output,
     charge_storage,
     dispatch_engine,
     make_rank_arrays,
@@ -88,32 +89,229 @@ def test_validate_inputs(override, expected):
 
 
 @pytest.mark.parametrize(
-    "deficit, soc, dc_charge, mw, soc_max, eff, expected",
+    "kwargs, expected",
     [
-        (0, 0, 0, 10, 20, 1, (0, 0, 0, 0)),
-        (-5, 0, 0, 10, 20, 1, (5, 0, 5, 5)),
-        (0, 0, 5, 10, 20, 1, (5, 0, 5, 0)),
-        (500, 0, 5, 10, 20, 1, (5, 0, 5, 0)),
-        (-5, 0, 5, 5, 20, 1, (5, 0, 5, 0)),
-        (-5, 0, 3, 5, 20, 1, (5, 0, 5, 2)),
-        (-5, 0, 5, 10, 20, 1, (10, 0, 10, 5)),
-        (-5, 5, 5, 10, 20, 1, (10, 0, 15, 5)),
-        (-5, 5, 5, 10, 20, 0.5, (10, 0, 10, 5)),
-        (-5, 15, 5, 10, 20, 1, (5, 0, 20, 0)),
-        (-2, 15, 5, 10, 20, 1, (5, 0, 20, 0)),
-        (-5, 0, 0, 1, 20, 1, (1, 0, 1, 1)),
-        (0, 0, 5, 1, 20, 1, (1, 0, 1, 0)),
-        (500, 0, 5, 1, 20, 1, (1, 0, 1, 0)),
-        (-5, 0, 5, 1, 20, 1, (1, 0, 1, 0)),
-        (-5, 5, 5, 1, 20, 1, (1, 0, 6, 0)),
-        (-5, 5, 5, 1, 20, 0.9, (1, 0, 5.9, 0)),
-        (-2, 15, 5, 1, 20, 1, (1, 0, 16, 0)),
+        (
+            {
+                "deficit": 0,
+                "state_of_charge": 0,
+                "dc_charge": 0,
+                "mw": 10,
+                "max_state_of_charge": 20,
+                "eff": 1.0,
+            },
+            (0, 0, 0, 0),
+        ),
+        (
+            {
+                "deficit": -5,
+                "state_of_charge": 0,
+                "dc_charge": 0,
+                "mw": 10,
+                "max_state_of_charge": 20,
+                "eff": 1.0,
+            },
+            (5, 0, 5, 5),
+        ),
+        (
+            {
+                "deficit": 0,
+                "state_of_charge": 0,
+                "dc_charge": 5,
+                "mw": 10,
+                "max_state_of_charge": 20,
+                "eff": 1.0,
+            },
+            (5, 0, 5, 0),
+        ),
+        (
+            {
+                "deficit": 500,
+                "state_of_charge": 0,
+                "dc_charge": 5,
+                "mw": 10,
+                "max_state_of_charge": 20,
+                "eff": 1.0,
+            },
+            (5, 0, 5, 0),
+        ),
+        (
+            {
+                "deficit": -5,
+                "state_of_charge": 0,
+                "dc_charge": 5,
+                "mw": 5,
+                "max_state_of_charge": 20,
+                "eff": 1.0,
+            },
+            (5, 0, 5, 0),
+        ),
+        (
+            {
+                "deficit": -5,
+                "state_of_charge": 0,
+                "dc_charge": 3,
+                "mw": 5,
+                "max_state_of_charge": 20,
+                "eff": 1.0,
+            },
+            (5, 0, 5, 2),
+        ),
+        (
+            {
+                "deficit": -5,
+                "state_of_charge": 0,
+                "dc_charge": 5,
+                "mw": 10,
+                "max_state_of_charge": 20,
+                "eff": 1.0,
+            },
+            (10, 0, 10, 5),
+        ),
+        (
+            {
+                "deficit": -5,
+                "state_of_charge": 5,
+                "dc_charge": 5,
+                "mw": 10,
+                "max_state_of_charge": 20,
+                "eff": 1.0,
+            },
+            (10, 0, 15, 5),
+        ),
+        (
+            {
+                "deficit": -5,
+                "state_of_charge": 5,
+                "dc_charge": 5,
+                "mw": 10,
+                "max_state_of_charge": 20,
+                "eff": 0.5,
+            },
+            (10, 0, 10, 5),
+        ),
+        (
+            {
+                "deficit": -5,
+                "state_of_charge": 15,
+                "dc_charge": 5,
+                "mw": 10,
+                "max_state_of_charge": 20,
+                "eff": 1.0,
+            },
+            (5, 0, 20, 0),
+        ),
+        (
+            {
+                "deficit": -2,
+                "state_of_charge": 15,
+                "dc_charge": 5,
+                "mw": 10,
+                "max_state_of_charge": 20,
+                "eff": 1.0,
+            },
+            (5, 0, 20, 0),
+        ),
+        (
+            {
+                "deficit": -5,
+                "state_of_charge": 0,
+                "dc_charge": 0,
+                "mw": 1,
+                "max_state_of_charge": 20,
+                "eff": 1.0,
+            },
+            (1, 0, 1, 1),
+        ),
+        (
+            {
+                "deficit": 0,
+                "state_of_charge": 0,
+                "dc_charge": 5,
+                "mw": 1,
+                "max_state_of_charge": 20,
+                "eff": 1.0,
+            },
+            (1, 0, 1, 0),
+        ),
+        (
+            {
+                "deficit": 500,
+                "state_of_charge": 0,
+                "dc_charge": 5,
+                "mw": 1,
+                "max_state_of_charge": 20,
+                "eff": 1.0,
+            },
+            (1, 0, 1, 0),
+        ),
+        (
+            {
+                "deficit": -5,
+                "state_of_charge": 0,
+                "dc_charge": 5,
+                "mw": 1,
+                "max_state_of_charge": 20,
+                "eff": 1.0,
+            },
+            (1, 0, 1, 0),
+        ),
+        (
+            {
+                "deficit": -5,
+                "state_of_charge": 5,
+                "dc_charge": 5,
+                "mw": 1,
+                "max_state_of_charge": 20,
+                "eff": 1.0,
+            },
+            (1, 0, 6, 0),
+        ),
+        (
+            {
+                "deficit": -5,
+                "state_of_charge": 5,
+                "dc_charge": 5,
+                "mw": 1,
+                "max_state_of_charge": 20,
+                "eff": 0.9,
+            },
+            (1, 0, 5.9, 0),
+        ),
+        (
+            {
+                "deficit": -2,
+                "state_of_charge": 15,
+                "dc_charge": 5,
+                "mw": 1,
+                "max_state_of_charge": 20,
+                "eff": 1.0,
+            },
+            (1, 0, 16, 0),
+        ),
     ],
     ids=idfn,
 )
-def test_charge_storage(deficit, soc, dc_charge, mw, soc_max, eff, expected):
+def test_charge_storage(kwargs, expected):
     """Test storage charging calculations."""
-    assert charge_storage.py_func(deficit, soc, dc_charge, mw, soc_max, eff) == expected
+    assert charge_storage.py_func(**kwargs) == expected
+
+
+@pytest.mark.parametrize(
+    "kwargs, expected",
+    [
+        ({"desired_mw": 5, "max_mw": 2, "previous_mw": 0, "ramp_mw": 1}, 1),
+        ({"desired_mw": 5, "max_mw": 10, "previous_mw": 10, "ramp_mw": 1}, 9),
+        ({"desired_mw": 5, "max_mw": 10, "previous_mw": 5, "ramp_mw": 1}, 5),
+        ({"desired_mw": 5, "max_mw": 4, "previous_mw": 5, "ramp_mw": 1}, 4),
+        ({"desired_mw": 5, "max_mw": 4, "previous_mw": 2, "ramp_mw": 1}, 3),
+        ({"desired_mw": 5, "max_mw": 0, "previous_mw": 5, "ramp_mw": 1}, 0),
+    ],
+    ids=idfn,
+)
+def test_dispatch_generator(kwargs, expected):
+    """Test the logic of the calculate_generator_output function."""
+    assert calculate_generator_output.py_func(**kwargs) == expected
 
 
 def test_make_rank_arrays():

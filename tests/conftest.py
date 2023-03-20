@@ -11,7 +11,7 @@ import pandas as pd
 import pytest
 from etoolbox.datazip import DataZip
 
-from dispatch import DispatchModel, apply_op_ret_date
+from dispatch import DispatchModel, zero_profiles_outside_operating_dates
 
 logger = logging.getLogger(__name__)
 
@@ -131,7 +131,7 @@ def mini_dm(fossil_profiles, fossil_specs, fossil_cost, re_profiles):
     re = np.array([5000.0, 5000.0, 0.0, 0.0])
 
     fossil_profiles.columns = fossil_specs.index
-    fossil_profiles = apply_op_ret_date(
+    fossil_profiles = zero_profiles_outside_operating_dates(
         fossil_profiles, fossil_specs.operating_date, fossil_specs.retirement_date
     )
     dm = DispatchModel(

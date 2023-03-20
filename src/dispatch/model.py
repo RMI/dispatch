@@ -27,7 +27,7 @@ from etoolbox.datazip import IOMixin
 from dispatch import __version__
 from dispatch.constants import COLOR_MAP, MTDF, PLOT_MAP
 from dispatch.engine import dispatch_engine
-from dispatch.helpers import apply_op_ret_date, dispatch_key
+from dispatch.helpers import dispatch_key, zero_profiles_outside_operating_dates
 from dispatch.metadata import LOAD_PROFILE_SCHEMA, Validator
 
 LOGGER = logging.getLogger(__name__)
@@ -403,10 +403,12 @@ class DispatchModel(IOMixin):
             dispatchable_cost
         ).pipe(self._add_total_and_missing_cols)
         self.storage_specs: pd.DataFrame = validator.storage_specs(storage_specs)
-        self.dispatchable_profiles: pd.DataFrame = apply_op_ret_date(
-            validator.dispatchable_profiles(dispatchable_profiles),
-            self.dispatchable_specs.operating_date,
-            self.dispatchable_specs.retirement_date,
+        self.dispatchable_profiles: pd.DataFrame = (
+            zero_profiles_outside_operating_dates(
+                validator.dispatchable_profiles(dispatchable_profiles),
+                self.dispatchable_specs.operating_date,
+                self.dispatchable_specs.retirement_date,
+            )
         )
         self.re_plant_specs, re_profiles = validator.renewables(
             re_plant_specs, re_profiles
@@ -732,7 +734,7 @@ class DispatchModel(IOMixin):
             index=self.load_profile.index, method="ffill"
         )
         fom = (
-            apply_op_ret_date(
+            zero_profiles_outside_operating_dates(
                 self.dispatchable_cost.fom.unstack(
                     level=("plant_id_eia", "generator_id")
                 ),
@@ -884,7 +886,7 @@ class DispatchModel(IOMixin):
 
     def hourly_data_check(self, cutoff: float = 0.01):
         """Aggregate data for :meth:`.DispatchModel.hrs_to_check`."""
-        max_disp = apply_op_ret_date(
+        max_disp = zero_profiles_outside_operating_dates(
             pd.DataFrame(
                 1.0,
                 index=self.load_profile.index,
@@ -1039,7 +1041,7 @@ class DispatchModel(IOMixin):
                 "at least one of `re_profiles` and `re_plant_specs` is `None`"
             )
         fom = (
-            apply_op_ret_date(
+            zero_profiles_outside_operating_dates(
                 (
                     self.re_plant_specs.capacity_mw
                     * 1000
@@ -1226,7 +1228,7 @@ class DispatchModel(IOMixin):
             pd.concat(
                 [
                     self.strict_grouper(
-                        apply_op_ret_date(
+                        zero_profiles_outside_operating_dates(
                             pd.DataFrame(
                                 1,
                                 index=self.load_profile.index,

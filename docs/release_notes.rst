@@ -93,6 +93,13 @@ What's New?
     ``dispatchable_profiles``, and ``re_profiles`` match.
 *   Prep for deprecating :meth:`.DispatchModel.from_patio` and
     :meth:`.DispatchModel.from_fresh`.
+*   Extracted :func:`.calculate_generator_output` from :func:`.dispatch_engine` to make
+    the latter easier to read and to more easily test the former's logic.
+*   Many updates to internal variable names in :mod:`.engine` to make the code easier to
+    read.
+*   Renamed :func:`.apply_op_ret_date` to
+    :func:`.zero_profiles_outside_operating_dates` for clarity, use of the former name
+    will be removed in the future.
 
 
 Bug Fixes
