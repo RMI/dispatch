@@ -126,7 +126,8 @@ class Validator:
 
         changed the limit to 2e4 but these look like errors...
 
-        E           pandera.errors.SchemaError: <Schema Column(name=(55178, 'CT-1'), type=DataType(float64))> failed element-wise validator 0:
+        E           pandera.errors.SchemaError: <Schema Column(name=(55178, 'CT-1'),
+        E           type=DataType(float64))> failed element-wise validator 0:
         E           <Check in_range: in_range(0.0, 10000.0)>
         E           failure cases:
         E                           index  failure_case
@@ -175,7 +176,8 @@ class Validator:
             )
         except AssertionError as exc:
             raise AssertionError(
-                "generators in `dispatchable_cost` do not match generators in `dispatchable_specs`"
+                "generators in `dispatchable_cost` do not match generators in "
+                "`dispatchable_specs`"
             ) from exc
         self.obj._metadata["marginal_cost_freq"] = marg_freq
         if "YS" not in marg_freq and "AS" not in marg_freq:

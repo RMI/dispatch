@@ -9,9 +9,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
-from etoolbox.datazip import DataZip
-
 from dispatch import DispatchModel, zero_profiles_outside_operating_dates
+from etoolbox.datazip import DataZip
 
 logger = logging.getLogger(__name__)
 

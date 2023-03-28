@@ -30,39 +30,24 @@ repos:
   # Formatters: hooks that re-write Python and RST files
   ########################################################################################
 
+  # Linter and formatter that replaces flake8, isort, etc.
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: "v0.0.258"
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+
   # Convert relative imports to absolute imports
   - repo: https://github.com/MarcoGorelli/absolufy-imports
     rev: v0.3.1
     hooks:
       - id: absolufy-imports
 
-  # Make sure import statements are sorted uniformly.
-  - repo: https://github.com/PyCQA/isort
-    rev: 5.11.4
-    hooks:
-      - id: isort
-
   # Remove f-string prefix when there's nothing in the string to format.
   - repo: https://github.com/dannysepler/rm_unneeded_f_str
     rev: v0.2.0
     hooks:
       - id: rm-unneeded-f-str
-
-  # Use built-in types for annotations as per PEP585, with __futures__ for Python 3.8/3.9
-  # Note that this sometimes conflicts with Pydantic on Python 3.8/3.9
-  - repo: https://github.com/sondrelg/pep585-upgrade
-    rev: "v1.0"
-    hooks:
-      - id: upgrade-type-hints
-        args: ["--futures=true"]
-
-  # Update a bunch of Python syntax, using __futures__ for Python 3.8/3.9
-  # Note that this sometimes conflicts with Pydantic on Python 3.8/3.9
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.3.1
-    hooks:
-      - id: pyupgrade
-        args: ["--py39-plus"]
 
   # Deterministic python formatting:
   - repo: https://github.com/psf/black
@@ -87,32 +72,6 @@ repos:
   ########################################################################################
   # Linters: hooks that check but don't alter Python & RST files
   ########################################################################################
-
-  # Check for PEP8 non-compliance, code complexity, style, errors, etc:
-  - repo: https://github.com/PyCQA/flake8
-    rev: 6.0.0
-    hooks:
-      - id: flake8
-        additional_dependencies:
-          - flake8-docstrings
-          - flake8-colors
-          - pydocstyle
-          - flake8-builtins
-          - mccabe
-          - pep8-naming
-          - pycodestyle
-          - pyflakes
-          - flake8-rst-docstrings
-          - flake8-pyproject
-          - flake8-use-fstring
-
-  # Check for known security vulnerabilities:
-  - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.4
-    hooks:
-      - id: bandit
-        args: ["-c", "pyproject.toml"]
-        additional_dependencies: ["bandit[toml]"]
 
   # Check for errors in restructuredtext (.rst) files under the doc hierarchy
   - repo: https://github.com/PyCQA/doc8

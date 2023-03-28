@@ -100,6 +100,7 @@ What's New?
 *   Renamed :func:`.apply_op_ret_date` to
     :func:`.zero_profiles_outside_operating_dates` for clarity, use of the former name
     will be removed in the future.
+*  Code cleanup along with adoption of ruff and removal of bandit, flake8, isort, etc.
 
 
 Bug Fixes

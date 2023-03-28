@@ -3,8 +3,6 @@
 
 import numpy as np
 import pytest
-from etoolbox.utils.testing import idfn
-
 from dispatch.engine import (
     calculate_generator_output,
     charge_storage,
@@ -12,6 +10,7 @@ from dispatch.engine import (
     make_rank_arrays,
     validate_inputs,
 )
+from etoolbox.utils.testing import idfn
 
 NL = [
     -500.0,
@@ -70,7 +69,7 @@ def test_engine():
 )
 def test_validate_inputs(override, expected):
     """Test input validator."""
-    base = dict(
+    base = dict(  # noqa: C408
         net_load=np.array(NL),
         hr_to_cost_idx=np.zeros(len(NL), dtype=int),
         historical_dispatch=np.array([CAP] * len(NL)),

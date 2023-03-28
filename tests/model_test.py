@@ -5,11 +5,10 @@ import numpy as np
 import pandas as pd
 import pandera as pa
 import pytest
-from etoolbox.datazip import DataZip
-from etoolbox.utils.testing import idfn
-
 from dispatch import DispatchModel
 from dispatch.helpers import zero_profiles_outside_operating_dates
+from etoolbox.datazip import DataZip
+from etoolbox.utils.testing import idfn
 
 
 def test_new_no_dates(fossil_profiles, re_profiles, fossil_specs, fossil_cost):
@@ -190,7 +189,7 @@ class TestOutputs:
         elif expected == "notempty":
             assert not df.empty
         else:
-            assert False
+            raise AssertionError
 
 
 class TestPlotting:
@@ -465,4 +464,4 @@ def test_ent(ent_fresh):
     """Harness for testing dispatch."""
     self = DispatchModel(**ent_fresh, jit=False)
     self()
-    assert False
+    raise AssertionError

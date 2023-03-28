@@ -6,7 +6,7 @@ from numba import njit
 
 
 @njit(error_model="numpy")
-def dispatch_engine(
+def dispatch_engine(  # noqa: C901
     net_load: np.ndarray,
     hr_to_cost_idx: np.ndarray,
     historical_dispatch: np.ndarray,

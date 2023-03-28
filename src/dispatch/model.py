@@ -3,11 +3,14 @@ from __future__ import annotations
 
 import logging
 import warnings
-from collections.abc import Callable
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 try:
     import plotly.express as px
@@ -443,8 +446,9 @@ class DispatchModel(IOMixin):
         """Create net_load_profile based on what RE data was provided."""
         if self.re_plant_specs is None or re_profiles is None:
             warnings.warn(
-                "In future versions, `re_plant_specs` and `re_profiles` will be required.",
+                "`re_plant_specs` and `re_profiles` will be required in the future.",
                 FutureWarning,
+                stacklevel=2,
             )
             return (
                 self.load_profile,
@@ -556,7 +560,9 @@ class DispatchModel(IOMixin):
     ) -> DispatchModel:
         """Run dispatch without historical hourly operating constraints."""
         warnings.warn(
-            "`from_fresh` will be removed in a future version.", DeprecationWarning
+            "`from_fresh` will be removed in a future version.",
+            DeprecationWarning,
+            stacklevel=2,
         )
         if "operating_date" not in storage_specs:
             storage_specs = storage_specs.assign(
@@ -611,7 +617,7 @@ class DispatchModel(IOMixin):
 
     @property
     def is_redispatch(self) -> bool:
-        """Is this a redispatch?
+        """Determine if this is a redispatch.
 
         True if this is redispatch, i.e. has meaningful historical
         dispatch.
@@ -661,10 +667,10 @@ class DispatchModel(IOMixin):
             d_prof = d_prof * to_exclude
 
         fos_prof, storage, deficits, starts = self.dispatch_func(
-            net_load=self.net_load_profile.to_numpy(dtype=np.float_),  # type: ignore
+            net_load=self.net_load_profile.to_numpy(dtype=np.float_),
             hr_to_cost_idx=(
-                self.net_load_profile.index.year  # type: ignore
-                - self.net_load_profile.index.year.min()  # type: ignore
+                self.net_load_profile.index.year
+                - self.net_load_profile.index.year.min()
             ).to_numpy(dtype=np.int64),
             historical_dispatch=d_prof,
             dispatchable_ramp_mw=self.dispatchable_specs.ramp_rate.to_numpy(
@@ -711,7 +717,7 @@ class DispatchModel(IOMixin):
                 columns=self.dispatchable_specs.index,
                 index=self.yrs_idx,
             )
-            .stack([0, 1])  # type: ignore
+            .stack([0, 1])
             .reorder_levels([1, 2, 0])
             .sort_index()
         )
@@ -871,7 +877,7 @@ class DispatchModel(IOMixin):
         if comparison is None:
             comparison = self.load_profile.groupby([pd.Grouper(freq="YS")]).transform(
                 "max"
-            )  # type: ignore
+            )
         td_1h = np.timedelta64(1, "h")
         return sorted(
             {
@@ -1456,10 +1462,7 @@ class DispatchModel(IOMixin):
     def plot_period(self, begin, end=None, by_gen=True, compare_hist=False) -> Figure:
         """Plot hourly dispatch by generator."""
         begin = pd.Timestamp(begin)
-        if end is None:
-            end = begin + pd.Timedelta(days=7)
-        else:
-            end = pd.Timestamp(end)
+        end = begin + pd.Timedelta(days=7) if end is None else pd.Timestamp(end)
         net_load = self.net_load_profile.loc[begin:end]
         data = self._plot_prep_detail(begin, end)
         if data.query("series == 'historical'").empty:
@@ -1475,21 +1478,21 @@ class DispatchModel(IOMixin):
             kwargs = {}
         else:
             kwargs = {"facet_row": "series"}
-        nl_args = dict(
-            x=net_load.index,
-            y=net_load,
-            name="Net Load",
-            mode="lines",
-            line_color=COLOR_MAP["Net Load"],
-            line_dash="dot",
-        )
-        gl_args = dict(
-            x=self.load_profile.loc[begin:end].index,
-            y=self.load_profile.loc[begin:end],
-            name="Gross Load",
-            mode="lines",
-            line_color=COLOR_MAP["Gross Load"],
-        )
+        nl_args = {
+            "x": net_load.index,
+            "y": net_load,
+            "name": "Net Load",
+            "mode": "lines",
+            "line_color": COLOR_MAP["Net Load"],
+            "line_dash": "dot",
+        }
+        gl_args = {
+            "x": self.load_profile.loc[begin:end].index,
+            "y": self.load_profile.loc[begin:end],
+            "name": "Gross Load",
+            "mode": "lines",
+            "line_color": COLOR_MAP["Gross Load"],
+        }
         # see https://plotly.com/python/facet-plots/#adding-the-same-trace-to-all-facets
         out = (
             px.bar(
@@ -1530,7 +1533,8 @@ class DispatchModel(IOMixin):
 
     def plot_year(self, year: int, freq="D") -> Figure:
         """Monthly facet plot of daily dispatch for a year."""
-        assert freq in ("H", "D"), "`freq` must be 'D' for day or 'H' for hour"
+        if freq not in ("H", "D"):
+            raise AssertionError("`freq` must be 'D' for day or 'H' for hour")
         out = (
             self._plot_prep()
             .loc[str(year), :]
@@ -1638,13 +1642,13 @@ class DispatchModel(IOMixin):
             )
         )
         y_cat = y.removeprefix("redispatch_").removeprefix("historical_")
-        b_kwargs = dict(
-            x="datetime",
-            y=y,
-            color=color,
-            hover_name="plant_id_eia",
-            color_discrete_map=COLOR_MAP,
-        )
+        b_kwargs = {
+            "x": "datetime",
+            "y": y,
+            "color": color,
+            "hover_name": "plant_id_eia",
+            "color_discrete_map": COLOR_MAP,
+        }
         if series_facet := all(
             ("redispatch_" + y_cat in to_plot, "historical_" + y_cat in to_plot)
         ):
@@ -1699,10 +1703,7 @@ class DispatchModel(IOMixin):
         )
 
     def __repr__(self) -> str:
-        if self.re_plant_specs is None:
-            re_len = 0
-        else:
-            re_len = len(self.re_plant_specs)
+        re_len = 0 if self.re_plant_specs is None else len(self.re_plant_specs)
         return (
             self.__class__.__qualname__
             + f"({', '.join(f'{k}={v}' for k, v in self._metadata.items())}, "

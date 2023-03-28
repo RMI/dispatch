@@ -26,7 +26,8 @@ def copy_profile(
         Copied profiles.
     """
     dfs = []
-    assert isinstance(profiles.index, pd.DatetimeIndex)
+    if not isinstance(profiles.index, pd.DatetimeIndex):
+        raise AssertionError("profiles.index must be a pd.DatetimeIndex")
     if isinstance(profiles, pd.Series):
         profiles = profiles.to_frame()
     if len(profiles.index.year.unique()) > 1:
@@ -34,7 +35,9 @@ def copy_profile(
     for yr in years:
         dfs.append(
             profiles.assign(
-                datetime=lambda x: x.index.map(lambda y: y.replace(year=yr)),
+                datetime=lambda x: x.index.map(
+                    lambda y: y.replace(year=yr)  # noqa: B023
+                ),
             ).set_index("datetime")
         )
     return pd.concat(dfs, axis=0).squeeze()
@@ -59,7 +62,8 @@ def zero_profiles_outside_operating_dates(
     Returns:
         Profiles reflecting operating and retirement dates.
     """
-    assert isinstance(profiles.index, pd.DatetimeIndex)
+    if not isinstance(profiles.index, pd.DatetimeIndex):
+        raise AssertionError("profiles.index must be a pd.DatetimeIndex")
     if capacity_mw is None:
         capacity_mw = pd.Series(1, index=operating_date.index, name="capacity_mw")
     if profiles.shape[1] == len(operating_date) == len(retirement_date):
@@ -104,9 +108,11 @@ def apply_op_ret_date(
 ) -> pd.DataFrame:
     """Renamed to :func:`.zero_profiles_outside_operating_dates`."""
     warnings.warn(
-        "This is now an alias for the better named `zero_profiles_outside_operating_dates "
-        "function, this version will be removed in future versions.",
+        "This is now an alias for the better named "
+        "`zero_profiles_outside_operating_dates` function, this version will be "
+        "removed in future versions.",
         FutureWarning,
+        stacklevel=2,
     )
     return zero_profiles_outside_operating_dates(
         profiles=profiles,
