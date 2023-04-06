@@ -9,9 +9,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
+from dispatch import DispatchModel, zero_profiles_outside_operating_dates
 from etoolbox.datazip import DataZip
-
-from dispatch import DispatchModel, apply_op_ret_date
 
 logger = logging.getLogger(__name__)
 
@@ -81,25 +80,20 @@ def fossil_cost(test_dir) -> pd.DataFrame:
 @pytest.fixture
 def ent_fresh(test_dir) -> dict:
     """Fossil Profiles."""
-    out = DataZip.dfs_from_zip(test_dir / "data/8fresh.zip")
-    out["load_profile"] = out["load_profile"].squeeze()
-    return out
+    return dict(DataZip(test_dir / "data/8fresh.zip").items())
 
 
 @pytest.fixture
 def ent_redispatch(test_dir) -> dict:
     """Fossil Profiles."""
-    out = DataZip.dfs_from_zip(test_dir / "data/8redispatch.zip")
-    out["load_profile"] = out["load_profile"].squeeze()
-    return out
+    return dict(DataZip(test_dir / "data/8redispatch.zip").items())
 
 
 @pytest.fixture(scope="session", params=["8fresh", "8redispatch"])
 def ent_dm(test_dir, request) -> tuple[str, DispatchModel]:
     """Fossil Profiles."""
     indicator = {"8fresh": "f", "8redispatch": "r"}
-    data = DataZip.dfs_from_zip(test_dir / f"data/{request.param}.zip")
-    data["load_profile"] = data["load_profile"].squeeze()
+    data = dict(DataZip(test_dir / f"data/{request.param}.zip").items())
     return (
         indicator[request.param],
         DispatchModel(**data)(),
@@ -109,8 +103,7 @@ def ent_dm(test_dir, request) -> tuple[str, DispatchModel]:
 @pytest.fixture(scope="session")
 def ent_out_for_excl_test(test_dir):
     """Dispatchable_summary with excluded generator."""
-    ent_redispatch = DataZip.dfs_from_zip(test_dir / "data/8redispatch.zip")
-    ent_redispatch["load_profile"] = ent_redispatch["load_profile"].squeeze()
+    ent_redispatch = dict(DataZip(test_dir / "data/8redispatch.zip").items())
 
     ent_redispatch["dispatchable_specs"] = ent_redispatch["dispatchable_specs"].assign(
         exclude=lambda x: np.where(x.index == (55380, "CTG1"), True, False),
@@ -124,10 +117,9 @@ def ent_out_for_excl_test(test_dir):
 @pytest.fixture(scope="session")
 def ent_out_for_test(test_dir):
     """Dispatchable_summary without excluded generator."""
-    ent_redispatch = DataZip.dfs_from_zip(test_dir / "data/8redispatch.zip")
-    ent_redispatch["load_profile"] = ent_redispatch["load_profile"].squeeze()
+    ent_out_for_test = dict(DataZip(test_dir / "data/8redispatch.zip").items())
 
-    self = DispatchModel(**ent_redispatch)
+    self = DispatchModel(**ent_out_for_test)
     self()
     df = self.dispatchable_summary(by=None)
     return df.groupby(level=[0, 1]).sum()
@@ -139,17 +131,27 @@ def mini_dm(fossil_profiles, fossil_specs, fossil_cost, re_profiles):
     re = np.array([5000.0, 5000.0, 0.0, 0.0])
 
     fossil_profiles.columns = fossil_specs.index
-    fossil_profiles = apply_op_ret_date(
+    fossil_profiles = zero_profiles_outside_operating_dates(
         fossil_profiles, fossil_specs.operating_date, fossil_specs.retirement_date
     )
-    dm = DispatchModel.from_patio(
-        fossil_profiles.sum(axis=1) - re_profiles @ re,
+    dm = DispatchModel(
+        load_profile=fossil_profiles.sum(axis=1) - re_profiles @ re,
         dispatchable_profiles=fossil_profiles,
-        cost_data=fossil_cost,
-        plant_data=fossil_specs,
+        dispatchable_cost=fossil_cost,
+        dispatchable_specs=fossil_specs,
         storage_specs=pd.DataFrame(
-            [(5000, 4, 0.9), (2000, 8760, 0.5)],
-            columns=["capacity_mw", "duration_hrs", "roundtrip_eff"],
-        ),
+            [
+                (-1, "es", 5000, 4, 0.9, fossil_profiles.index.min()),
+                (-2, "es", 2000, 8760, 0.5, fossil_profiles.index.min()),
+            ],
+            columns=[
+                "plant_id_eia",
+                "generator_id",
+                "capacity_mw",
+                "duration_hrs",
+                "roundtrip_eff",
+                "operating_date",
+            ],
+        ).set_index(["plant_id_eia", "generator_id"]),
     )()
     return dm

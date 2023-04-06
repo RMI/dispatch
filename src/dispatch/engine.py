@@ -6,7 +6,7 @@ from numba import njit
 
 
 @njit(error_model="numpy")
-def dispatch_engine(
+def dispatch_engine(  # noqa: C901
     net_load: np.ndarray,
     hr_to_cost_idx: np.ndarray,
     historical_dispatch: np.ndarray,
@@ -23,9 +23,9 @@ def dispatch_engine(
 
     For each hour...
 
-    1.  first iterate through operating plants
+    1.  first iterate through operating generators
     2.  then charge/discharge storage
-    3.  if there is still a deficit, iterate through non-operating plants
+    3.  if there is still a deficit, iterate through non-operating generators
         and turn them on if required
 
     Args:
@@ -34,7 +34,7 @@ def dispatch_engine(
         hr_to_cost_idx: an array that contains for each hour, the index of the correct
             column in ``dispatchable_marginal_cost`` that contains cost data for that
             hour
-        historical_dispatch: historic plant dispatch, acts as an hourly upper
+        historical_dispatch: historic generator dispatch, acts as an hourly upper
             constraint on this dispatch
         dispatchable_ramp_mw: max one hour ramp in MW
         dispatchable_startup_cost: startup cost in $ for each dispatchable generator
@@ -58,7 +58,7 @@ def dispatch_engine(
             of charge data
         -   **system_level** (:class:`numpy.ndarray`) - hourly deficit, dirty charge,
             and total curtailment dat
-        -   **starts** (:class:`numpy.ndarray`) - count of starts for each plant in
+        -   **starts** (:class:`numpy.ndarray`) - count of starts for each generator in
             each year
     """
     validate_inputs(
@@ -90,17 +90,17 @@ def dispatch_engine(
     # array to keep track of system level data (0) deficits, (1) dirty charge,
     # (2) curtailment
     system_level: np.ndarray = np.zeros((len(net_load), 3))
-    # internal dispatch data we need to track; (0) current run op_hours
-    # (1) whether we touched the plant in the first round of dispatch
-    op_data: np.ndarray = np.zeros(
+    # internal dispatch data we need to track; (0) current run operating_hours
+    # (1) whether we touched the generator in the first round of dispatch
+    operating_data: np.ndarray = np.zeros(
         (dispatchable_marginal_cost.shape[0], 2), dtype=np.int64
     )
 
     # to avoid having to do the first hour differently, we just assume original
     # dispatch in that hour and then skip it
     redispatch[0, :] = historical_dispatch[0, :]
-    # need to set op_hours to 1 for plants that we are starting off as operating
-    op_data[:, 0] = np.where(historical_dispatch[0, :] > 0.0, 1, 0)
+    # need to set operating_hours to 1 for generators that we are starting off as operating
+    operating_data[:, 0] = np.where(historical_dispatch[0, :] > 0.0, 1, 0)
 
     # the big loop where we iterate through all the hours
     for hr, (deficit, yr) in enumerate(zip(net_load, hr_to_cost_idx)):
@@ -110,86 +110,84 @@ def dispatch_engine(
         if hr == 0:
             # if there is excess RE we charge the battery in the first hour
             if deficit < 0.0 or np.any(storage_dc_charge[hr, :] > 0.0):
-                for es_i in range(storage.shape[2]):
+                for storage_idx in range(storage.shape[2]):
                     # skip the `es_i` storage resource if it is not yet in operation
-                    if storage_op_hour[es_i] > hr:
+                    if storage_op_hour[storage_idx] > hr:
                         continue
 
-                    storage[hr, :, es_i] = charge_storage(
+                    storage[hr, :, storage_idx] = charge_storage(
                         deficit=deficit,
-                        soc=0.0,  # previous soc
-                        dc_charge=storage_dc_charge[hr, es_i],
-                        mw=storage_mw[es_i],
-                        soc_max=storage_soc_max[es_i],
-                        eff=storage_eff[es_i],
+                        state_of_charge=0.0,  # previous state_of_charge
+                        dc_charge=storage_dc_charge[hr, storage_idx],
+                        mw=storage_mw[storage_idx],
+                        max_state_of_charge=storage_soc_max[storage_idx],
+                        eff=storage_eff[storage_idx],
                     )
 
                     # update the deficit if we are grid charging
                     if deficit < 0.0:
-                        deficit += storage[hr, 3, es_i]
+                        deficit += storage[hr, 3, storage_idx]
             continue
 
         # want to figure out how much we'd like to dispatch fossil given
         # that we'd like to use storage before fossil
         max_discharge = 0.0
-        for es_i in range(storage.shape[2]):
-            max_discharge += min(storage[hr - 1, 2, es_i], deficit, storage_mw[es_i])
-        prov_deficit = max(0.0, deficit - max_discharge)
-
-        # new hour so reset where we keep track if we've touched a plant for this hour
-        op_data[:, 1] = 0
-
-        # dispatch plants in the order of their marginal cost for year yr
-        for r in marginal_ranks[:, yr]:
-            op_hours = op_data[r, 0]
-            # we are only dealing with plants already operating here
-            if op_hours == 0:
-                continue
-            ramp = dispatchable_ramp_mw[r]
-            previous = redispatch[hr - 1, r]
-            # a plant's output is the lesser of historical, max hour output based on
-            # ramping constraints and then the greater of actual need and the min hour
-            # output based on ramping constraints
-            r_out = min(
-                historical_dispatch[hr, r],
-                previous + ramp,
-                max(prov_deficit, previous - ramp),
+        for storage_idx in range(storage.shape[2]):
+            max_discharge += min(
+                storage[hr - 1, 2, storage_idx], deficit, storage_mw[storage_idx]
             )
+        provisional_deficit = max(0.0, deficit - max_discharge)
 
-            # if we ran this hour, update op_hours col, if not set to 0
-            op_data[r, 0] = op_hours + 1 if r_out > 0.0 else 0
-            # we took care of this plant for this hour so don't want to touch
-            # it again in start-up loop
-            op_data[r, 1] = 1
-            redispatch[hr, r] = r_out
+        # new hour so reset where we keep track if we've touched a generator for this hour
+        operating_data[:, 1] = 0
+
+        # dispatch generators in the order of their marginal cost for year yr
+        for generator_idx in marginal_ranks[:, yr]:
+            operating_hours = operating_data[generator_idx, 0]
+            # we are only dealing with generators already operating here
+            if operating_hours == 0:
+                continue
+            generator_output = calculate_generator_output(
+                desired_mw=provisional_deficit,
+                max_mw=historical_dispatch[hr, generator_idx],
+                previous_mw=redispatch[hr - 1, generator_idx],
+                ramp_mw=dispatchable_ramp_mw[generator_idx],
+            )
+            redispatch[hr, generator_idx] = generator_output
+            # update operating hours and mark that we took care of this generator
+            operating_data[generator_idx, :] = (
+                operating_hours + 1 if generator_output > 0.0 else 0
+            ), 1
             # keep a running total of remaining deficit, having this value be negative
             # just makes the loop code more complicated, if it actually should be
             # negative we capture that when we calculate the actual deficit based
             # on redispatch below
-            prov_deficit = max(0, prov_deficit - r_out)
+            provisional_deficit = max(0, provisional_deficit - generator_output)
 
         # calculate the true deficit as the hour's net load less actual dispatch
-        # of fossil plants in hr that were also operating in hr - 1
+        # of fossil generators in hr that were also operating in hr - 1
         deficit -= np.sum(redispatch[hr, :])
 
         # negative deficit means excess generation, so we charge the battery
         # if there is DC-coupled storage, we also charge that storage if there is
         # RE generation that would otherwise be curtailed
         if deficit < 0.0 or np.any(storage_dc_charge[hr, :] > 0.0):
-            for es_i in range(storage.shape[2]):
+            for storage_idx in range(storage.shape[2]):
                 # skip the `es_i` storage resource if it is not yet in operation
-                if storage_op_hour[es_i] > hr:
+                if storage_op_hour[storage_idx] > hr:
                     continue
-                storage[hr, :, es_i] = charge_storage(
+                storage[hr, :, storage_idx] = charge_storage(
                     deficit=deficit,
-                    soc=storage[hr - 1, 2, es_i],  # previous soc
-                    dc_charge=storage_dc_charge[hr, es_i],
-                    mw=storage_mw[es_i],
-                    soc_max=storage_soc_max[es_i],
-                    eff=storage_eff[es_i],
+                    state_of_charge=storage[
+                        hr - 1, 2, storage_idx
+                    ],  # previous state_of_charge
+                    dc_charge=storage_dc_charge[hr, storage_idx],
+                    mw=storage_mw[storage_idx],
+                    max_state_of_charge=storage_soc_max[storage_idx],
+                    eff=storage_eff[storage_idx],
                 )
                 # alias grid_charge
-                grid_charge = storage[hr, 3, es_i]
+                grid_charge = storage[hr, 3, storage_idx]
                 # calculate the amount of charging that was dirty
                 # TODO check that this calculation is actually correct
                 system_level[hr, 1] += min(
@@ -213,46 +211,52 @@ def dispatch_engine(
         # deficit, and the max MW of the battery, we have to either charge
         # or discharge every hour whether there is a deficit or not to propagate
         # state of charge forward
-        for es_i in range(storage.shape[2]):
+        for storage_idx in range(storage.shape[2]):
             # skip the `es_i` storage resource if it is not yet in operation or
             # there was excess generation from a DC-coupled RE facility
-            if storage_op_hour[es_i] > hr or storage_dc_charge[hr, es_i] > 0.0:
+            if (
+                storage_op_hour[storage_idx] > hr
+                or storage_dc_charge[hr, storage_idx] > 0.0
+            ):
                 # if we got here because of DC-coupled charging, we still need to
-                # propagate forward soc
-                storage[hr, 2, es_i] = storage[hr - 1, 2, es_i]
+                # propagate forward state_of_charge
+                storage[hr, 2, storage_idx] = storage[hr - 1, 2, storage_idx]
                 continue
-            discharge = min(storage[hr - 1, 2, es_i], deficit, storage_mw[es_i])
-            storage[hr, 1, es_i] = discharge
-            storage[hr, 2, es_i] = storage[hr - 1, 2, es_i] - discharge
+            discharge = min(
+                storage[hr - 1, 2, storage_idx], deficit, storage_mw[storage_idx]
+            )
+            storage[hr, 1, storage_idx] = discharge
+            storage[hr, 2, storage_idx] = storage[hr - 1, 2, storage_idx] - discharge
             deficit -= discharge
 
-        assert (
-            deficit >= 0.0
-        ), "negative deficit after, discharge, this shouldn't happen"
-        # once we've dealt with operating plants and storage, if there is no positive
+        # once we've dealt with operating generators and storage, if there is no positive
         # deficit we can skip startups and go on to the next hour
         if deficit == 0.0:
             continue
 
-        # TODO check that this start_ranks ordering system is working properly
-        for r in start_ranks[:, yr]:
-            # we are only dealing with plants not already operating here
-            if op_data[r, 1]:
-                continue
-            ramp = dispatchable_ramp_mw[r]
+        # we also need to make sure that the deficit is not negative, if it is,
+        # something has gone wrong
+        assert deficit >= 0.0, "negative deficit after discharge, this shouldn't happen"
 
-            # a fossil plant's output during an hour is the lesser of the deficit,
-            # the plant's historical output, and the plant's re-dispatch output
-            # in the previous hour + the plant's one hour max ramp
-            assert redispatch[hr - 1, r] == 0
-            r_out = min(
-                deficit, historical_dispatch[hr, r], redispatch[hr - 1, r] + ramp
+        # TODO check that this start_ranks ordering system is working properly
+        for generator_idx in start_ranks[:, yr]:
+            # we are only dealing with generators not already operating here
+            if operating_data[generator_idx, 1]:
+                continue
+            ramp_mw = dispatchable_ramp_mw[generator_idx]
+
+            # a fossil generator's output during an hour is the lesser of the deficit,
+            # the generator's historical output, and the generator's re-dispatch output
+            # in the previous hour + the generator's one hour max ramp
+            assert redispatch[hr - 1, generator_idx] == 0, ""
+            generator_output = min(
+                deficit, historical_dispatch[hr, generator_idx], ramp_mw
             )
-            if r_out > 0.0:
-                op_data[r, 0] = 1
-                starts[r, yr] = starts[r, yr] + 1
-                redispatch[hr, r] = r_out
-                deficit -= r_out
+            if generator_output > 0.0:
+                operating_data[generator_idx, 0] = 1
+                starts[generator_idx, yr] = starts[generator_idx, yr] + 1
+                redispatch[hr, generator_idx] = generator_output
+                deficit -= generator_output
 
                 if deficit == 0.0:
                     break
@@ -283,13 +287,43 @@ def dispatch_engine(
             storage[:, 0, :] >= storage[:, 3, :]
         ), "gridcharge exceeded charge for at least one storage facility/hour"
 
-    # for es_i in range(storage.shape[2]):
-    #     if np.any(
-    #         storage[storage[:, 1, es_i] > np.roll(storage[:, 2, es_i], 1)]
-    #     ):
-    #         raise AssertionError(f"discharge exceeded previous state of charge in at least 1 hour for {es_i}")
+    for es_i in range(storage.shape[2]):
+        if np.any(storage[storage[:, 1, es_i] > np.roll(storage[:, 2, es_i], 1)]):
+            print(es_i)
+            raise AssertionError(
+                "discharge exceeded previous state of charge in at least 1 hour for above storage number"
+            )
 
     return redispatch, storage, system_level, starts
+
+
+@njit
+def calculate_generator_output(
+    desired_mw: float,
+    max_mw: float,
+    previous_mw: float,
+    ramp_mw: float,
+) -> float:
+    """Determine period output for a generator.
+
+    Args:
+        desired_mw: desired generator output
+        max_mw: maximum output of generator this period
+        previous_mw: generator output in the previous period
+        ramp_mw: maximum one-period change in generator output in MW, up or down
+
+    Returns:
+        output of the generator for given period
+    """
+    return min(
+        # we limit output to historical as a transmission
+        # and operating constraint proxy
+        max_mw,
+        # maximum output subject to ramping constraints
+        previous_mw + ramp_mw,
+        # max of desired output and minimum output subject to ramping constraints
+        max(desired_mw, previous_mw - ramp_mw),
+    )
 
 
 @njit
@@ -336,20 +370,20 @@ def make_rank_arrays(
 @njit
 def charge_storage(
     deficit: float,
-    soc: float,
+    state_of_charge: float,
     dc_charge: float,
     mw: float,
-    soc_max: float,
+    max_state_of_charge: float,
     eff: float,
 ) -> tuple[float, float, float, float]:
     """Calculations for charging storage.
 
     Args:
         deficit: amount of charging possible from the grid
-        soc: state of charge before charging
+        state_of_charge: state of charge before charging
         dc_charge: power available from DC-coupled RE
         mw: storage power capacity
-        soc_max: storage energy capacity
+        max_state_of_charge: storage energy capacity
         eff: round-trip efficiency of storage
 
     Returns:
@@ -372,15 +406,15 @@ def charge_storage(
         _grid_charge + dc_charge,
         mw,
         # calculate the amount of charging, to account for battery capacity, we
-        # make sure that `charge` would not put `soc` over `soc_max`
-        (soc_max - soc) / eff,
+        # make sure that `charge` would not put `state_of_charge` over `max_state_of_charge`
+        (max_state_of_charge - state_of_charge) / eff,
     )
     # we charge from DC-coupled RE before charging from the grid
     grid_charge = max(0.0, charge - dc_charge)
-    # calculate new `soc` and check that it makes sense
-    soc = soc + charge * eff
-    assert soc <= soc_max
-    return charge, 0.0, soc, grid_charge
+    # calculate new `state_of_charge` and check that it makes sense
+    state_of_charge = state_of_charge + charge * eff
+    assert state_of_charge <= max_state_of_charge
+    return charge, 0.0, state_of_charge, grid_charge
 
 
 @njit
@@ -410,7 +444,7 @@ def validate_inputs(
         == marginal_cost.shape[0]
         == historical_dispatch.shape[1]
     ):
-        raise AssertionError("shapes of dispatchable plant data do not match")
+        raise AssertionError("shapes of dispatchable generator data do not match")
     if not (
         len(net_load)
         == len(hr_to_cost_idx)

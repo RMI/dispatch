@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -25,7 +26,8 @@ def copy_profile(
         Copied profiles.
     """
     dfs = []
-    assert isinstance(profiles.index, pd.DatetimeIndex)
+    if not isinstance(profiles.index, pd.DatetimeIndex):
+        raise AssertionError("profiles.index must be a pd.DatetimeIndex")
     if isinstance(profiles, pd.Series):
         profiles = profiles.to_frame()
     if len(profiles.index.year.unique()) > 1:
@@ -33,13 +35,15 @@ def copy_profile(
     for yr in years:
         dfs.append(
             profiles.assign(
-                datetime=lambda x: x.index.map(lambda y: y.replace(year=yr)),
+                datetime=lambda x: x.index.map(
+                    lambda y: y.replace(year=yr)  # noqa: B023
+                ),
             ).set_index("datetime")
         )
     return pd.concat(dfs, axis=0).squeeze()
 
 
-def apply_op_ret_date(
+def zero_profiles_outside_operating_dates(
     profiles: pd.DataFrame,
     operating_date: pd.Series,
     retirement_date: pd.Series,
@@ -58,7 +62,8 @@ def apply_op_ret_date(
     Returns:
         Profiles reflecting operating and retirement dates.
     """
-    assert isinstance(profiles.index, pd.DatetimeIndex)
+    if not isinstance(profiles.index, pd.DatetimeIndex):
+        raise AssertionError("profiles.index must be a pd.DatetimeIndex")
     if capacity_mw is None:
         capacity_mw = pd.Series(1, index=operating_date.index, name="capacity_mw")
     if profiles.shape[1] == len(operating_date) == len(retirement_date):
@@ -95,8 +100,26 @@ def apply_op_ret_date(
     )
 
 
-def _str_cols(df, *args):
-    return df.set_axis(list(map(str, range(df.shape[1]))), axis="columns")
+def apply_op_ret_date(
+    profiles: pd.DataFrame,
+    operating_date: pd.Series,
+    retirement_date: pd.Series,
+    capacity_mw: pd.Series | None = None,
+) -> pd.DataFrame:
+    """Renamed to :func:`.zero_profiles_outside_operating_dates`."""
+    warnings.warn(
+        "This is now an alias for the better named "
+        "`zero_profiles_outside_operating_dates` function, this version will be "
+        "removed in future versions.",
+        FutureWarning,
+        stacklevel=2,
+    )
+    return zero_profiles_outside_operating_dates(
+        profiles=profiles,
+        operating_date=operating_date,
+        retirement_date=retirement_date,
+        capacity_mw=capacity_mw,
+    )
 
 
 def dispatch_key(item):
