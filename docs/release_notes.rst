@@ -101,6 +101,7 @@ What's New?
     :func:`.zero_profiles_outside_operating_dates` for clarity, use of the former name
     will be removed in the future.
 *  Code cleanup along with adoption of ruff and removal of bandit, flake8, isort, etc.
+*  Testing new :mod:`numba` version (or RC) to work with Python 3.11.
 
 
 Bug Fixes
