@@ -32,7 +32,7 @@ repos:
 
   # Linter and formatter that replaces flake8, isort, etc.
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: "v0.0.258"
+    rev: "v0.0.261"
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
@@ -51,20 +51,20 @@ repos:
 
   # Deterministic python formatting:
   - repo: https://github.com/psf/black
-    rev: 23.1.0
+    rev: 23.3.0
     hooks:
       - id: black
         language_version: python3.10
 
   # Format docstrings
   - repo: https://github.com/PyCQA/docformatter
-    rev: v1.5.1
+    rev: v1.6.0
     hooks:
       - id: docformatter
         args: ["--in-place", "--config", "pyproject.toml"]
 
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v3.0.0-alpha.4
+    rev: v3.0.0-alpha.6
     hooks:
       - id: prettier
         types_or: [yaml]
@@ -82,7 +82,7 @@ repos:
 
   # Lint any RST files and embedded code blocks for syntax / formatting errors
   - repo: https://github.com/rstcheck/rstcheck
-    rev: v6.1.1
+    rev: v6.1.2
     hooks:
       - id: rstcheck
         additional_dependencies: ["rstcheck[toml, sphinx]"]
