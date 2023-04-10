@@ -35,8 +35,8 @@ def test_dir() -> Path:
     """Return the path to the top-level directory containing the tests.
 
     This might be useful if there's test data stored under the tests
-    directory that
-    you need to be able to access from elsewhere within the tests.
+    directory that you need to be able to access from elsewhere within
+    the tests.
 
     Mostly this is meant as an example of a fixture.
     """
