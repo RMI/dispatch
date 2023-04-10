@@ -126,13 +126,13 @@ class Validator:
 
         changed the limit to 2e4 but these look like errors...
 
-        E           pandera.errors.SchemaError: <Schema Column(name=(55178, 'CT-1'),
-        E           type=DataType(float64))> failed element-wise validator 0:
-        E           <Check in_range: in_range(0.0, 10000.0)>
-        E           failure cases:
-        E                           index  failure_case
-        E           0 2011-03-08 18:00:00  10842.857422
-        E           1 2011-03-10 09:00:00  12690.857422
+        E           pandera.errors.SchemaError: <Schema
+        Column(name=(55178, 'CT-1'), E
+        type=DataType(float64))> failed element-wise validator 0: E
+        <Check in_range: in_range(0.0, 10000.0)> E           failure
+        cases: E                           index  failure_case E
+        0 2011-03-08 18:00:00  10842.857422 E           1 2011-03-10
+        09:00:00  12690.857422
         """
         dispatchable_profiles = pa.DataFrameSchema(
             index=DT_SCHEMA,
