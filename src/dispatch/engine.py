@@ -160,7 +160,7 @@ def dispatch_engine(  # noqa: C901
             ), 1
             # keep a running total of remaining deficit, having this value be negative
             # just makes the loop code more complicated, if it actually should be
-            # negative we capture that when we calculate the actual deficit based
+            # negative we capture that when we calculate the true deficit based
             # on redispatch below
             provisional_deficit = max(0, provisional_deficit - generator_output)
 

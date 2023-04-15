@@ -115,6 +115,20 @@ def ent_out_for_excl_test(test_dir):
 
 
 @pytest.fixture(scope="session")
+def ent_out_for_no_limit_test(test_dir):
+    """Dispatchable_summary with excluded generator."""
+    ent_redispatch = dict(DataZip(test_dir / "data/8redispatch.zip").items())
+
+    ent_redispatch["dispatchable_specs"] = ent_redispatch["dispatchable_specs"].assign(
+        no_limit=lambda x: np.where(x.index == (55380, "CTG1"), True, False),
+    )
+    self = DispatchModel(**ent_redispatch)
+    self()
+    df = self.dispatchable_summary(by=None)
+    return df.groupby(level=[0, 1]).sum()
+
+
+@pytest.fixture(scope="session")
 def ent_out_for_test(test_dir):
     """Dispatchable_summary without excluded generator."""
     ent_out_for_test = dict(DataZip(test_dir / "data/8redispatch.zip").items())

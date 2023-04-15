@@ -102,7 +102,9 @@ What's New?
     will be removed in the future.
 *  Code cleanup along with adoption of ruff and removal of bandit, flake8, isort, etc.
 *  Testing new :mod:`numba` version (or RC) to work with Python 3.11.
-
+*  Added the ability to specify in ``dispatchable_specs`` via a ``no_limit`` column
+   that a generator not limited to its historical hourly output by the model without
+   affecting historical dispatch data.
 
 Bug Fixes
 ^^^^^^^^^
