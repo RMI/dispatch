@@ -111,12 +111,20 @@ class Validator:
                 ),
                 "retirement_date": pa.Column(pa.Timestamp, nullable=True),
                 "exclude": pa.Column(pa.Bool, nullable=False, required=False),
+                "no_limit": pa.Column(pa.Bool, nullable=False, required=False),
             },
             coerce=True,
         )
 
     def dispatchable_specs(self, dispatchable_specs: pd.DataFrame) -> pd.DataFrame:
         """Validate dispatchable_specs."""
+        if "exclude" in dispatchable_specs and "no_limit" in dispatchable_specs:
+            not_good = dispatchable_specs.exclude & dispatchable_specs.no_limit
+            if not_good.any():
+                raise AssertionError(
+                    f"These both ``no_limit`` and ``exclude`` cannot be True for the "
+                    f"same generator, errors: {list(not_good[not_good].index)}"
+                )
         return self.dispatchable_specs_schema.validate(dispatchable_specs)
 
     def dispatchable_profiles(

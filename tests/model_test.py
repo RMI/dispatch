@@ -409,6 +409,58 @@ def test_dispatchable_exclude(
 
 
 @pytest.mark.parametrize(
+    "gen, col_set, col, expected",
+    [
+        ((55380, "CTG1"), "redispatch_", "mwh", 26087988.37),
+        ((55380, "CTG1"), "redispatch_", "cost_fuel", 374473060.99),
+        ((55380, "CTG1"), "redispatch_", "cost_vom", 11379900.396),
+        ((55380, "CTG1"), "redispatch_", "cost_startup", 79742514.10),
+        ((55380, "CTG1"), "redispatch_", "cost_fom", 1689013.875),
+        ((55380, "CTG1"), "historical_", "mwh", 1.0),
+        ((55380, "CTG1"), "historical_", "cost_fuel", 1.0),
+        ((55380, "CTG1"), "historical_", "cost_vom", 1.0),
+        ((55380, "CTG1"), "historical_", "cost_startup", 1.0),
+        ((55380, "CTG1"), "historical_", "cost_fom", 1.0),
+        ((55380, "CTG2"), "redispatch_", "mwh", 1.0),
+        ((55380, "CTG2"), "redispatch_", "cost_fuel", 1.0),
+        ((55380, "CTG2"), "redispatch_", "cost_vom", 1.0),
+        ((55380, "CTG2"), "redispatch_", "cost_startup", 1.0),
+        ((55380, "CTG2"), "redispatch_", "cost_fom", 1.0),
+        ((55380, "CTG2"), "historical_", "mwh", 1.0),
+        ((55380, "CTG2"), "historical_", "cost_fuel", 1.0),
+        ((55380, "CTG2"), "historical_", "cost_vom", 1.0),
+        ((55380, "CTG2"), "historical_", "cost_startup", 1.0),
+        ((55380, "CTG2"), "historical_", "cost_fom", 1.0),
+    ],
+    ids=idfn,
+)
+def test_dispatchable_no_limit(
+    ent_out_for_no_limit_test, ent_out_for_test, gen, col_set, col, expected
+):
+    """Test the effect of excluding a generator from dispatch."""
+    if expected == 1.0:
+        rel = None
+        if gen == (55380, "CTG2") and col_set == "redispatch_":
+            # we do not expect this generator's output in redispatch to be the same
+            # whether CTG1 is excluded or not because excluding CTG1 affects other
+            # generator dispatch
+            rel = 1e-1
+        assert ent_out_for_no_limit_test.loc[gen, col_set + col] > 1e4
+        assert ent_out_for_no_limit_test.loc[gen, col_set + col] == pytest.approx(
+            ent_out_for_test.loc[gen, col_set + col],
+            rel=rel,
+        )
+    else:
+        assert (
+            ent_out_for_no_limit_test.loc[gen, col_set + col]
+            >= ent_out_for_test.loc[gen, col_set + col]
+        ), "no limit was not greater"
+        assert ent_out_for_no_limit_test.loc[gen, col_set + col] == pytest.approx(
+            expected
+        )
+
+
+@pytest.mark.parametrize(
     "idx_to_change, exception",
     [
         ("dispatchable_specs", AssertionError),
@@ -430,6 +482,18 @@ def test_bad_index(ent_fresh, idx_to_change, exception):
     ent_fresh[idx_to_change] = ent_fresh[idx_to_change].iloc[:-to_drop, :]
     with pytest.raises(exception):
         DispatchModel(**ent_fresh)
+
+
+def test_bad_exclude_no_limit(ent_redispatch):
+    """Test that both ``exclude`` and ``no_limit`` fails."""
+    ent_redispatch["dispatchable_specs"] = ent_redispatch["dispatchable_specs"].assign(
+        exclude=False, no_limit=False
+    )
+    ent_redispatch["dispatchable_specs"].loc[
+        (55380, "CTG1"), ["exclude", "no_limit"]
+    ] = True
+    with pytest.raises(AssertionError):
+        DispatchModel(**ent_redispatch)
 
 
 def test_interconnect_mw(ent_fresh):
@@ -464,4 +528,15 @@ def test_ent(ent_fresh):
     """Harness for testing dispatch."""
     self = DispatchModel(**ent_fresh, jit=False)
     self()
+    raise AssertionError
+
+
+@pytest.mark.skip(reason="for debugging only")
+def test_file(ent_fresh):
+    """Harness for testing dispatch."""
+    from pathlib import Path
+
+    self = DispatchModel.from_file(Path.home() / "Documents/gp_dm.zip")
+    self.plot_year(2008)
+
     raise AssertionError

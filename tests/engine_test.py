@@ -313,10 +313,14 @@ def test_dispatch_generator(kwargs, expected):
     assert calculate_generator_output.py_func(**kwargs) == expected
 
 
-def test_make_rank_arrays():
+@pytest.mark.parametrize("py_func", [True, False], ids=idfn)
+def test_make_rank_arrays(py_func):
     """Test cost rank setup."""
     m_cost = np.array([[50.0, 50.0], [25.0, 75.0]])
     s_cost = np.array([[250.0, 250.0], [500.0, 500.0]])
-    m, s = make_rank_arrays.py_func(m_cost, s_cost)
+    if py_func:
+        m, s = make_rank_arrays.py_func(m_cost, s_cost)
+    else:
+        m, s = make_rank_arrays(m_cost, s_cost)
     assert np.all(m == np.array([[1, 0], [0, 1]]))
     assert np.all(s == np.array([[0, 0], [1, 1]]))

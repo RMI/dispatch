@@ -93,6 +93,10 @@ class DispatchModel(IOMixin):
                 -   exclude: (Optional) True means the generator will NOT be
                     redispatched. Its historical data will be preserved and redispatch
                     data will be zero.
+                -   no_limit: (Optional) True means the generator will not have the
+                    hourly maximum from ``dispatchable_profiles`` enforced, instead the
+                    max of historical and capacity_mw will be used. This allows the
+                    removal of the cap without affecting historical metrics.
 
                 The index must be a :class:`pandas.MultiIndex` of
                 ``['plant_id_eia', 'generator_id']``.
@@ -401,7 +405,7 @@ class DispatchModel(IOMixin):
         validator = Validator(self, gen_set=dispatchable_specs.index)
         self.dispatchable_specs: pd.DataFrame = validator.dispatchable_specs(
             dispatchable_specs
-        ).pipe(self._add_exclude_col)
+        ).pipe(self._add_optional_cols)
         self.dispatchable_cost: pd.DataFrame = validator.dispatchable_cost(
             dispatchable_cost
         ).pipe(self._add_total_and_missing_cols)
@@ -518,11 +522,11 @@ class DispatchModel(IOMixin):
         return df.drop(columns=["capacity_mw"])
 
     @staticmethod
-    def _add_exclude_col(df: pd.DataFrame) -> pd.DataFrame:
+    def _add_optional_cols(df: pd.DataFrame) -> pd.DataFrame:
         """Add ``exclude`` column if not already present."""
-        if "exclude" in df:
-            return df
-        return df.assign(exclude=False)
+        return df.assign(
+            **{col: False for col in ("exclude", "no_limit") if col not in df}
+        )
 
     def __setstate__(self, state: tuple[Any, dict]):
         _, state = state
@@ -530,6 +534,7 @@ class DispatchModel(IOMixin):
             if k in self.__slots__:
                 setattr(self, k, v)
         self.dt_idx = self.load_profile.index
+        self._cached = {}
 
     def __getstate__(self):
         state = {}
@@ -665,6 +670,13 @@ class DispatchModel(IOMixin):
         d_prof = self.dispatchable_profiles.to_numpy(dtype=np.float_, copy=True)
         if np.any(to_exclude == 0.0):
             d_prof = d_prof * to_exclude
+
+        no_limit = self.dispatchable_specs.no_limit.to_numpy()
+        if np.any(no_limit):
+            d_prof[:, no_limit] = np.maximum(
+                d_prof[:, no_limit],
+                self.dispatchable_specs.loc[no_limit, "capacity_mw"].to_numpy(),
+            )
 
         fos_prof, storage, deficits, starts = self.dispatch_func(
             net_load=self.net_load_profile.to_numpy(dtype=np.float_),
@@ -900,8 +912,21 @@ class DispatchModel(IOMixin):
             ),
             self.dispatchable_specs.operating_date,
             self.dispatchable_specs.retirement_date,
-            self.dispatchable_specs.capacity_mw,
+            self.dispatchable_specs.capacity_mw.mask(
+                self.dispatchable_specs.exclude, 0.0
+            ),
         )
+        to_exclude = (~self.dispatchable_specs.exclude).to_numpy(dtype=float)
+        available = self.dispatchable_profiles.copy()
+        if np.any(to_exclude == 0.0):
+            available = available * to_exclude
+
+        no_limit = self.dispatchable_specs.no_limit.to_numpy()
+        if np.any(no_limit):
+            available[:, no_limit] = np.maximum(
+                available[:, no_limit],
+                self.dispatchable_specs.loc[no_limit, "capacity_mw"].to_numpy(),
+            )
         out = pd.concat(
             {
                 "gross_load": self.load_profile,
@@ -910,6 +935,7 @@ class DispatchModel(IOMixin):
                 "max_dispatch": max_disp.sum(axis=1),
                 "redispatch": self.redispatch.sum(axis=1),
                 "historical_dispatch": self.dispatchable_profiles.sum(axis=1),
+                "available": available.sum(axis=1),
                 "net_storage": (
                     self.storage_dispatch.filter(regex="^discharge").sum(axis=1)
                     - self.storage_dispatch.filter(regex="^gridcharge").sum(axis=1)
