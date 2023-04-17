@@ -90,6 +90,8 @@ class DispatchModel(IOMixin):
                 -   ramp_rate: max 1-hr increase in output, in MW
                 -   operating_date: the date the plant entered or will enter service
                 -   retirement_date: the date the plant will retire
+                -   min_uptime: (Optional) the minimum number of hours the generator
+                    must be on before its output can be reduced.
                 -   exclude: (Optional) True means the generator will NOT be
                     redispatched. Its historical data will be preserved and redispatch
                     data will be zero.
@@ -130,6 +132,8 @@ class DispatchModel(IOMixin):
                 -   duration_hrs: storage duration in hours.
                 -   roundtrip_eff: roundtrip efficiency.
                 -   operating_date: datetime unit starts operating.
+                -   reserve: % of state of charge to hold in reserve until
+                    after dispatchable startup.
 
                 The index must be a :class:`pandas.MultiIndex` of
                 ``['plant_id_eia', 'generator_id']``.
@@ -374,19 +378,19 @@ class DispatchModel(IOMixin):
         Generate a full, combined output of all resources at specified frequency.
 
         >>> dm.full_output(freq="YS").round(1)  # doctest: +NORMALIZE_WHITESPACE
-                                              capacity_mw  historical_mwh  historical_mmbtu  ...  fom_per_kw  duration_hrs  roundtrip_eff
+                                              capacity_mw  historical_mwh  historical_mmbtu  ...  duration_hrs  roundtrip_eff  reserve
         plant_id_eia generator_id datetime                                                   ...
-        0            curtailment  2020-01-01          NaN             NaN               NaN  ...         NaN           NaN            NaN
-                     deficit      2020-01-01          NaN             NaN               NaN  ...         NaN           NaN            NaN
-        1            1            2020-01-01        350.0             0.0               0.0  ...         NaN           NaN            NaN
-                     2            2020-01-01        500.0             0.0               0.0  ...         NaN           NaN            NaN
-        2            1            2020-01-01        600.0             0.0               0.0  ...         NaN           NaN            NaN
-        5            1            2020-01-01        500.0             NaN               NaN  ...         NaN           NaN            NaN
-                     es           2020-01-01        250.0             NaN               NaN  ...         NaN           4.0            0.9
-        6            1            2020-01-01        500.0             NaN               NaN  ...         NaN           NaN            NaN
-        7            1            2020-01-01        200.0             NaN               NaN  ...         NaN          12.0            0.5
+        0            curtailment  2020-01-01          NaN             NaN               NaN  ...           NaN            NaN      NaN
+                     deficit      2020-01-01          NaN             NaN               NaN  ...           NaN            NaN      NaN
+        1            1            2020-01-01        350.0             0.0               0.0  ...           NaN            NaN      NaN
+                     2            2020-01-01        500.0             0.0               0.0  ...           NaN            NaN      NaN
+        2            1            2020-01-01        600.0             0.0               0.0  ...           NaN            NaN      NaN
+        5            1            2020-01-01        500.0             NaN               NaN  ...           NaN            NaN      NaN
+                     es           2020-01-01        250.0             NaN               NaN  ...           4.0            0.9      0.2
+        6            1            2020-01-01        500.0             NaN               NaN  ...           NaN            NaN      NaN
+        7            1            2020-01-01        200.0             NaN               NaN  ...          12.0            0.5      0.2
         <BLANKLINE>
-        [9 rows x 29 columns]
+        [9 rows x 30 columns]
         """
         if not name and "balancing_authority_code_eia" in dispatchable_specs:
             name = dispatchable_specs.balancing_authority_code_eia.mode().iloc[0]
@@ -405,11 +409,13 @@ class DispatchModel(IOMixin):
         validator = Validator(self, gen_set=dispatchable_specs.index)
         self.dispatchable_specs: pd.DataFrame = validator.dispatchable_specs(
             dispatchable_specs
-        ).pipe(self._add_optional_cols)
+        ).pipe(self._add_optional_cols, df_name="dispatchable_specs")
         self.dispatchable_cost: pd.DataFrame = validator.dispatchable_cost(
             dispatchable_cost
         ).pipe(self._add_total_and_missing_cols)
-        self.storage_specs: pd.DataFrame = validator.storage_specs(storage_specs)
+        self.storage_specs: pd.DataFrame = validator.storage_specs(storage_specs).pipe(
+            self._add_optional_cols, df_name="storage_specs"
+        )
         self.dispatchable_profiles: pd.DataFrame = (
             zero_profiles_outside_operating_dates(
                 validator.dispatchable_profiles(dispatchable_profiles),
@@ -522,10 +528,18 @@ class DispatchModel(IOMixin):
         return df.drop(columns=["capacity_mw"])
 
     @staticmethod
-    def _add_optional_cols(df: pd.DataFrame) -> pd.DataFrame:
+    def _add_optional_cols(df: pd.DataFrame, df_name) -> pd.DataFrame:
         """Add ``exclude`` column if not already present."""
+        default_values = {
+            "dispatchable_specs": (
+                ("min_uptime", 0),
+                ("exclude", False),
+                ("no_limit", False),
+            ),
+            "storage_specs": (("reserve", 0.2),),
+        }
         return df.assign(
-            **{col: False for col in ("exclude", "no_limit") if col not in df}
+            **{col: value for col, value in default_values[df_name] if col not in df}
         )
 
     def __setstate__(self, state: tuple[Any, dict]):
@@ -694,6 +708,9 @@ class DispatchModel(IOMixin):
             dispatchable_marginal_cost=self.dispatchable_cost.total_var_mwh.unstack().to_numpy(
                 dtype=np.float_
             ),
+            dispatchable_min_uptime=self.dispatchable_specs.min_uptime.to_numpy(
+                dtype=np.int_
+            ),
             storage_mw=self.storage_specs.capacity_mw.to_numpy(dtype=np.float_),
             storage_hrs=self.storage_specs.duration_hrs.to_numpy(dtype=np.int64),
             storage_eff=self.storage_specs.roundtrip_eff.to_numpy(dtype=np.float_),
@@ -707,6 +724,7 @@ class DispatchModel(IOMixin):
                 axis=0,
             ),
             storage_dc_charge=self.dc_charge().to_numpy(dtype=np.float_),
+            storage_reserve=self.storage_specs.reserve.to_numpy(),
         )
         self.redispatch = pd.DataFrame(
             fos_prof,
@@ -916,17 +934,27 @@ class DispatchModel(IOMixin):
                 self.dispatchable_specs.exclude, 0.0
             ),
         )
-        to_exclude = (~self.dispatchable_specs.exclude).to_numpy(dtype=float)
-        available = self.dispatchable_profiles.copy()
-        if np.any(to_exclude == 0.0):
-            available = available * to_exclude
 
-        no_limit = self.dispatchable_specs.no_limit.to_numpy()
-        if np.any(no_limit):
-            available[:, no_limit] = np.maximum(
-                available[:, no_limit],
-                self.dispatchable_specs.loc[no_limit, "capacity_mw"].to_numpy(),
-            )
+        available = np.where(
+            self.dispatchable_specs.no_limit.to_numpy(),
+            np.maximum(
+                self.dispatchable_profiles,
+                self.dispatchable_specs.loc[:, "capacity_mw"].to_numpy(),
+            ),
+            np.where(
+                ~self.dispatchable_specs.exclude.to_numpy(),
+                self.dispatchable_profiles,
+                0.0,
+            ),
+        )
+
+        headroom = available - np.roll(self.redispatch, 1, axis=0)
+        max_ramp_from_previous = np.where(
+            headroom > 0,
+            np.minimum(headroom, self.dispatchable_specs.ramp_rate.to_numpy()),
+            headroom,
+        )
+
         out = pd.concat(
             {
                 "gross_load": self.load_profile,
@@ -935,7 +963,12 @@ class DispatchModel(IOMixin):
                 "max_dispatch": max_disp.sum(axis=1),
                 "redispatch": self.redispatch.sum(axis=1),
                 "historical_dispatch": self.dispatchable_profiles.sum(axis=1),
-                "available": available.sum(axis=1),
+                "available": pd.Series(
+                    available.sum(axis=1), index=self.load_profile.index
+                ),
+                "headroom_hr-1": pd.Series(
+                    max_ramp_from_previous.sum(axis=1), index=self.load_profile.index
+                ),
                 "net_storage": (
                     self.storage_dispatch.filter(regex="^discharge").sum(axis=1)
                     - self.storage_dispatch.filter(regex="^gridcharge").sum(axis=1)
