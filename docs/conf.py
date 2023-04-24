@@ -96,7 +96,6 @@ intersphinx_mapping = {
     "tox": ("https://tox.wiki/en/latest/", None),
     "etoolbox": ("https://rmi.github.io/etoolbox/", None),
 }
-
 "https://plotly.com/python-api-reference/generated/plotly.graph_objects.Figure.html"
 "https://plotly.com/python-api-reference/generated/plotly.graph_objs.Figure"
 # Add any paths that contain templates here, relative to this directory.
