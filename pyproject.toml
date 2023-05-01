@@ -33,7 +33,7 @@ dependencies = [
 dev = [
     "black[jupyter] >= 22,< 24",
     "docformatter>=1.5,<1.7",
-    "ruff>0.0.215,<0.0.263",
+    "ruff>0.0.215,<0.0.264",
     "tox>=3.20,<4.6",
     "twine>=3.3,<4.1",  # Used to make releases to PyPI
 ]
@@ -55,7 +55,7 @@ tests = [
     "pytest-console-scripts>=1.1,<1.4",
     "pytest-cov>=2.10,<4.1",
     "rstcheck[sphinx,toml]>=5.0,<6.2",
-    "ruff>0.0.215,<0.0.263",
+    "ruff>0.0.215,<0.0.264",
     "tox>=3.20,<4.6",
 ]
 viz = [
