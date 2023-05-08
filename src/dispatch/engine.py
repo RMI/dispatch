@@ -106,7 +106,8 @@ def dispatch_engine(  # noqa: C901
     # to avoid having to do the first hour differently, we just assume original
     # dispatch in that hour and then skip it
     redispatch[0, :] = historical_dispatch[0, :]
-    # need to set operating_hours to 1 for generators that we are starting off as operating
+    # need to set operating_hours to 1 for generators that we are starting
+    # off as operating
     operating_data[:, 0] = np.where(historical_dispatch[0, :] > 0.0, 1, 0)
 
     # the big loop where we iterate through all the hours
@@ -149,7 +150,8 @@ def dispatch_engine(  # noqa: C901
             ),
         )
 
-        # new hour so reset where we keep track if we've touched a generator for this hour
+        # new hour so reset where we keep track if we've touched a generator for
+        # this hour
         operating_data[:, 1] = 0
 
         # read whole numpy rows because numpy uses row-major ordering, this is
@@ -251,8 +253,8 @@ def dispatch_engine(  # noqa: C901
             storage[hr, 2, storage_idx] = storage[hr - 1, 2, storage_idx] - discharge
             deficit -= discharge
 
-        # once we've dealt with operating generators and storage, if there is no positive
-        # deficit we can skip startups and go on to the next hour
+        # once we've dealt with operating generators and storage, if there is no
+        # positive deficit we can skip startups and go on to the next hour
         if deficit == 0.0:
             continue
 

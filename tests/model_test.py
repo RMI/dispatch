@@ -39,7 +39,7 @@ def test_new_no_dates(fossil_profiles, re_profiles, fossil_specs, fossil_cost):
 
 
 @pytest.mark.parametrize(
-    "attr, expected",
+    ("attr", "expected"),
     [
         ("redispatch", {"f": 449456776, "r": 383683946}),
         ("storage_dispatch", {"f": 269892073, "r": 221453923}),
@@ -118,7 +118,7 @@ class TestOutputs:
         assert not x.empty
 
     @pytest.mark.parametrize(
-        "func, args, drop_cols, expected",
+        ("func", "args", "drop_cols", "expected"),
         [
             (
                 "dispatchable_summary",
@@ -256,7 +256,7 @@ class TestPlotting:
             img_path.unlink(missing_ok=True)
 
     @pytest.mark.parametrize(
-        "col, freq",
+        ("col", "freq"),
         [("capacity_mw", "YS"), ("redispatch_mwh", "YS"), ("redispatch_mwh", "MS")],
         ids=idfn,
     )
@@ -359,7 +359,7 @@ def test_fresh_different(ent_fresh, existing):
 
 
 @pytest.mark.parametrize(
-    "gen, col_set, col, expected",
+    ("gen", "col_set", "col", "expected"),
     [
         ((55380, "CTG1"), "redispatch_", "mwh", 0.0),
         ((55380, "CTG1"), "redispatch_", "cost_fuel", 0.0),
@@ -409,7 +409,7 @@ def test_dispatchable_exclude(
 
 
 @pytest.mark.parametrize(
-    "gen, col_set, col, expected",
+    ("gen", "col_set", "col", "expected"),
     [
         ((55380, "CTG1"), "redispatch_", "mwh", 25367968),
         ((55380, "CTG1"), "redispatch_", "cost_fuel", 364137734),
@@ -461,7 +461,7 @@ def test_dispatchable_no_limit(
 
 
 @pytest.mark.parametrize(
-    "idx_to_change, exception",
+    ("idx_to_change", "exception"),
     [
         ("dispatchable_specs", AssertionError),
         ("dispatchable_cost", AssertionError),
