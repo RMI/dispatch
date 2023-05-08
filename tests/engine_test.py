@@ -96,7 +96,7 @@ def test_engine_pyfunc_numba():
 
 
 @pytest.mark.parametrize(
-    "override, expected",
+    ("override", "expected"),
     [
         ({"storage_mw": np.array([400, 200, 100])}, AssertionError),
         ({"storage_dc_charge": np.zeros((len(NL), 5))}, AssertionError),
@@ -142,7 +142,7 @@ def test_validate_inputs(override, expected):
 
 # fmt: off
 @pytest.mark.parametrize(
-    "kwargs, expected",
+    ("kwargs", "expected"),
     [
         (
             {"deficit": 0, "state_of_charge": 0, "dc_charge": 0, "mw": 10, "max_state_of_charge": 20, "eff": 1.0},
@@ -225,7 +225,7 @@ def test_charge_storage(kwargs, expected):
 
 
 @pytest.mark.parametrize(
-    "kwargs, expected",
+    ("kwargs", "expected"),
     [
         ({"desired_mw": 1, "state_of_charge": 2, "mw": 3, "max_state_of_charge": 6}, 1),
         ({"desired_mw": 1, "state_of_charge": 5, "mw": 3, "max_state_of_charge": 6}, 1),
@@ -244,7 +244,7 @@ def test_discharge_storage(kwargs, expected):
 
 
 @pytest.mark.parametrize(
-    "kwargs, expected",
+    ("kwargs", "expected"),
     [
         ({"state_of_charge": [8], "mw": [2], "reserve": [0.25], "max_state_of_charge": [8]}, -2.0),
         ({"state_of_charge": [7], "mw": [2], "reserve": [0.25], "max_state_of_charge": [8]}, -2.0),
@@ -277,7 +277,7 @@ def test_adjust_for_storage_reserve(kwargs, expected):
 
 
 @pytest.mark.parametrize(
-    "kwargs, expected",
+    ("kwargs", "expected"),
     [
         ({"desired_mw": 5, "max_mw": 2, "previous_mw": 0, "ramp_mw": 1}, 1),
         ({"desired_mw": 5, "max_mw": 10, "previous_mw": 10, "ramp_mw": 1}, 9),

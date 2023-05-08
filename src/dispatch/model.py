@@ -74,7 +74,7 @@ class DispatchModel(IOMixin):
         storage_specs: pd.DataFrame | None = None,
         re_profiles: pd.DataFrame | None = None,
         re_plant_specs: pd.DataFrame | None = None,
-        jit: bool = True,
+        jit: bool = True,  # noqa: FBT001, FBT002
         name: str = "",
     ):
         """Initialize DispatchModel.
@@ -575,6 +575,7 @@ class DispatchModel(IOMixin):
         dispatchable_specs: pd.DataFrame,
         dispatchable_cost: pd.DataFrame,
         storage_specs: pd.DataFrame,
+        *,
         jit: bool = True,
     ) -> DispatchModel:
         """Run dispatch without historical hourly operating constraints."""
@@ -1271,6 +1272,7 @@ class DispatchModel(IOMixin):
         self,
         by: str | None = "technology_description",
         freq: str = "YS",
+        *,
         augment: bool = False,
         **kwargs,
     ) -> pd.DataFrame:
@@ -1518,7 +1520,9 @@ class DispatchModel(IOMixin):
             axis=0,
         )
 
-    def plot_period(self, begin, end=None, by_gen=True, compare_hist=False) -> Figure:
+    def plot_period(
+        self, begin, end=None, *, by_gen=True, compare_hist=False
+    ) -> Figure:
         """Plot hourly dispatch by generator."""
         begin = pd.Timestamp(begin)
         end = begin + pd.Timedelta(days=7) if end is None else pd.Timestamp(end)
@@ -1728,7 +1732,9 @@ class DispatchModel(IOMixin):
                 value_name=y_cat,
             ).assign(series=lambda x: x.series.str.split("_" + y_cat, expand=True)[0])
             if (
-                series_facet := to_plot1.groupby("series")[y_cat].sum().at["historical"]
+                series_facet := to_plot1.groupby("series")[y_cat]  # noqa: PD008
+                .sum()
+                .at["historical"]
                 > 0.0
             ):
                 b_kwargs.update(facet_row="series", y=y_cat)
