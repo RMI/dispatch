@@ -101,7 +101,6 @@ What's New?
    :func:`.zero_profiles_outside_operating_dates` for clarity, use of the former name
    will be removed in the future.
 *  Code cleanup along with adoption of ruff and removal of bandit, flake8, isort, etc.
-*  Testing new :mod:`numba` version (or RC) to work with Python 3.11.
 *  Added the ability to specify in ``dispatchable_specs`` via a ``no_limit`` column
    that a generator not limited to its historical hourly output by the model without
    affecting historical dispatch data.
@@ -118,6 +117,7 @@ What's New?
    dispatchable start-up, only down to the ``reserve``. After dispatchable start-up,
    storage is dispatched a second time in case a deficit remains, in this part of the
    sequence, all storage state of charge can be used.
+*  We now work with Python 3.11 using newly released :mod:`numba` version 0.57.
 
 Bug Fixes
 ^^^^^^^^^
