@@ -22,7 +22,7 @@ dependencies = [
     "numba >= 0.55.1,<0.58",
     "numexpr >= 2.8, < 2.8.5",
     "numpy >= 1.18.5,<2",
-    "pandas >= 1.4,< 1.6",
+    "pandas >= 1.4,< 2.1",
     "pandera >= 0.12, < 0.15",
     "pyarrow>=7, <13",
     "rmi.etoolbox @ git+https://github.com/rmi/etoolbox.git",

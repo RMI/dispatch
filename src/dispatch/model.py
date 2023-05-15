@@ -373,7 +373,7 @@ class DispatchModel(IOMixin):
         (0.4, 0.5]             0
         (0.5, 0.75]            0
         (0.75, 1.0]            0
-        dtype: int64
+        Name: count, dtype: int64
 
         Generate a full, combined output of all resources at specified frequency.
 
@@ -1493,6 +1493,9 @@ class DispatchModel(IOMixin):
         def arrange(df):
             return (
                 df.loc[begin:end, :]
+                .rename_axis(
+                    columns=["plant_id_eia", "generator_id", "technology_description"]
+                )
                 .stack([0, 1, 2])
                 .to_frame(name="net_generation_mwh")
                 .reset_index()
