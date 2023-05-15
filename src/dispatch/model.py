@@ -74,7 +74,7 @@ class DispatchModel(IOMixin):
         storage_specs: pd.DataFrame | None = None,
         re_profiles: pd.DataFrame | None = None,
         re_plant_specs: pd.DataFrame | None = None,
-        jit: bool = True,
+        jit: bool = True,  # noqa: FBT001, FBT002
         name: str = "",
     ):
         """Initialize DispatchModel.
@@ -90,9 +90,15 @@ class DispatchModel(IOMixin):
                 -   ramp_rate: max 1-hr increase in output, in MW
                 -   operating_date: the date the plant entered or will enter service
                 -   retirement_date: the date the plant will retire
+                -   min_uptime: (Optional) the minimum number of hours the generator
+                    must be on before its output can be reduced.
                 -   exclude: (Optional) True means the generator will NOT be
                     redispatched. Its historical data will be preserved and redispatch
                     data will be zero.
+                -   no_limit: (Optional) True means the generator will not have the
+                    hourly maximum from ``dispatchable_profiles`` enforced, instead the
+                    max of historical and capacity_mw will be used. This allows the
+                    removal of the cap without affecting historical metrics.
 
                 The index must be a :class:`pandas.MultiIndex` of
                 ``['plant_id_eia', 'generator_id']``.
@@ -126,6 +132,8 @@ class DispatchModel(IOMixin):
                 -   duration_hrs: storage duration in hours.
                 -   roundtrip_eff: roundtrip efficiency.
                 -   operating_date: datetime unit starts operating.
+                -   reserve: % of state of charge to hold in reserve until
+                    after dispatchable startup.
 
                 The index must be a :class:`pandas.MultiIndex` of
                 ``['plant_id_eia', 'generator_id']``.
@@ -365,24 +373,24 @@ class DispatchModel(IOMixin):
         (0.4, 0.5]             0
         (0.5, 0.75]            0
         (0.75, 1.0]            0
-        dtype: int64
+        Name: count, dtype: int64
 
         Generate a full, combined output of all resources at specified frequency.
 
         >>> dm.full_output(freq="YS").round(1)  # doctest: +NORMALIZE_WHITESPACE
-                                              capacity_mw  historical_mwh  historical_mmbtu  ...  fom_per_kw  duration_hrs  roundtrip_eff
+                                              capacity_mw  historical_mwh  historical_mmbtu  ...  duration_hrs  roundtrip_eff  reserve
         plant_id_eia generator_id datetime                                                   ...
-        0            curtailment  2020-01-01          NaN             NaN               NaN  ...         NaN           NaN            NaN
-                     deficit      2020-01-01          NaN             NaN               NaN  ...         NaN           NaN            NaN
-        1            1            2020-01-01        350.0             0.0               0.0  ...         NaN           NaN            NaN
-                     2            2020-01-01        500.0             0.0               0.0  ...         NaN           NaN            NaN
-        2            1            2020-01-01        600.0             0.0               0.0  ...         NaN           NaN            NaN
-        5            1            2020-01-01        500.0             NaN               NaN  ...         NaN           NaN            NaN
-                     es           2020-01-01        250.0             NaN               NaN  ...         NaN           4.0            0.9
-        6            1            2020-01-01        500.0             NaN               NaN  ...         NaN           NaN            NaN
-        7            1            2020-01-01        200.0             NaN               NaN  ...         NaN          12.0            0.5
+        0            curtailment  2020-01-01          NaN             NaN               NaN  ...           NaN            NaN      NaN
+                     deficit      2020-01-01          NaN             NaN               NaN  ...           NaN            NaN      NaN
+        1            1            2020-01-01        350.0             0.0               0.0  ...           NaN            NaN      NaN
+                     2            2020-01-01        500.0             0.0               0.0  ...           NaN            NaN      NaN
+        2            1            2020-01-01        600.0             0.0               0.0  ...           NaN            NaN      NaN
+        5            1            2020-01-01        500.0             NaN               NaN  ...           NaN            NaN      NaN
+                     es           2020-01-01        250.0             NaN               NaN  ...           4.0            0.9      0.2
+        6            1            2020-01-01        500.0             NaN               NaN  ...           NaN            NaN      NaN
+        7            1            2020-01-01        200.0             NaN               NaN  ...          12.0            0.5      0.2
         <BLANKLINE>
-        [9 rows x 29 columns]
+        [9 rows x 30 columns]
         """
         if not name and "balancing_authority_code_eia" in dispatchable_specs:
             name = dispatchable_specs.balancing_authority_code_eia.mode().iloc[0]
@@ -401,11 +409,13 @@ class DispatchModel(IOMixin):
         validator = Validator(self, gen_set=dispatchable_specs.index)
         self.dispatchable_specs: pd.DataFrame = validator.dispatchable_specs(
             dispatchable_specs
-        ).pipe(self._add_exclude_col)
+        ).pipe(self._add_optional_cols, df_name="dispatchable_specs")
         self.dispatchable_cost: pd.DataFrame = validator.dispatchable_cost(
             dispatchable_cost
         ).pipe(self._add_total_and_missing_cols)
-        self.storage_specs: pd.DataFrame = validator.storage_specs(storage_specs)
+        self.storage_specs: pd.DataFrame = validator.storage_specs(storage_specs).pipe(
+            self._add_optional_cols, df_name="storage_specs"
+        )
         self.dispatchable_profiles: pd.DataFrame = (
             zero_profiles_outside_operating_dates(
                 validator.dispatchable_profiles(dispatchable_profiles),
@@ -518,11 +528,19 @@ class DispatchModel(IOMixin):
         return df.drop(columns=["capacity_mw"])
 
     @staticmethod
-    def _add_exclude_col(df: pd.DataFrame) -> pd.DataFrame:
+    def _add_optional_cols(df: pd.DataFrame, df_name) -> pd.DataFrame:
         """Add ``exclude`` column if not already present."""
-        if "exclude" in df:
-            return df
-        return df.assign(exclude=False)
+        default_values = {
+            "dispatchable_specs": (
+                ("min_uptime", 0),
+                ("exclude", False),
+                ("no_limit", False),
+            ),
+            "storage_specs": (("reserve", 0.2),),
+        }
+        return df.assign(
+            **{col: value for col, value in default_values[df_name] if col not in df}
+        )
 
     def __setstate__(self, state: tuple[Any, dict]):
         _, state = state
@@ -530,6 +548,7 @@ class DispatchModel(IOMixin):
             if k in self.__slots__:
                 setattr(self, k, v)
         self.dt_idx = self.load_profile.index
+        self._cached = {}
 
     def __getstate__(self):
         state = {}
@@ -556,6 +575,7 @@ class DispatchModel(IOMixin):
         dispatchable_specs: pd.DataFrame,
         dispatchable_cost: pd.DataFrame,
         storage_specs: pd.DataFrame,
+        *,
         jit: bool = True,
     ) -> DispatchModel:
         """Run dispatch without historical hourly operating constraints."""
@@ -666,6 +686,13 @@ class DispatchModel(IOMixin):
         if np.any(to_exclude == 0.0):
             d_prof = d_prof * to_exclude
 
+        no_limit = self.dispatchable_specs.no_limit.to_numpy()
+        if np.any(no_limit):
+            d_prof[:, no_limit] = np.maximum(
+                d_prof[:, no_limit],
+                self.dispatchable_specs.loc[no_limit, "capacity_mw"].to_numpy(),
+            )
+
         fos_prof, storage, deficits, starts = self.dispatch_func(
             net_load=self.net_load_profile.to_numpy(dtype=np.float_),
             hr_to_cost_idx=(
@@ -682,6 +709,9 @@ class DispatchModel(IOMixin):
             dispatchable_marginal_cost=self.dispatchable_cost.total_var_mwh.unstack().to_numpy(
                 dtype=np.float_
             ),
+            dispatchable_min_uptime=self.dispatchable_specs.min_uptime.to_numpy(
+                dtype=np.int_
+            ),
             storage_mw=self.storage_specs.capacity_mw.to_numpy(dtype=np.float_),
             storage_hrs=self.storage_specs.duration_hrs.to_numpy(dtype=np.int64),
             storage_eff=self.storage_specs.roundtrip_eff.to_numpy(dtype=np.float_),
@@ -695,6 +725,7 @@ class DispatchModel(IOMixin):
                 axis=0,
             ),
             storage_dc_charge=self.dc_charge().to_numpy(dtype=np.float_),
+            storage_reserve=self.storage_specs.reserve.to_numpy(),
         )
         self.redispatch = pd.DataFrame(
             fos_prof,
@@ -900,8 +931,31 @@ class DispatchModel(IOMixin):
             ),
             self.dispatchable_specs.operating_date,
             self.dispatchable_specs.retirement_date,
-            self.dispatchable_specs.capacity_mw,
+            self.dispatchable_specs.capacity_mw.mask(
+                self.dispatchable_specs.exclude, 0.0
+            ),
         )
+
+        available = np.where(
+            self.dispatchable_specs.no_limit.to_numpy(),
+            np.maximum(
+                self.dispatchable_profiles,
+                self.dispatchable_specs.loc[:, "capacity_mw"].to_numpy(),
+            ),
+            np.where(
+                ~self.dispatchable_specs.exclude.to_numpy(),
+                self.dispatchable_profiles,
+                0.0,
+            ),
+        )
+
+        headroom = available - np.roll(self.redispatch, 1, axis=0)
+        max_ramp_from_previous = np.where(
+            headroom > 0,
+            np.minimum(headroom, self.dispatchable_specs.ramp_rate.to_numpy()),
+            headroom,
+        )
+
         out = pd.concat(
             {
                 "gross_load": self.load_profile,
@@ -910,6 +964,12 @@ class DispatchModel(IOMixin):
                 "max_dispatch": max_disp.sum(axis=1),
                 "redispatch": self.redispatch.sum(axis=1),
                 "historical_dispatch": self.dispatchable_profiles.sum(axis=1),
+                "available": pd.Series(
+                    available.sum(axis=1), index=self.load_profile.index
+                ),
+                "headroom_hr-1": pd.Series(
+                    max_ramp_from_previous.sum(axis=1), index=self.load_profile.index
+                ),
                 "net_storage": (
                     self.storage_dispatch.filter(regex="^discharge").sum(axis=1)
                     - self.storage_dispatch.filter(regex="^gridcharge").sum(axis=1)
@@ -1212,6 +1272,7 @@ class DispatchModel(IOMixin):
         self,
         by: str | None = "technology_description",
         freq: str = "YS",
+        *,
         augment: bool = False,
         **kwargs,
     ) -> pd.DataFrame:
@@ -1432,6 +1493,9 @@ class DispatchModel(IOMixin):
         def arrange(df):
             return (
                 df.loc[begin:end, :]
+                .rename_axis(
+                    columns=["plant_id_eia", "generator_id", "technology_description"]
+                )
                 .stack([0, 1, 2])
                 .to_frame(name="net_generation_mwh")
                 .reset_index()
@@ -1459,7 +1523,9 @@ class DispatchModel(IOMixin):
             axis=0,
         )
 
-    def plot_period(self, begin, end=None, by_gen=True, compare_hist=False) -> Figure:
+    def plot_period(
+        self, begin, end=None, *, by_gen=True, compare_hist=False
+    ) -> Figure:
         """Plot hourly dispatch by generator."""
         begin = pd.Timestamp(begin)
         end = begin + pd.Timedelta(days=7) if end is None else pd.Timestamp(end)
@@ -1669,7 +1735,9 @@ class DispatchModel(IOMixin):
                 value_name=y_cat,
             ).assign(series=lambda x: x.series.str.split("_" + y_cat, expand=True)[0])
             if (
-                series_facet := to_plot1.groupby("series")[y_cat].sum().at["historical"]
+                series_facet := to_plot1.groupby("series")[y_cat]  # noqa: PD008
+                .sum()
+                .at["historical"]
                 > 0.0
             ):
                 b_kwargs.update(facet_row="series", y=y_cat)

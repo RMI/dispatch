@@ -11,118 +11,134 @@ Release Notes
 
 What's New?
 ^^^^^^^^^^^
-*   Tests for :func:`.engine.dispatch_engine`, :func:`.copy_profile`.
-*   :meth:`.DispatchModel.hourly_data_check` to help in checking for dispatch errors,
-    and running down why deficits are occuring.
-*   :class:`.DispatchModel` now takes ``load_profile`` that resources will be
-    dispatched against. If ``re_profiles`` and ``re_plant_specs`` are not provided,
-    this should be a net load profile. If they are provided, this *must* be a gross
-    load profile, or at least, gross of those RE resources. These calculations are done
-    by :meth:`.DispatchModel.re_and_net_load`.
-*   :class:`.DispatchModel` now accepts (and requires) raw DC ``re_profiles``, it
-    determines actual renewable output using capacity data and ilr provided in
-    ``re_plant_specs``. This will allow :class:`.DispatchModel` to model DC-coupled
-    RE+Storage facilities that can charge from otherwise clipped generation. The
-    calculations for the amount of charging from DC-coupled RE is in
-    :meth:`.DispatchModel.dc_charge`.
-*   Updates to :func:`.engine.dispatch_engine` and :func:`.engine.validate_inputs` to
-    accommodate DC-coupled RE charging data. Storage can now be charged from
-    DC-coupled RE in addition to the grid. This includes tracking ``gridcharge``
-    in addition to ``charge``, where the latter includes charging from the grid
-    and DC-coupled RE.
-*   All output charging metrics use the ``gridcharge`` data because from the grid's
-    perspective, this is what matters. ``discharge`` data does not distinguish,
-    so in some cases net charge data may be positive, this reflects RE generation
-    run through the battery that otherwise would have been curtailed.
-*   :class:`.DataZip`, a subclass of :class:`zipfile.ZipFile` that has methods for
-    easily reading and writing :class:`pandas.DataFrame` as ``parquet`` and
-    :class:`dict` as ``json``. This includes storing column names separately that
-    cannot be included in a ``parquet``.
-*   Extracted :func:`.engine.charge_storage` and
-    :func:`.engine.make_rank_arrays` from :func:`.engine.dispatch_engine`. This
-    allows easier unit testing and, in the former case, makes sure all charging is
-    implemented consistently.
-*   Added plotting functions :meth:`.DispatchModel.plot_output` to visualize columns
-    from :meth:`.DispatchModel.full_output` and updated
-    :meth:`.DispatchModel.plot_period` to display data by generator if ``by_gen=True``.
-    :meth:`.DispatchModel.plot_year` can now display the results with daily or hourly
-    frequency.
-*   For renewables, ``plant_id_eia`` no longer need by unique, now for renewables,
-    ``plant_id_eia`` and ``generator_id`` must be jointly unique. In cases where a
-    single ``plant_id_eia`` has two renewable generator's as well as storage,
-    :meth:`.DispatchModel.dc_charge` assumes excess renewable generation from the
-    several generators can be combined to charge the facility's storage.
-*   ``re_plant_specs``, ``dispatchable_specs``, and ``storage_specs``, now allow zeros
-    for ``capacity_mw`` and ``duration_hrs``.
-*   :class:`.DataZip`, :meth:`.DispatchModel.to_file`, and
-    :meth:`.DispatchModel.from_file` now support :class:`io.BytesIO` as ``file``
-    or ``path``. This now allows any object that implements ``to_file``/``from_file``
-    methods using :class:`.DataZip`, to be written into and recovered from another
-    :class:`.DataZip`.
-*   Added the ability to specify in ``dispatchable_specs`` via an ``exclude`` column
-    that a generator not be dispatched by the model without affecting historical
-    dispatch data.
-*   Migrating :class:`.DataZip` functionality to :class:`etoolbox.datazip.DataZip`.
-*   Updates to constants to allow Nuclear and Conventional Hydroelectric to be properly
-    displayed in plots.
-*   Updates to ``re_plant_specs``, its validation, and
-    :meth:`.DispatchModel.re_and_net_load` for a new column, ``interconnect_mw``, that
-    allows interconnection capacity for a renewable facility to independent of its
-    capacity. By default, this is the same as ``capacity_mw`` but can be reduced to
-    reflect facility-specific transmission / interconnection constraints. If the
-    facility has storage, storage can be charged by the constrained excess.
-*   Added ``compare_hist`` argument to :meth:`.DispatchModel.plot_period` which creates
-    panel plot showing both historical dispatch and redispatch for the period.
-*   :meth:`.DispatchModel.plot_output` adds a row facet to show both historical and
-    redispatch versions of the requested data if available.
-*   Cleanup of configuration and packaging files. Contents of ``setup.cfg`` and
-    ``tox.ini`` moved to ``pyproject.toml``.
-*   Added the ability to specify FOM for renewables in ``re_plant_specs`` via an
-    optional ``fom_per_kw`` column. This allows :meth:`.DispatchModel.re_summary` and
-    derived outputs to include a ``redispatch_cost_fom`` column.
-*   :class:`.DispatchModel` now contains examples as doctests.
-*   :meth:`.DispatchModel.plot_all_years` to create daily redispatch plot faceted by
-    month and year.
-*   :meth:`.DispatchModel.dispatchable_summary` now includes mmbtu and co2 data for
-    historical, redispatch, and avoided column groupings. These metrics are based on
-    `heat_rate` and `co2_factor` columns in `dispatchable_cost`, these columns are
-    optional.
-*   Updates to :class:`.DispatchModel` to work with the new simpler, cleaner
-    :class:`.DataZip`.
-*   Added checks to make sure that the datetime indexes of ``load_profile``,
-    ``dispatchable_profiles``, and ``re_profiles`` match.
-*   Prep for deprecating :meth:`.DispatchModel.from_patio` and
-    :meth:`.DispatchModel.from_fresh`.
-*   Extracted :func:`.calculate_generator_output` from :func:`.dispatch_engine` to make
-    the latter easier to read and to more easily test the former's logic.
-*   Many updates to internal variable names in :mod:`.engine` to make the code easier to
-    read.
-*   Renamed :func:`.apply_op_ret_date` to
-    :func:`.zero_profiles_outside_operating_dates` for clarity, use of the former name
-    will be removed in the future.
+*  Tests for :func:`.engine.dispatch_engine`, :func:`.copy_profile`.
+*  :meth:`.DispatchModel.hourly_data_check` to help in checking for dispatch errors,
+   and running down why deficits are occuring.
+*  :class:`.DispatchModel` now takes ``load_profile`` that resources will be
+   dispatched against. If ``re_profiles`` and ``re_plant_specs`` are not provided,
+   this should be a net load profile. If they are provided, this *must* be a gross
+   load profile, or at least, gross of those RE resources. These calculations are done
+   by :meth:`.DispatchModel.re_and_net_load`.
+*  :class:`.DispatchModel` now accepts (and requires) raw DC ``re_profiles``, it
+   determines actual renewable output using capacity data and ilr provided in
+   ``re_plant_specs``. This will allow :class:`.DispatchModel` to model DC-coupled
+   RE+Storage facilities that can charge from otherwise clipped generation. The
+   calculations for the amount of charging from DC-coupled RE is in
+   :meth:`.DispatchModel.dc_charge`.
+*  Updates to :func:`.engine.dispatch_engine` and :func:`.engine.validate_inputs` to
+   accommodate DC-coupled RE charging data. Storage can now be charged from
+   DC-coupled RE in addition to the grid. This includes tracking ``gridcharge``
+   in addition to ``charge``, where the latter includes charging from the grid
+   and DC-coupled RE.
+*  All output charging metrics use the ``gridcharge`` data because from the grid's
+   perspective, this is what matters. ``discharge`` data does not distinguish,
+   so in some cases net charge data may be positive, this reflects RE generation
+   run through the battery that otherwise would have been curtailed.
+*  :class:`.DataZip`, a subclass of :class:`zipfile.ZipFile` that has methods for
+   easily reading and writing :class:`pandas.DataFrame` as ``parquet`` and
+   :class:`dict` as ``json``. This includes storing column names separately that
+   cannot be included in a ``parquet``.
+*  Extracted :func:`.engine.charge_storage` and
+   :func:`.engine.make_rank_arrays` from :func:`.engine.dispatch_engine`. This
+   allows easier unit testing and, in the former case, makes sure all charging is
+   implemented consistently.
+*  Added plotting functions :meth:`.DispatchModel.plot_output` to visualize columns
+   from :meth:`.DispatchModel.full_output` and updated
+   :meth:`.DispatchModel.plot_period` to display data by generator if ``by_gen=True``.
+   :meth:`.DispatchModel.plot_year` can now display the results with daily or hourly
+   frequency.
+*  For renewables, ``plant_id_eia`` no longer need by unique, now for renewables,
+   ``plant_id_eia`` and ``generator_id`` must be jointly unique. In cases where a
+   single ``plant_id_eia`` has two renewable generator's as well as storage,
+   :meth:`.DispatchModel.dc_charge` assumes excess renewable generation from the
+   several generators can be combined to charge the facility's storage.
+*  ``re_plant_specs``, ``dispatchable_specs``, and ``storage_specs``, now allow zeros
+   for ``capacity_mw`` and ``duration_hrs``.
+*  :class:`.DataZip`, :meth:`.DispatchModel.to_file`, and
+   :meth:`.DispatchModel.from_file` now support :class:`io.BytesIO` as ``file``
+   or ``path``. This now allows any object that implements ``to_file``/``from_file``
+   methods using :class:`.DataZip`, to be written into and recovered from another
+   :class:`.DataZip`.
+*  Added the ability to specify in ``dispatchable_specs`` via an ``exclude`` column
+   that a generator not be dispatched by the model without affecting historical
+   dispatch data.
+*  Migrating :class:`.DataZip` functionality to :class:`etoolbox.datazip.DataZip`.
+*  Updates to constants to allow Nuclear and Conventional Hydroelectric to be properly
+   displayed in plots.
+*  Updates to ``re_plant_specs``, its validation, and
+   :meth:`.DispatchModel.re_and_net_load` for a new column, ``interconnect_mw``, that
+   allows interconnection capacity for a renewable facility to independent of its
+   capacity. By default, this is the same as ``capacity_mw`` but can be reduced to
+   reflect facility-specific transmission / interconnection constraints. If the
+   facility has storage, storage can be charged by the constrained excess.
+*  Added ``compare_hist`` argument to :meth:`.DispatchModel.plot_period` which creates
+   panel plot showing both historical dispatch and redispatch for the period.
+*  :meth:`.DispatchModel.plot_output` adds a row facet to show both historical and
+   redispatch versions of the requested data if available.
+*  Cleanup of configuration and packaging files. Contents of ``setup.cfg`` and
+   ``tox.ini`` moved to ``pyproject.toml``.
+*  Added the ability to specify FOM for renewables in ``re_plant_specs`` via an
+   optional ``fom_per_kw`` column. This allows :meth:`.DispatchModel.re_summary` and
+   derived outputs to include a ``redispatch_cost_fom`` column.
+*  :class:`.DispatchModel` now contains examples as doctests.
+*  :meth:`.DispatchModel.plot_all_years` to create daily redispatch plot faceted by
+   month and year.
+*  :meth:`.DispatchModel.dispatchable_summary` now includes mmbtu and co2 data for
+   historical, redispatch, and avoided column groupings. These metrics are based on
+   ``heat_rate`` and ``co2_factor`` columns in ``dispatchable_cost``, these columns are
+   optional.
+*  Updates to :class:`.DispatchModel` to work with the new simpler, cleaner
+   :class:`.DataZip`.
+*  Added checks to make sure that the datetime indexes of ``load_profile``,
+   ``dispatchable_profiles``, and ``re_profiles`` match.
+*  Prep for deprecating :meth:`.DispatchModel.from_patio` and
+   :meth:`.DispatchModel.from_fresh`.
+*  Extracted :func:`.calculate_generator_output` from :func:`.dispatch_engine` to make
+   the latter easier to read and to more easily test the former's logic.
+*  Many updates to internal variable names in :mod:`.engine` to make the code easier to
+   read.
+*  Renamed :func:`.apply_op_ret_date` to
+   :func:`.zero_profiles_outside_operating_dates` for clarity, use of the former name
+   will be removed in the future.
 *  Code cleanup along with adoption of ruff and removal of bandit, flake8, isort, etc.
-*  Testing new :mod:`numba` version (or RC) to work with Python 3.11.
-
+*  Added the ability to specify in ``dispatchable_specs`` via a ``no_limit`` column
+   that a generator not limited to its historical hourly output by the model without
+   affecting historical dispatch data.
+*  Added the ability to specify in ``dispatchable_specs`` via a ``min_uptime`` column
+   the minimum number of hours a generator must have been operating before it can start
+   ramping down.
+*  Adjusted process of determining the provisional deficit used to dispatch currently
+   operating generators. Previously, we adjusted our target for dispatchable generation
+   based on the assumption we would want to use up all storage state of charge before
+   dispatching operating generators. We now set the provisional deficit so that we hold
+   2x ``reserve`` state of charge in reserve. If state of charge is below ``reserve``,
+   we increase the provisional deficit in order to replenish the reserve.
+*  Changed battery discharge so that only a part of storage can be used before
+   dispatchable start-up, only down to the ``reserve``. After dispatchable start-up,
+   storage is dispatched a second time in case a deficit remains, in this part of the
+   sequence, all storage state of charge can be used.
+*  dispatch now works with Python 3.11 using newly released :mod:`numba` version 0.57.
+*  dispatch now works with :mod:`pandas` 2.0.
 
 Bug Fixes
 ^^^^^^^^^
-*   Fixed an issue in :func:`.engine.dispatch_engine` where a storage resource's state of
-    charge would not be carried forward if it wasn't charged or discharged in that
-    hour.
-*   Fixed a bug where storage metrics in :meth:`.DispatchModel.system_level_summary`
-    were :class:`numpy.nan` because selecting of data from ``storage_specs`` returned
-    a :class:`pandas.Series` rather than a :class:`int` or :class:`float`. Further, in
-    cases of division be zero in these calculations, the result is now 0 rather than
-    :class:`numpy.nan`. Tests now make sure that no new :class:`numpy.nan` show up.
-*   Fixed a bug in :meth:`.DispatchModel.dispatchable_summary` where ``pct_replaced``
-    would be :class:`numpy.nan` because of division by zero in these calculations, the
-    result is now 0 rather than :class:`numpy.nan`. Tests now make sure that no new
-    :class:`numpy.nan` show up.
-*   Fixed an issue where :meth:`.DispatchModel.full_output` and methods that use it,
-    i.e. :meth:`.DispatchModel.plot_output` improperly aggregated
-    :attr:`.DispatchModel.system_data` when ``freq`` was not 'YS'.
-*   Fixed an issue where :meth:`.DispatchModel.full_output` didn't properly show
-    ``Curtailment`` and ``Storage``.
+*  Fixed an issue in :func:`.engine.dispatch_engine` where a storage resource's state of
+   charge would not be carried forward if it wasn't charged or discharged in that
+   hour.
+*  Fixed a bug where storage metrics in :meth:`.DispatchModel.system_level_summary`
+   were :class:`numpy.nan` because selecting of data from ``storage_specs`` returned
+   a :class:`pandas.Series` rather than a :class:`int` or :class:`float`. Further, in
+   cases of division be zero in these calculations, the result is now 0 rather than
+   :class:`numpy.nan`. Tests now make sure that no new :class:`numpy.nan` show up.
+*  Fixed a bug in :meth:`.DispatchModel.dispatchable_summary` where ``pct_replaced``
+   would be :class:`numpy.nan` because of division by zero in these calculations, the
+   result is now 0 rather than :class:`numpy.nan`. Tests now make sure that no new
+   :class:`numpy.nan` show up.
+*  Fixed an issue where :meth:`.DispatchModel.full_output` and methods that use it,
+   i.e. :meth:`.DispatchModel.plot_output` improperly aggregated
+   :attr:`.DispatchModel.system_data` when ``freq`` was not 'YS'.
+*  Fixed an issue where :meth:`.DispatchModel.full_output` didn't properly show
+   ``Curtailment`` and ``Storage``.
 
 Known Issues
 ^^^^^^^^^^^^

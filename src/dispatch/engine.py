@@ -13,11 +13,13 @@ def dispatch_engine(  # noqa: C901
     dispatchable_ramp_mw: np.ndarray,
     dispatchable_startup_cost: np.ndarray,
     dispatchable_marginal_cost: np.ndarray,
+    dispatchable_min_uptime: np.ndarray,
     storage_mw: np.ndarray,
     storage_hrs: np.ndarray,
     storage_eff: np.ndarray,
     storage_op_hour: np.ndarray,
     storage_dc_charge: np.ndarray,
+    storage_reserve: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Dispatch engine that can be compiled with :func:`numba.jit`.
 
@@ -40,6 +42,8 @@ def dispatch_engine(  # noqa: C901
         dispatchable_startup_cost: startup cost in $ for each dispatchable generator
         dispatchable_marginal_cost: annual marginal cost for each dispatchable
             generator in $/MWh rows are generators and columns are years
+        dispatchable_min_uptime: minimum hrs a generator must operate before its
+            output can be reduced
         storage_mw: max charge/discharge rate for storage in MW
         storage_hrs: duration of storage
         storage_eff: storage round-trip efficiency
@@ -50,6 +54,8 @@ def dispatch_engine(  # noqa: C901
             attached renewable facility because it exceeds the system's inverter. This
             then represents how much the storage in an RE+Storage facility could be
             charged by otherwise curtailed energy when ilr>1.
+        storage_reserve: portion of a storage facility's SOC that will be held in
+            reserve until after dispatchable resource startup.
 
 
     Returns:
@@ -72,6 +78,7 @@ def dispatch_engine(  # noqa: C901
         storage_hrs,
         storage_eff,
         storage_dc_charge,
+        storage_reserve,
     )
 
     storage_soc_max: np.ndarray = storage_mw * storage_hrs
@@ -99,7 +106,8 @@ def dispatch_engine(  # noqa: C901
     # to avoid having to do the first hour differently, we just assume original
     # dispatch in that hour and then skip it
     redispatch[0, :] = historical_dispatch[0, :]
-    # need to set operating_hours to 1 for generators that we are starting off as operating
+    # need to set operating_hours to 1 for generators that we are starting
+    # off as operating
     operating_data[:, 0] = np.where(historical_dispatch[0, :] > 0.0, 1, 0)
 
     # the big loop where we iterate through all the hours
@@ -117,7 +125,9 @@ def dispatch_engine(  # noqa: C901
 
                     storage[hr, :, storage_idx] = charge_storage(
                         deficit=deficit,
-                        state_of_charge=0.0,  # previous state_of_charge
+                        # previous state_of_charge
+                        state_of_charge=storage_soc_max[storage_idx]
+                        * storage_reserve[storage_idx],
                         dc_charge=storage_dc_charge[hr, storage_idx],
                         mw=storage_mw[storage_idx],
                         max_state_of_charge=storage_soc_max[storage_idx],
@@ -129,17 +139,25 @@ def dispatch_engine(  # noqa: C901
                         deficit += storage[hr, 3, storage_idx]
             continue
 
-        # want to figure out how much we'd like to dispatch fossil given
-        # that we'd like to use storage before fossil
-        max_discharge = 0.0
-        for storage_idx in range(storage.shape[2]):
-            max_discharge += min(
-                storage[hr - 1, 2, storage_idx], deficit, storage_mw[storage_idx]
-            )
-        provisional_deficit = max(0.0, deficit - max_discharge)
+        provisional_deficit = max(
+            0.0,
+            deficit
+            + adjust_for_storage_reserve(
+                state_of_charge=storage[hr - 1, 2, :],
+                mw=storage_mw,
+                reserve=storage_reserve,
+                max_state_of_charge=storage_soc_max,
+            ),
+        )
 
-        # new hour so reset where we keep track if we've touched a generator for this hour
+        # new hour so reset where we keep track if we've touched a generator for
+        # this hour
         operating_data[:, 1] = 0
+
+        # read whole numpy rows because numpy uses row-major ordering, this is
+        # potentially bad or useless intuition-based optimization
+        historical_hr_dispatch: np.ndarray = historical_dispatch[hr, :]
+        previous_hr_redispatch: np.ndarray = redispatch[hr - 1, :]
 
         # dispatch generators in the order of their marginal cost for year yr
         for generator_idx in marginal_ranks[:, yr]:
@@ -149,9 +167,11 @@ def dispatch_engine(  # noqa: C901
                 continue
             generator_output = calculate_generator_output(
                 desired_mw=provisional_deficit,
-                max_mw=historical_dispatch[hr, generator_idx],
-                previous_mw=redispatch[hr - 1, generator_idx],
+                max_mw=historical_hr_dispatch[generator_idx],
+                previous_mw=previous_hr_redispatch[generator_idx],
                 ramp_mw=dispatchable_ramp_mw[generator_idx],
+                current_uptime=operating_hours,
+                min_uptime=dispatchable_min_uptime[generator_idx],
             )
             redispatch[hr, generator_idx] = generator_output
             # update operating hours and mark that we took care of this generator
@@ -160,7 +180,7 @@ def dispatch_engine(  # noqa: C901
             ), 1
             # keep a running total of remaining deficit, having this value be negative
             # just makes the loop code more complicated, if it actually should be
-            # negative we capture that when we calculate the actual deficit based
+            # negative we capture that when we calculate the true deficit based
             # on redispatch below
             provisional_deficit = max(0, provisional_deficit - generator_output)
 
@@ -212,7 +232,7 @@ def dispatch_engine(  # noqa: C901
         # or discharge every hour whether there is a deficit or not to propagate
         # state of charge forward
         for storage_idx in range(storage.shape[2]):
-            # skip the `es_i` storage resource if it is not yet in operation or
+            # skip the `storage_idx` storage resource if it is not yet in operation or
             # there was excess generation from a DC-coupled RE facility
             if (
                 storage_op_hour[storage_idx] > hr
@@ -222,15 +242,19 @@ def dispatch_engine(  # noqa: C901
                 # propagate forward state_of_charge
                 storage[hr, 2, storage_idx] = storage[hr - 1, 2, storage_idx]
                 continue
-            discharge = min(
-                storage[hr - 1, 2, storage_idx], deficit, storage_mw[storage_idx]
+            discharge = discharge_storage(
+                desired_mw=deficit,
+                state_of_charge=storage[hr - 1, 2, storage_idx],
+                mw=storage_mw[storage_idx],
+                max_state_of_charge=storage_soc_max[storage_idx],
+                reserve=storage_reserve[storage_idx],
             )
             storage[hr, 1, storage_idx] = discharge
             storage[hr, 2, storage_idx] = storage[hr - 1, 2, storage_idx] - discharge
             deficit -= discharge
 
-        # once we've dealt with operating generators and storage, if there is no positive
-        # deficit we can skip startups and go on to the next hour
+        # once we've dealt with operating generators and storage, if there is no
+        # positive deficit we can skip startups and go on to the next hour
         if deficit == 0.0:
             continue
 
@@ -248,9 +272,9 @@ def dispatch_engine(  # noqa: C901
             # a fossil generator's output during an hour is the lesser of the deficit,
             # the generator's historical output, and the generator's re-dispatch output
             # in the previous hour + the generator's one hour max ramp
-            assert redispatch[hr - 1, generator_idx] == 0, ""
+            assert previous_hr_redispatch[generator_idx] == 0, ""
             generator_output = min(
-                deficit, historical_dispatch[hr, generator_idx], ramp_mw
+                deficit, historical_hr_dispatch[generator_idx], ramp_mw
             )
             if generator_output > 0.0:
                 operating_data[generator_idx, 0] = 1
@@ -260,6 +284,31 @@ def dispatch_engine(  # noqa: C901
 
                 if deficit == 0.0:
                     break
+
+        if deficit == 0.0:
+            continue
+
+        # discharge batteries again but with no reserve
+        for storage_idx in range(storage.shape[2]):
+            # skip the `storage_idx` storage resource if it is not yet in operation
+            if storage_op_hour[storage_idx] > hr:
+                continue
+            discharge = discharge_storage(
+                desired_mw=deficit,
+                # may have already used the battery this hour so use the current hour
+                # state of charge
+                state_of_charge=storage[hr, 2, storage_idx],
+                # already used some of the battery's MW this hour
+                mw=storage_mw[storage_idx] - storage[hr, 1, storage_idx],
+                max_state_of_charge=storage_soc_max[storage_idx],
+                reserve=0.0,
+            )
+            storage[hr, 1, storage_idx] += discharge
+            storage[hr, 2, storage_idx] -= discharge
+            deficit -= discharge
+
+            if deficit == 0.0:
+                break
 
         if deficit == 0.0:
             continue
@@ -298,11 +347,84 @@ def dispatch_engine(  # noqa: C901
 
 
 @njit
+def adjust_for_storage_reserve(
+    state_of_charge: np.ndarray,
+    mw: np.ndarray,
+    reserve: np.ndarray,
+    max_state_of_charge: np.ndarray,
+) -> float:
+    """Adjustment to deficit to restore or use storage reserve.
+
+    Args:
+        state_of_charge: state of charge before charging/discharging
+        mw: storage power capacity
+        reserve: target filling to this reserve level or allow discharging to
+            2x this level
+        max_state_of_charge: storage energy capacity
+
+    Returns: amount by which provisional deficit must be adjusted to use or replace
+        storage reserve
+    """
+    # if we are below reserve we actually want to increase the provisional
+    # deficit to restore the reserve
+    under_reserve = np.minimum(
+        state_of_charge - reserve * max_state_of_charge,
+        0.0,
+    )
+    augment_deficit = sum(
+        np.where(under_reserve < 0.0, np.maximum(under_reserve, -mw), 0.0)
+    )
+    if augment_deficit < 0.0:
+        return -augment_deficit
+    # but if we don't need to restore the reserve, we want to check if we have
+    # excess reserve and adjust down the provisional deficit
+    return -sum(
+        np.minimum(
+            mw,
+            # keep SOC above 2x typical reserve
+            np.maximum(
+                state_of_charge - 2.0 * reserve * max_state_of_charge,
+                0.0,
+            ),
+        )
+    )
+
+
+@njit
+def discharge_storage(
+    desired_mw: float,
+    state_of_charge: float,
+    mw: float,
+    max_state_of_charge: float,
+    reserve: float = 0.0,
+) -> float:
+    """Calculations for discharging storage.
+
+    Args:
+        desired_mw: amount of power we want from storage
+        state_of_charge: state of charge before charging
+        mw: storage power capacity
+        max_state_of_charge: storage energy capacity
+        reserve: prevent discharge below this portion of ``max_state_of_charge``
+
+    Returns: amount of storage discharge
+    """
+    return min(
+        desired_mw,
+        mw,
+        # prevent discharge below reserve (or full SOC if reserve is 0.0)
+        max(0.0, state_of_charge - max_state_of_charge * reserve),
+    )
+
+
+@njit
 def calculate_generator_output(
     desired_mw: float,
     max_mw: float,
     previous_mw: float,
     ramp_mw: float,
+    current_uptime: int = 0,
+    min_uptime: int = 0,
 ) -> float:
     """Determine period output for a generator.
 
@@ -311,18 +433,32 @@ def calculate_generator_output(
         max_mw: maximum output of generator this period
         previous_mw: generator output in the previous period
         ramp_mw: maximum one-period change in generator output in MW, up or down
+        current_uptime: as of the end of the previous period, for how many periods
+            has the generator been operating
+        min_uptime: the minimum duration the generator must operate before its
+            output is reduced
 
     Returns:
         output of the generator for given period
     """
+    if current_uptime >= min_uptime:
+        return min(
+            # we limit output to historical as a transmission
+            # and operating constraint proxy
+            max_mw,
+            # maximum output subject to ramping constraints
+            previous_mw + ramp_mw,
+            # max of desired output and minimum output subject to ramping constraints
+            max(desired_mw, previous_mw - ramp_mw),
+        )
     return min(
         # we limit output to historical as a transmission
         # and operating constraint proxy
         max_mw,
         # maximum output subject to ramping constraints
         previous_mw + ramp_mw,
-        # max of desired output and minimum output subject to ramping constraints
-        max(desired_mw, previous_mw - ramp_mw),
+        # max of desired output and previous because we cannot ramp down yet
+        max(desired_mw, previous_mw),
     )
 
 
@@ -429,12 +565,14 @@ def validate_inputs(
     storage_hrs,
     storage_eff,
     storage_dc_charge,
-):
+    storage_reserve,
+) -> None:
     """Validate shape of inputs."""
     if not (
         len(storage_mw)
         == len(storage_hrs)
         == len(storage_eff)
+        == len(storage_reserve)
         == storage_dc_charge.shape[1]
     ):
         raise AssertionError("storage data does not match")

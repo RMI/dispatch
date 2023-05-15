@@ -77,13 +77,13 @@ def fossil_cost(test_dir) -> pd.DataFrame:
     return pd.read_parquet(test_dir / "data/fossil_cost.parquet")
 
 
-@pytest.fixture
+@pytest.fixture()
 def ent_fresh(test_dir) -> dict:
     """Fossil Profiles."""
     return dict(DataZip(test_dir / "data/8fresh.zip").items())
 
 
-@pytest.fixture
+@pytest.fixture()
 def ent_redispatch(test_dir) -> dict:
     """Fossil Profiles."""
     return dict(DataZip(test_dir / "data/8redispatch.zip").items())
@@ -107,6 +107,20 @@ def ent_out_for_excl_test(test_dir):
 
     ent_redispatch["dispatchable_specs"] = ent_redispatch["dispatchable_specs"].assign(
         exclude=lambda x: np.where(x.index == (55380, "CTG1"), True, False),
+    )
+    self = DispatchModel(**ent_redispatch)
+    self()
+    df = self.dispatchable_summary(by=None)
+    return df.groupby(level=[0, 1]).sum()
+
+
+@pytest.fixture(scope="session")
+def ent_out_for_no_limit_test(test_dir):
+    """Dispatchable_summary with excluded generator."""
+    ent_redispatch = dict(DataZip(test_dir / "data/8redispatch.zip").items())
+
+    ent_redispatch["dispatchable_specs"] = ent_redispatch["dispatchable_specs"].assign(
+        no_limit=lambda x: np.where(x.index == (55380, "CTG1"), True, False),
     )
     self = DispatchModel(**ent_redispatch)
     self()

@@ -19,13 +19,12 @@ classifiers = [
 requires-python = ">=3.10,<3.12"
 dependencies = [
     "bottleneck >= 1.3,< 1.3.8",
-    "numba == 0.57.0rc1; python_version>='3.11'",
-    "numba >= 0.55.1,<0.57; python_version<'3.11'",
+    "numba >= 0.55.1,<0.58",
     "numexpr >= 2.8, < 2.8.5",
     "numpy >= 1.18.5,<2",
     "pandas >= 1.4,< 2.1",
     "pandera >= 0.12, < 0.15",
-    "pyarrow>=7, <12",
+    "pyarrow>=7, <13",
     "rmi.etoolbox @ git+https://github.com/rmi/etoolbox.git",
 ]
 
@@ -33,14 +32,14 @@ dependencies = [
 dev = [
     "black[jupyter] >= 22,< 24",
     "docformatter>=1.5,<1.7",
-    "ruff>0.0.215,<0.0.263",
-    "tox>=3.20,<4.5",
+    "ruff>0.0.215,<0.0.266",
+    "tox>=3.20,<4.6",
     "twine>=3.3,<4.1",  # Used to make releases to PyPI
 ]
 doc = [
     "doc8>=0.9,<1.2",
     "furo>=2022.4.7",
-    "sphinx>=4,!=5.1.0,<6.2.1",
+    "sphinx>=4,!=5.1.0,<7.0.1",
     "sphinx-autoapi>=1.8,<2.2",
     "sphinx-issues>=1.2,<3.1",
     "sphinx-autodoc-typehints>1.19,<1.24.0",
@@ -50,13 +49,13 @@ tests = [
     "blackdoc>=0.3.8,<0.3.9",  # runs black on doctests
     "coverage>=5.3,<7.3",
     "doc8>=0.9,<1.2",
-    "pre-commit>=2.9,<3.3",
+    "pre-commit>=2.9,<3.4",
     "pytest>=6.2,<7.4",
     "pytest-console-scripts>=1.1,<1.4",
     "pytest-cov>=2.10,<4.1",
     "rstcheck[sphinx,toml]>=5.0,<6.2",
-    "ruff>0.0.215,<0.0.263",
-    "tox>=3.20,<4.5",
+    "ruff>0.0.215,<0.0.266",
+    "tox>=3.20,<4.6",
 ]
 viz = [
     "plotly>5.10,<5.15",
@@ -105,50 +104,67 @@ ignore_messages = '(Hyperlink target .* is not referenced\.$|Duplicate implicit 
 ignore_directives = ["bibliography", "todo", "include"]
 
 [tool.ruff]
-# Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
-select = ["A", "B", "C", "D", "E", "F", "G", "I", "N", "PGH", "S", "SIM", "TCH", "UP", "W", "RUF"]
-ignore = ["D401", "D105", "D407", "D416", "D417", "D203", "D213"]
-# Allow autofix for all enabled rules (when `--fix`) is provided.
-fixable = ["A", "B", "C", "D", "E", "F", "I", "UP", ]
-unfixable = []
-# By default, always enumerate fixed violations.
-show-fixes = true
-# Exclude a variety of commonly ignored directories.
-exclude = [
-    ".bzr",
-    ".direnv",
-    ".eggs",
-    ".git",
-    ".hg",
-    ".mypy_cache",
-    ".nox",
-    ".pants.d",
-    ".pytype",
-    ".ruff_cache",
-    ".svn",
-    ".tox",
-    ".venv",
-    "__pypackages__",
-    "_build",
-    "buck-out",
-    "build",
-    "dist",
-    "node_modules",
-    "venv",
-]
-# Same as Black.
 line-length = 88
-# Allow unused variables when underscore-prefixed.
-dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
-# Assume Python 3.10.
-target-version = "py310"
+show-fixes = true
+select = [  # https://beta.ruff.rs/docs/rules/
+    "A", # flake8-builtins
+    "B", # flake8-bugbear
+    "C",
+    "C4", # flake8-comprehensions
+    "D", # flake8-docstrings
+    "E",  # pycodestyle
+    "F",  # Pyflakes
+    "FBT", # flake8-boolean-trap
+    "G", # flake8-logging-format
+    "I", # isort
+    "TID", # flake8-tidy-imports
+    "N", # pep8-naming
+    "PD",  # pandas
+    "PT", # flake8-pytest-style
+    "PGH", # pygrep-hooks
+    "S", # bandit
+    "SIM", # flake8-simplify
+    "TCH", # flake8-type-checking
+    "UP", # pyupgrade
+    "W",  # pycodestyle
+    "RUF", # Ruff-specific rules
+    "Q", # flake8-quotes
+]
+ignore = [
+    "D105",
+    "D203",  # 1 blank line required before class docstring
+    "D213",  # Multi-line docstring summary should start at the second line
+    "D401",  # First line of docstring should be in imperative mood: "{first_line}"
+    "D407",  # dashed-underline-after-section, upsets Sphinx
+    "D416",
+    "D417",
+    "E501",  # black handles code line length
+
+]
+
+[tool.ruff.pycodestyle]
+max-doc-length = 88
+
+[tool.ruff.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.flake8-type-checking]
+strict = true
 
 [tool.ruff.per-file-ignores]
 "__init__.py" = ["F401"]
 "docs/conf.py" = ["E501"]
 "engine.py" = ["E501", "B905", "S101"]
-"model.py" = ["E501"]
-"tests/*.py" = ["S101", "SIM117", "F841", "D101", "PD901"]
+"model.py" = [
+    "E501",
+    "W505",  # Doc line too long, these are in doctest lines
+    # to clean up later
+    "PD010",  # `.pivot_table` is preferred to `.pivot` or `.unstack`; provides same functionality
+    "PD013",  # `.melt` is preferred to `.stack`; provides same functionality
+    "PD901",  # `df` is a bad variable name. Be kinder to your future self.
+]
+"tests/*.py" = ["S101", "SIM117", "F841", "D101", "PD901", "FBT003"]
+"tests/engine_test.py" = ["E501"]
 
 [tool.ruff.mccabe]
 # Unlike Flake8, default to a complexity level of 10.
