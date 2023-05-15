@@ -117,7 +117,8 @@ What's New?
    dispatchable start-up, only down to the ``reserve``. After dispatchable start-up,
    storage is dispatched a second time in case a deficit remains, in this part of the
    sequence, all storage state of charge can be used.
-*  We now work with Python 3.11 using newly released :mod:`numba` version 0.57.
+*  dispatch now works with Python 3.11 using newly released :mod:`numba` version 0.57.
+*  dispatch now works with :mod:`pandas` 2.0.
 
 Bug Fixes
 ^^^^^^^^^
