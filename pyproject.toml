@@ -31,7 +31,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "black[jupyter] >= 22,< 24",
-    "docformatter>=1.5,<1.7",
+    "docformatter>=1.5,<1.8",
     "ruff>0.0.215,<0.0.266",
     "tox>=3.20,<4.6",
     "twine>=3.3,<4.1",  # Used to make releases to PyPI
