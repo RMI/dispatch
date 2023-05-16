@@ -2,6 +2,26 @@
 Release Notes
 =======================================================================================
 
+.. _release-v0-6-0:
+
+---------------------------------------------------------------------------------------
+0.6.0 (2023-XX-XX)
+---------------------------------------------------------------------------------------
+
+What's New?
+^^^^^^^^^^^
+*  Initial implementation of dynamic storage reserves. If storage does not have a
+   reserve or the reserve is ``0.0``, we calculate a dynamic reserve based on the next
+   24 hours of net load using :eq:`reserve`.
+
+.. math::
+   :label: reserve
+
+      ramp &= \frac{max(load_{h+1}, ..., load_{h+24})}{load_h} - 1
+
+      reserve &= 1 - e^{-1.5 ramp}
+
+
 .. _release-v0-5-0:
 
 ---------------------------------------------------------------------------------------
