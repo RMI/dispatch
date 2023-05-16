@@ -112,6 +112,14 @@ def dispatch_engine(  # noqa: C901
 
     # the big loop where we iterate through all the hours
     for hr, (deficit, yr) in enumerate(zip(net_load, hr_to_cost_idx)):
+        # storage reserves are dynamic so we need to determine the current hour's
+        # reserve to use throughout
+        storage_reserve_ = dynamic_reserve(
+            hr=hr,
+            reserve=storage_reserve,
+            net_load=net_load,
+        )
+
         # because of the look-backs, the first hour has to be done differently
         # here we just skip it because its only one hour and we assume
         # historical fossil dispatch
@@ -127,7 +135,7 @@ def dispatch_engine(  # noqa: C901
                         deficit=deficit,
                         # previous state_of_charge
                         state_of_charge=storage_soc_max[storage_idx]
-                        * storage_reserve[storage_idx],
+                        * storage_reserve_[storage_idx],
                         dc_charge=storage_dc_charge[hr, storage_idx],
                         mw=storage_mw[storage_idx],
                         max_state_of_charge=storage_soc_max[storage_idx],
@@ -145,7 +153,7 @@ def dispatch_engine(  # noqa: C901
             + adjust_for_storage_reserve(
                 state_of_charge=storage[hr - 1, 2, :],
                 mw=storage_mw,
-                reserve=storage_reserve,
+                reserve=storage_reserve_,
                 max_state_of_charge=storage_soc_max,
             ),
         )
@@ -247,7 +255,7 @@ def dispatch_engine(  # noqa: C901
                 state_of_charge=storage[hr - 1, 2, storage_idx],
                 mw=storage_mw[storage_idx],
                 max_state_of_charge=storage_soc_max[storage_idx],
-                reserve=storage_reserve[storage_idx],
+                reserve=storage_reserve_[storage_idx],
             )
             storage[hr, 1, storage_idx] = discharge
             storage[hr, 2, storage_idx] = storage[hr - 1, 2, storage_idx] - discharge
@@ -347,6 +355,30 @@ def dispatch_engine(  # noqa: C901
 
 
 @njit
+def dynamic_reserve(
+    hr: int,
+    reserve: np.ndarray,
+    net_load: np.ndarray,
+) -> np.ndarray:
+    """Adjust storage reserve based on 24hr net load.
+
+    Args:
+        hr: hour index
+        reserve: storage reserve defaults
+        net_load: net load profile
+
+    Returns: adjusted reserves
+    """
+    projected = net_load[hr + 1 : hr + 24]
+    if len(projected) == 0:
+        return reserve
+    projected_increase = max(0.0, np.max(projected) / net_load[hr] - 1)
+    return np.where(
+        reserve == 0.0, np.around(1 - np.exp(-1.5 * projected_increase), 2), reserve
+    )
+
+
+@njit
 def adjust_for_storage_reserve(
     state_of_charge: np.ndarray,
     mw: np.ndarray,
@@ -376,6 +408,9 @@ def adjust_for_storage_reserve(
     )
     if augment_deficit < 0.0:
         return -augment_deficit
+
+    # reserve cannot exceed one
+    _reserve = np.minimum(1.0, 2.0 * reserve)
     # but if we don't need to restore the reserve, we want to check if we have
     # excess reserve and adjust down the provisional deficit
     return -sum(
@@ -383,7 +418,7 @@ def adjust_for_storage_reserve(
             mw,
             # keep SOC above 2x typical reserve
             np.maximum(
-                state_of_charge - 2.0 * reserve * max_state_of_charge,
+                state_of_charge - _reserve * max_state_of_charge,
                 0.0,
             ),
         )

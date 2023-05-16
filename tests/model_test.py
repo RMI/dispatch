@@ -41,10 +41,10 @@ def test_new_no_dates(fossil_profiles, re_profiles, fossil_specs, fossil_cost):
 @pytest.mark.parametrize(
     ("attr", "expected"),
     [
-        ("redispatch", {"f": 449456776, "r": 383683946}),
-        ("storage_dispatch", {"f": 269892073, "r": 221453923}),
-        ("system_data", {"f": 112821177, "r": 95078855}),
-        ("starts", {"f": 77109, "r": 54628}),
+        ("redispatch", {"f": 456_721_046, "r": 388_909_588}),
+        ("storage_dispatch", {"f": 298_137_664, "r": 250_620_351}),
+        ("system_data", {"f": 121_399_436, "r": 99_388_747}),
+        ("starts", {"f": 72_932, "r": 54_035}),
     ],
     ids=idfn,
 )
@@ -411,10 +411,10 @@ def test_dispatchable_exclude(
 @pytest.mark.parametrize(
     ("gen", "col_set", "col", "expected"),
     [
-        ((55380, "CTG1"), "redispatch_", "mwh", 25367968),
-        ((55380, "CTG1"), "redispatch_", "cost_fuel", 364137734),
-        ((55380, "CTG1"), "redispatch_", "cost_vom", 11065819),
-        ((55380, "CTG1"), "redispatch_", "cost_startup", 64935667),
+        ((55380, "CTG1"), "redispatch_", "mwh", 26250540),
+        ((55380, "CTG1"), "redispatch_", "cost_fuel", 376806368),
+        ((55380, "CTG1"), "redispatch_", "cost_vom", 11450807),
+        ((55380, "CTG1"), "redispatch_", "cost_startup", 65282580),
         ((55380, "CTG1"), "redispatch_", "cost_fom", 1689013.875),
         ((55380, "CTG1"), "historical_", "mwh", 1.0),
         ((55380, "CTG1"), "historical_", "cost_fuel", 1.0),
