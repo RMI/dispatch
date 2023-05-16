@@ -9,6 +9,7 @@ from dispatch.engine import (
     charge_storage,
     discharge_storage,
     dispatch_engine,
+    dynamic_reserve,
     make_rank_arrays,
     validate_inputs,
 )
@@ -37,9 +38,10 @@ NL = [
 CAP = [500, 400, 300]
 
 
-def test_engine():
+@pytest.mark.parametrize("py_func", [True, False], ids=idfn)
+def test_engine(py_func):
     """Trivial test for the dispatch engine."""
-    redispatch, es, sl, st = dispatch_engine.py_func(
+    in_dict = dict(  # noqa: C408
         net_load=np.array(NL),
         hr_to_cost_idx=np.zeros(len(NL), dtype=int),
         historical_dispatch=np.array([CAP] * len(NL)),
@@ -54,6 +56,10 @@ def test_engine():
         storage_dc_charge=np.zeros((len(NL), 2)),
         storage_reserve=np.array([0.1, 0.1]),
     )
+    if py_func:
+        redispatch, es, sl, st = dispatch_engine.py_func(**in_dict)
+    else:
+        redispatch, es, sl, st = dispatch_engine(**in_dict)
     assert np.all(redispatch.sum(axis=1) + es[:, 1, :].sum(axis=1) >= NL)
 
 
@@ -141,6 +147,7 @@ def test_validate_inputs(override, expected):
 
 
 # fmt: off
+@pytest.mark.parametrize("py_func", [True, False])
 @pytest.mark.parametrize(
     ("kwargs", "expected"),
     [
@@ -219,11 +226,15 @@ def test_validate_inputs(override, expected):
     ],
     ids=idfn,
 )
-def test_charge_storage(kwargs, expected):
+def test_charge_storage(py_func, kwargs, expected):
     """Test storage charging calculations."""
-    assert charge_storage.py_func(**kwargs) == expected
+    if py_func:
+        assert charge_storage.py_func(**kwargs) == expected
+    else:
+        assert charge_storage(**kwargs) == expected
 
 
+@pytest.mark.parametrize("py_func", [True, False])
 @pytest.mark.parametrize(
     ("kwargs", "expected"),
     [
@@ -238,11 +249,15 @@ def test_charge_storage(kwargs, expected):
     ],
     ids=idfn,
 )
-def test_discharge_storage(kwargs, expected):
+def test_discharge_storage(py_func, kwargs, expected):
     """Test storage discharging calculations."""
-    assert discharge_storage.py_func(**kwargs) == expected
+    if py_func:
+        assert discharge_storage.py_func(**kwargs) == expected
+    else:
+        assert discharge_storage(**kwargs) == expected
 
 
+@pytest.mark.parametrize("py_func", [True, False])
 @pytest.mark.parametrize(
     ("kwargs", "expected"),
     [
@@ -269,13 +284,19 @@ def test_discharge_storage(kwargs, expected):
     ],
     ids=idfn,
 )
-def test_adjust_for_storage_reserve(kwargs, expected):
+def test_adjust_for_storage_reserve(py_func, kwargs, expected):
     """Test adjustments for storage reserve calculations."""
-    assert adjust_for_storage_reserve.py_func(
-        **{k: np.array(v, dtype=float) for k, v in kwargs.items()}
-    ) == expected
+    if py_func:
+        assert adjust_for_storage_reserve.py_func(
+            **{k: np.array(v, dtype=float) for k, v in kwargs.items()}
+        ) == expected
+    else:
+        assert adjust_for_storage_reserve(
+            **{k: np.array(v, dtype=float) for k, v in kwargs.items()}
+        ) == expected
 
 
+@pytest.mark.parametrize("py_func", [True, False])
 @pytest.mark.parametrize(
     ("kwargs", "expected"),
     [
@@ -308,9 +329,12 @@ def test_adjust_for_storage_reserve(kwargs, expected):
     ],
     ids=idfn,
 )
-def test_dispatch_generator(kwargs, expected):
+def test_dispatch_generator(py_func, kwargs, expected):
     """Test the logic of the calculate_generator_output function."""
-    assert calculate_generator_output.py_func(**kwargs) == expected
+    if py_func:
+        assert calculate_generator_output.py_func(**kwargs) == expected
+    else:
+        assert calculate_generator_output(**kwargs) == expected
 # fmt: on
 
 
@@ -325,3 +349,34 @@ def test_make_rank_arrays(py_func):
         m, s = make_rank_arrays(m_cost, s_cost)
     assert np.all(m == np.array([[1, 0], [0, 1]]))
     assert np.all(s == np.array([[0, 0], [1, 1]]))
+
+
+@pytest.mark.parametrize("py_func", [True, False])
+@pytest.mark.parametrize(
+    ("a", "b", "expected"),
+    [
+        (12, 24, 0.95),
+        (12, 18, 0.89),
+        (12, 16, 0.86),
+        (12, 14, 0.83),
+        (12, 10, 0.71),
+        (12, 8, 0.63),
+        (12, 6, 0.53),
+        (12, 4, 0.39),
+        (12, 3, 0.31),
+        (12, 2, 0.22),
+        (12, 1, 0.12),
+        (12, 0, 0.0),
+    ],
+    ids=idfn,
+)
+def test_dynamic_reserve(py_func, a, b, expected):
+    """Test dynamic reserve."""
+    net_load = a + b * np.sin(np.arange(0, 4, np.pi / 24))
+    if py_func:
+        result = dynamic_reserve.py_func(
+            hr=0, reserve=np.array([0.0, 0.1]), net_load=net_load
+        )
+    else:
+        result = dynamic_reserve(hr=0, reserve=np.array([0.0, 0.1]), net_load=net_load)
+    assert np.all(result == np.array([expected, 0.1]))

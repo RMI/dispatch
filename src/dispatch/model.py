@@ -4,13 +4,9 @@ from __future__ import annotations
 import logging
 import warnings
 from datetime import datetime
-from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
 
 try:
     import plotly.express as px
@@ -132,8 +128,10 @@ class DispatchModel(IOMixin):
                 -   duration_hrs: storage duration in hours.
                 -   roundtrip_eff: roundtrip efficiency.
                 -   operating_date: datetime unit starts operating.
-                -   reserve: % of state of charge to hold in reserve until
-                    after dispatchable startup.
+                -   reserve: [Optional] % of state of charge to hold in reserve until
+                    after dispatchable startup. If this is not provided or the reserve
+                    is 0.0, the reserve will be set dynamically each hour looking
+                    out 24 hours.
 
                 The index must be a :class:`pandas.MultiIndex` of
                 ``['plant_id_eia', 'generator_id']``.
@@ -386,9 +384,9 @@ class DispatchModel(IOMixin):
                      2            2020-01-01        500.0             0.0               0.0  ...           NaN            NaN      NaN
         2            1            2020-01-01        600.0             0.0               0.0  ...           NaN            NaN      NaN
         5            1            2020-01-01        500.0             NaN               NaN  ...           NaN            NaN      NaN
-                     es           2020-01-01        250.0             NaN               NaN  ...           4.0            0.9      0.2
+                     es           2020-01-01        250.0             NaN               NaN  ...           4.0            0.9      0.0
         6            1            2020-01-01        500.0             NaN               NaN  ...           NaN            NaN      NaN
-        7            1            2020-01-01        200.0             NaN               NaN  ...          12.0            0.5      0.2
+        7            1            2020-01-01        200.0             NaN               NaN  ...          12.0            0.5      0.0
         <BLANKLINE>
         [9 rows x 30 columns]
         """
@@ -529,14 +527,14 @@ class DispatchModel(IOMixin):
 
     @staticmethod
     def _add_optional_cols(df: pd.DataFrame, df_name) -> pd.DataFrame:
-        """Add ``exclude`` column if not already present."""
+        """Add optional column if not already present."""
         default_values = {
             "dispatchable_specs": (
                 ("min_uptime", 0),
                 ("exclude", False),
                 ("no_limit", False),
             ),
-            "storage_specs": (("reserve", 0.2),),
+            "storage_specs": (("reserve", 0.0),),
         }
         return df.assign(
             **{col: value for col, value in default_values[df_name] if col not in df}
@@ -631,11 +629,6 @@ class DispatchModel(IOMixin):
         )
 
     @property
-    def dispatch_func(self) -> Callable:
-        """Appropriate dispatch engine depending on ``jit`` setting."""
-        return dispatch_engine if self._metadata["jit"] else dispatch_engine.py_func
-
-    @property
     def is_redispatch(self) -> bool:
         """Determine if this is a redispatch.
 
@@ -693,7 +686,9 @@ class DispatchModel(IOMixin):
                 self.dispatchable_specs.loc[no_limit, "capacity_mw"].to_numpy(),
             )
 
-        fos_prof, storage, deficits, starts = self.dispatch_func(
+        func = dispatch_engine if self._metadata["jit"] else dispatch_engine.py_func
+
+        fos_prof, storage, deficits, starts = func(
             net_load=self.net_load_profile.to_numpy(dtype=np.float_),
             hr_to_cost_idx=(
                 self.net_load_profile.index.year
