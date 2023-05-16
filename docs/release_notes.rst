@@ -2,6 +2,45 @@
 Release Notes
 =======================================================================================
 
+.. _release-v0-5-0:
+
+---------------------------------------------------------------------------------------
+0.5.0 (2023-05-15)
+---------------------------------------------------------------------------------------
+
+What's New?
+^^^^^^^^^^^
+*  Added checks to make sure that the datetime indexes of ``load_profile``,
+   ``dispatchable_profiles``, and ``re_profiles`` match.
+*  Prep for deprecating :meth:`.DispatchModel.from_patio` and
+   :meth:`.DispatchModel.from_fresh`.
+*  Extracted :func:`.calculate_generator_output` from :func:`.dispatch_engine` to make
+   the latter easier to read and to more easily test the former's logic.
+*  Many updates to internal variable names in :mod:`.engine` to make the code easier to
+   read.
+*  Renamed :func:`.apply_op_ret_date` to
+   :func:`.zero_profiles_outside_operating_dates` for clarity, use of the former name
+   will be removed in the future.
+*  Code cleanup along with adoption of ruff and removal of bandit, flake8, isort, etc.
+*  Added the ability to specify in ``dispatchable_specs`` via a ``no_limit`` column
+   that a generator not limited to its historical hourly output by the model without
+   affecting historical dispatch data.
+*  Added the ability to specify in ``dispatchable_specs`` via a ``min_uptime`` column
+   the minimum number of hours a generator must have been operating before it can start
+   ramping down.
+*  Adjusted process of determining the provisional deficit used to dispatch currently
+   operating generators. Previously, we adjusted our target for dispatchable generation
+   based on the assumption we would want to use up all storage state of charge before
+   dispatching operating generators. We now set the provisional deficit so that we hold
+   2x ``reserve`` state of charge in reserve. If state of charge is below ``reserve``,
+   we increase the provisional deficit in order to replenish the reserve.
+*  Changed battery discharge so that only a part of storage can be used before
+   dispatchable start-up, only down to the ``reserve``. After dispatchable start-up,
+   storage is dispatched a second time in case a deficit remains, in this part of the
+   sequence, all storage state of charge can be used.
+*  dispatch now works with Python 3.11 using newly released :mod:`numba` version 0.57.
+*  dispatch now works with :mod:`pandas` 2.0.
+
 
 .. _release-v0-4-0:
 
@@ -89,36 +128,7 @@ What's New?
    optional.
 *  Updates to :class:`.DispatchModel` to work with the new simpler, cleaner
    :class:`.DataZip`.
-*  Added checks to make sure that the datetime indexes of ``load_profile``,
-   ``dispatchable_profiles``, and ``re_profiles`` match.
-*  Prep for deprecating :meth:`.DispatchModel.from_patio` and
-   :meth:`.DispatchModel.from_fresh`.
-*  Extracted :func:`.calculate_generator_output` from :func:`.dispatch_engine` to make
-   the latter easier to read and to more easily test the former's logic.
-*  Many updates to internal variable names in :mod:`.engine` to make the code easier to
-   read.
-*  Renamed :func:`.apply_op_ret_date` to
-   :func:`.zero_profiles_outside_operating_dates` for clarity, use of the former name
-   will be removed in the future.
-*  Code cleanup along with adoption of ruff and removal of bandit, flake8, isort, etc.
-*  Added the ability to specify in ``dispatchable_specs`` via a ``no_limit`` column
-   that a generator not limited to its historical hourly output by the model without
-   affecting historical dispatch data.
-*  Added the ability to specify in ``dispatchable_specs`` via a ``min_uptime`` column
-   the minimum number of hours a generator must have been operating before it can start
-   ramping down.
-*  Adjusted process of determining the provisional deficit used to dispatch currently
-   operating generators. Previously, we adjusted our target for dispatchable generation
-   based on the assumption we would want to use up all storage state of charge before
-   dispatching operating generators. We now set the provisional deficit so that we hold
-   2x ``reserve`` state of charge in reserve. If state of charge is below ``reserve``,
-   we increase the provisional deficit in order to replenish the reserve.
-*  Changed battery discharge so that only a part of storage can be used before
-   dispatchable start-up, only down to the ``reserve``. After dispatchable start-up,
-   storage is dispatched a second time in case a deficit remains, in this part of the
-   sequence, all storage state of charge can be used.
-*  dispatch now works with Python 3.11 using newly released :mod:`numba` version 0.57.
-*  dispatch now works with :mod:`pandas` 2.0.
+
 
 Bug Fixes
 ^^^^^^^^^
