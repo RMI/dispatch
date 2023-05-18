@@ -484,6 +484,21 @@ def test_bad_index(ent_fresh, idx_to_change, exception):
         DispatchModel(**ent_fresh)
 
 
+def test_no_limit_late_operating_date(ent_redispatch):
+    """Test that no_limit resources still respect their operating dates."""
+    ent_redispatch["dispatchable_specs"] = ent_redispatch["dispatchable_specs"].assign(
+        exclude=False, no_limit=False
+    )
+    ent_redispatch["dispatchable_specs"].loc[
+        (55380, "CTG1"), ["operating_date", "retirement_date", "no_limit"]
+    ] = (pd.to_datetime(2025, format="%Y"), pd.to_datetime(2030, format="%Y"), True)
+    dm = DispatchModel(**ent_redispatch)()
+    df = dm.dispatchable_summary(by=None).loc[(55380, "CTG1"), "redispatch_mwh"]
+    assert np.all(df[:"2024"] == 0.0)
+    assert np.all(df["2025":"2029"] > 0.0)
+    assert np.all(df["2031":] == 0.0)
+
+
 def test_bad_exclude_no_limit(ent_redispatch):
     """Test that both ``exclude`` and ``no_limit`` fails."""
     ent_redispatch["dispatchable_specs"] = ent_redispatch["dispatchable_specs"].assign(

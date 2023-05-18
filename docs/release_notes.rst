@@ -21,6 +21,11 @@ What's New?
 
       reserve &= 1 - e^{-1.5 ramp}
 
+Bug Fixes
+^^^^^^^^^
+*  Fixed a bug where ``operating_date`` and ``retirement_date`` did not apply to
+   dispatchable resources, where ``no_limit`` is ``True``.
+
 
 .. _release-v0-5-0:
 

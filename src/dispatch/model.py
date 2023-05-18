@@ -672,19 +672,35 @@ class DispatchModel(IOMixin):
     # TODO probably a bad idea to use __call__, but nice to not have to think of a name
     def __call__(self) -> DispatchModel:
         """Run dispatch model."""
+        # determine any dispatchable resources that should not be limited by historical
+        # dispatch and set their max output to the greater of their capacity and
+        # historical dispatch, then apply their operating and retirement dates
+        no_limit = self.dispatchable_specs.no_limit.to_numpy()
+        if np.any(no_limit):
+            d_prof = self.dispatchable_profiles.copy()
+            d_prof.loc[:, no_limit] = zero_profiles_outside_operating_dates(
+                np.maximum(
+                    d_prof.loc[:, no_limit],
+                    self.dispatchable_specs.loc[no_limit, "capacity_mw"].to_numpy(),
+                ),
+                self.dispatchable_specs.loc[no_limit, "operating_date"],
+                self.dispatchable_specs.loc[no_limit, "retirement_date"],
+            )
+            d_prof = d_prof.to_numpy(dtype=np.float_)
+        else:
+            d_prof = self.dispatchable_profiles.to_numpy(dtype=np.float_, copy=True)
         # determine any dispatchable resources that should be excluded from dispatch and
         # zero out their profile so they do not run
         to_exclude = (~self.dispatchable_specs.exclude).to_numpy(dtype=float)
-        d_prof = self.dispatchable_profiles.to_numpy(dtype=np.float_, copy=True)
         if np.any(to_exclude == 0.0):
             d_prof = d_prof * to_exclude
 
-        no_limit = self.dispatchable_specs.no_limit.to_numpy()
-        if np.any(no_limit):
-            d_prof[:, no_limit] = np.maximum(
-                d_prof[:, no_limit],
-                self.dispatchable_specs.loc[no_limit, "capacity_mw"].to_numpy(),
-            )
+        # no_limit = self.dispatchable_specs.no_limit.to_numpy()
+        # if np.any(no_limit):
+        #     d_prof[:, no_limit] = np.maximum(
+        #         d_prof[:, no_limit],
+        #         self.dispatchable_specs.loc[no_limit, "capacity_mw"].to_numpy(),
+        #     )
 
         func = dispatch_engine if self._metadata["jit"] else dispatch_engine.py_func
 
