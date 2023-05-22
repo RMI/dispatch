@@ -25,6 +25,8 @@ What's New?
    :meth:`.DispatchModel.system_level_summary`.
 *  :meth:`.DispatchModel.dispatchable_summary` and :meth:`.DispatchModel.full_output`
    now include all columns provided in ``<x>_specs``.
+*  Enable multiple storage generators under a single ``plant_id_eia`` so long as they
+   don't share a ``plant_id_eia`` with a renewable generator.
 
 Bug Fixes
 ^^^^^^^^^

@@ -47,15 +47,16 @@ class Validator:
         coerce=True,
     )
 
-    def __init__(self, obj: Any, gen_set: pd.Index):
+    def __init__(self, obj: Any, gen_set: pd.Index, re_set: pd.Index):
         """Init Validator."""
         self.obj = obj
         self.gen_set = gen_set
+        self.re_set = re_set
         self.load_profile = obj.load_profile
         self.storage_specs_schema = pa.DataFrameSchema(
             index=pa.MultiIndex(
                 [PID_SCHEMA, GID_SCHEMA],
-                unique=["plant_id_eia"],
+                unique=["plant_id_eia", "generator_id"],
                 strict=True,
                 coerce=True,
             ),
@@ -204,7 +205,31 @@ class Validator:
 
     def storage_specs(self, storage_specs: pd.DataFrame) -> pd.DataFrame:
         """Validate storage_specs."""
-        return self.storage_specs_schema.validate(storage_specs)
+        out = self.storage_specs_schema.validate(storage_specs)
+        check_dup_ids = out.assign(
+            id_count=lambda x: x.groupby("plant_id_eia").capacity_mw.transform("count")
+        ).query("id_count > 1")
+        bad_dups = check_dup_ids.loc[
+            [
+                x
+                for x in check_dup_ids.index
+                if x[0] in self.re_set.get_level_values("plant_id_eia")
+            ],
+            :,
+        ]
+        if bad_dups.empty:
+            return out
+        bad_dups = (
+            bad_dups[["capacity_mw", "duration_hrs", "roundtrip_eff", "operating_date"]]
+            .to_string()
+            .replace("\n", "\n\t")
+        )
+        raise AssertionError(
+            f"DC-coupled storage must share `plant_id_eia` with the associated "
+            f"renewable facility. In those cases, there can be only one storage "
+            f"facility with that `plant_id_eia`. The following storage facilities "
+            f"are DC_coupled but not unique: \n {bad_dups}"
+        )
 
     def renewables(
         self, re_plant_specs: pd.DataFrame | None, re_profiles: pd.DataFrame | None

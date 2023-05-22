@@ -514,6 +514,35 @@ def test_no_limit_late_operating_date(ent_redispatch):
     assert np.all(df["2031":] == 0.0)
 
 
+@pytest.mark.parametrize(
+    ("re_ids", "expected"),
+    [
+        ((-38,), "notempty"),
+        ((-38, -43), AssertionError),
+    ],
+    ids=idfn,
+)
+def test_non_unique_storage_ids(ent_redispatch, re_ids, expected):
+    """Test that non-unique storage IDs are allowed if not connected to RE."""
+    ent_redispatch["storage_specs"] = pd.concat(
+        [ent_redispatch["storage_specs"]]
+        + [
+            ent_redispatch["storage_specs"]
+            .reset_index()
+            .query("plant_id_eia == @x")
+            .assign(generator_id="2")
+            .set_index(["plant_id_eia", "generator_id"])
+            for x in re_ids
+        ]
+    ).sort_index()
+    if isinstance(expected, str):
+        dm = DispatchModel(**ent_redispatch)()
+        assert not dm.redispatch.empty
+    else:
+        with pytest.raises(expected):
+            DispatchModel(**ent_redispatch)()
+
+
 def test_bad_exclude_no_limit(ent_redispatch):
     """Test that both ``exclude`` and ``no_limit`` fails."""
     ent_redispatch["dispatchable_specs"] = ent_redispatch["dispatchable_specs"].assign(
