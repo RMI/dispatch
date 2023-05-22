@@ -294,8 +294,7 @@ def test_alt_total_var_mwh(
 ):
     """Test impact of total_var_mwh.
 
-    Test that changing total_var_mwh changes dispatch but not cost
-    calculations.
+    Test that changing total_var_mwh changes dispatch but not cost calculations.
     """
     fossil_cost = fossil_cost.copy()
     fossil_cost.loc[(3648, "4", "2018-01-01"), "total_var_mwh"] = 0.0
