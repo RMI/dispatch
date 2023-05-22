@@ -404,7 +404,15 @@ class DispatchModel(IOMixin):
         self.dt_idx = self.load_profile.index
         self.yrs_idx = self.dt_idx.to_series().groupby([pd.Grouper(freq="YS")]).first()
 
-        validator = Validator(self, gen_set=dispatchable_specs.index)
+        validator = Validator(
+            self,
+            gen_set=dispatchable_specs.index,
+            re_set=pd.MultiIndex.from_product(
+                [[], []], names=["plant_id_eia", "generator_id"]
+            )
+            if re_plant_specs is None
+            else re_plant_specs.index,
+        )
         self.dispatchable_specs: pd.DataFrame = validator.dispatchable_specs(
             dispatchable_specs
         ).pipe(self._add_optional_cols, df_name="dispatchable_specs")
@@ -486,13 +494,20 @@ class DispatchModel(IOMixin):
         )
         if self.re_excess is None:
             return dc_charge.fillna(0.0)
-        dc_charge = dc_charge.droplevel("generator_id", axis=1)
+        # we need to be able to handle non-unique plant_id_eias for storage and re
+        # so we can't just drop storage generator_ids, this requires some gymnastics
+        # to select the correct columns from self.re_excess and name them in such a way
+        # that combine_first works properly since it combines by index/column
+        re_excess = (
+            self.re_excess.groupby(level=0, axis=1)
+            .sum()
+            .sort_index(axis=1, ascending=False)
+        )
+        re_excess = re_excess.loc[:, [pid for pid, _ in dc_charge if pid in re_excess]]
+        # put the correct storage index column names on the re_excess data
+        re_excess.columns = dc_charge.loc[:, list(re_excess)].columns
         return (
-            dc_charge.combine_first(
-                self.re_excess.groupby(level=0, axis=1)
-                .sum()
-                .sort_index(axis=1, ascending=False)
-            )[dc_charge.columns]
+            dc_charge.combine_first(re_excess)[dc_charge.columns]
             .set_axis(self.storage_specs.index, axis=1)
             .fillna(0.0)
         )
