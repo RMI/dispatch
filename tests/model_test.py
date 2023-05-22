@@ -537,7 +537,7 @@ def test_non_unique_storage_ids(ent_redispatch, re_ids, expected):
     ).sort_index()
     if isinstance(expected, str):
         dm = DispatchModel(**ent_redispatch)()
-        assert not dm.redispatch.empty
+        assert not dm.system_level_summary(freq="YS").empty
     else:
         with pytest.raises(expected):
             DispatchModel(**ent_redispatch)()
