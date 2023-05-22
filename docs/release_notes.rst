@@ -21,10 +21,19 @@ What's New?
 
       reserve &= 1 - e^{-1.5 ramp}
 
+*  Additional deficit and curtailment metrics in
+   :meth:`.DispatchModel.system_level_summary`.
+*  :meth:`.DispatchModel.dispatchable_summary` and :meth:`.DispatchModel.full_output`
+   now include all columns provided in ``<x>_specs``.
+
 Bug Fixes
 ^^^^^^^^^
 *  Fixed a bug where ``operating_date`` and ``retirement_date`` did not apply to
    dispatchable resources, where ``no_limit`` is ``True``.
+*  Fixed a bug where ``capacity_mw`` for storage and renewables was not zero in outputs
+   before their operating date. We now compare the modeled year to the operating year
+   rather than the date. This provides the expected output when outputs are aggregated
+   annually as is the typical case.
 
 
 .. _release-v0-5-0:
