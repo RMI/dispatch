@@ -500,8 +500,7 @@ class DispatchModel(IOMixin):
     def _add_total_and_missing_cols(self, df: pd.DataFrame) -> pd.DataFrame:
         """Add optional columns if they are missing.
 
-        Add columns for total FOM and total startup from respective unit
-        costs.
+        Add columns for total FOM and total startup from respective unit costs.
         """
         df = (
             df.reset_index()
@@ -632,8 +631,7 @@ class DispatchModel(IOMixin):
     def is_redispatch(self) -> bool:
         """Determine if this is a redispatch.
 
-        True if this is redispatch, i.e. has meaningful historical
-        dispatch.
+        True if this is redispatch, i.e. has meaningful historical dispatch.
         """
         # more than 2 unique values are required because any plant that begins
         # operation during the period will have both 0 and its capacity
@@ -890,8 +888,7 @@ class DispatchModel(IOMixin):
     ) -> pd.Series[int]:
         """Value counts of deficit.
 
-        Number of hours during which deficit was in various duration
-        bins.
+        Number of hours during which deficit was in various duration bins.
         """
         if comparison is None:
             durs = self.system_data.deficit / self.load_profile
@@ -912,9 +909,9 @@ class DispatchModel(IOMixin):
     ) -> list[pd.Timestamp]:
         """Hours from dispatch to look at more closely.
 
-        Hours with positive deficits are ones where not all of net load
-        was served we want to be able to easily check the two hours
-        immediately before these positive deficit hours.
+        Hours with positive deficits are ones where not all of net load was served we
+        want to be able to easily check the two hours immediately before these positive
+        deficit hours.
         """
         if comparison is None:
             comparison = self.load_profile.groupby([pd.Grouper(freq="YS")]).transform(
@@ -998,8 +995,7 @@ class DispatchModel(IOMixin):
     def storage_capacity(self) -> pd.DataFrame:
         """Value counts of charge and discharge.
 
-        Number of hours when storage charge or discharge was in various
-        bins.
+        Number of hours when storage charge or discharge was in various bins.
         """
         rates = self.storage_dispatch.filter(like="charge")
         # a mediocre way to define the bins...
@@ -1018,8 +1014,7 @@ class DispatchModel(IOMixin):
     def storage_durations(self) -> pd.DataFrame:
         """Value counts of state of charge hours.
 
-        Number of hours during which state of charge was in various
-        duration bins.
+        Number of hours during which state of charge was in various duration bins.
         """
         df = self.storage_dispatch.filter(like="soc")
         durs = df / self.storage_specs.capacity_mw.to_numpy(dtype=float)
