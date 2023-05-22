@@ -388,7 +388,7 @@ class DispatchModel(IOMixin):
         6            1            2020-01-01        500.0             NaN               NaN  ...           NaN            NaN      NaN
         7            1            2020-01-01        200.0             NaN               NaN  ...          12.0            0.5      0.0
         <BLANKLINE>
-        [9 rows x 30 columns]
+        [9 rows x 34 columns]
         """
         if not name and "balancing_authority_code_eia" in dispatchable_specs:
             name = dispatchable_specs.balancing_authority_code_eia.mode().iloc[0]
@@ -1040,9 +1040,19 @@ class DispatchModel(IOMixin):
         """Create system and storage summary metrics."""
         out = pd.concat(
             [
-                # mwh deficit, curtailment, dirty charge
-                self.system_data.groupby(pd.Grouper(freq=freq))
+                # mwh deficit, curtailment, re_curtailment, dirty charge
+                self.system_data.assign(
+                    load_mwh=self.load_profile,
+                    re_mwh=self.re_profiles_ac.sum(axis=1),
+                    re_curtailment_mwh=lambda x: np.minimum(x.curtailment, x.re_mwh),
+                )
+                .groupby(pd.Grouper(freq=freq))
                 .sum()
+                .assign(
+                    deficit_pct=lambda x: x.deficit / x.load_mwh,
+                    curtailment_pct=lambda x: x.curtailment / x.load_mwh,
+                    re_curtailment_pct=lambda x: x.re_curtailment_mwh / x.re_mwh,
+                )
                 .rename(columns={c: f"{c}_mwh" for c in self.system_data}),
                 # max deficit pct of load
                 self.system_data[["deficit"]]
@@ -1163,7 +1173,7 @@ class DispatchModel(IOMixin):
             )
             .assign(
                 capacity_mw=lambda x: x.capacity_mw.where(
-                    x.operating_date <= x.datetime, 0
+                    x.operating_date.dt.year < x.datetime.dt.year, 0
                 )
             )
         )
@@ -1210,7 +1220,7 @@ class DispatchModel(IOMixin):
             )
             .assign(
                 capacity_mw=lambda x: x.capacity_mw.where(
-                    x.operating_date <= x.datetime, 0
+                    x.operating_date.dt.year < x.datetime.dt.year, 0
                 )
             )
         )
@@ -1399,34 +1409,17 @@ class DispatchModel(IOMixin):
         )
         if not augment:
             return out
-        cols = [
-            "plant_name_eia",
-            "technology_description",
-            "utility_id_eia",
-            "final_ba_code",
-            "final_respondent_id",
-            "respondent_name",
-            "balancing_authority_code_eia",
-            "prime_mover_code",
-            "operating_date",
-            "retirement_date",
-            "status",
-            "owned_pct",
-            "state",
-            "latitude",
-            "longitude",
-        ]
         return (
             out.reset_index()
             .merge(
-                self.dispatchable_specs.reset_index(),
+                self.dispatchable_specs.reset_index().drop(columns=["capacity_mw"]),
                 on=["plant_id_eia", "generator_id"],
                 validate="m:1",
                 suffixes=(None, "_l"),
             )
             .set_index(out.index.names)[
-                list(out.columns)
-                + [col for col in cols if col in self.dispatchable_specs]
+                # unique column names while keeping order
+                list(dict.fromkeys(out) | dict.fromkeys(self.dispatchable_specs))
             ]
         )
 
