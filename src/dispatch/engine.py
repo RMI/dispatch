@@ -577,7 +577,8 @@ def charge_storage(
         _grid_charge + dc_charge,
         mw,
         # calculate the amount of charging, to account for battery capacity, we
-        # make sure that `charge` would not put `state_of_charge` over `max_state_of_charge`
+        # make sure that `charge` would not put `state_of_charge` over
+        # `max_state_of_charge`
         (max_state_of_charge - state_of_charge) / eff,
     )
     # we charge from DC-coupled RE before charging from the grid
