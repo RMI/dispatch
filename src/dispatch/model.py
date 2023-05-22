@@ -441,16 +441,14 @@ class DispatchModel(IOMixin):
         # create vars with correct column names that will be replaced after dispatch
         self.redispatch = MTDF.reindex(columns=self.dispatchable_specs.index)
         self.storage_dispatch = MTDF.reindex(
-            columns=[
-                col
-                for i in self.storage_specs.index.get_level_values("plant_id_eia")
-                for col in (
-                    f"charge_{i}",
-                    f"discharge_{i}",
-                    f"soc_{i}",
-                    f"gridcharge_{i}",
-                )
-            ]
+            columns=pd.MultiIndex.from_tuples(
+                [
+                    (col, pid, gid)
+                    for pid, gid in self.storage_specs.index
+                    for col in ("charge", "discharge", "soc", "gridcharge")
+                ],
+                names=["technology_description", "plant_id_eia", "generator_id"],
+            )
         )
         self.system_data = MTDF.reindex(
             columns=["deficit", "dirty_charge", "curtailment"]
@@ -1048,6 +1046,9 @@ class DispatchModel(IOMixin):
 
     def system_level_summary(self, freq: str = "YS", **kwargs) -> pd.DataFrame:
         """Create system and storage summary metrics."""
+        es_roll_up = self.storage_dispatch.groupby(level=[0, 1], axis=1).sum()
+        es_ids = self.storage_specs.index.get_level_values("plant_id_eia").unique()
+
         out = pd.concat(
             [
                 # mwh deficit, curtailment, re_curtailment, dirty charge
@@ -1078,30 +1079,26 @@ class DispatchModel(IOMixin):
                     name="deficit_gt_2pct_count",
                 ),
                 # storage op max
-                self.storage_dispatch.assign(
-                    **{
-                        f"storage_{i}_max_mw": self.storage_dispatch.filter(
-                            like=f"e_{i}"
-                        ).max(axis=1)
-                        for i in self.storage_specs.index.get_level_values(
-                            "plant_id_eia"
-                        )
-                    },
-                    **{
-                        f"storage_{i}_max_hrs": self.storage_dispatch[f"soc_{i}"]
+                pd.concat(
+                    [
+                        es_roll_up.loc[:, [("charge", i), ("discharge", i)]]
+                        .max(axis=1)
+                        .to_frame(name=f"storage_{i}_max_mw")
+                        for i in es_ids
+                    ]
+                    + [
+                        es_roll_up[("soc", i)].to_frame(name=f"storage_{i}_max_hrs")
                         / (
-                            self.storage_specs.loc[i, "capacity_mw"].item()
-                            if np.all(self.storage_specs.loc[i, "capacity_mw"] > 0)
+                            self.storage_specs.loc[i, "capacity_mw"].sum()
+                            if self.storage_specs.loc[i, "capacity_mw"].sum() > 0
                             else 1.0
                         )
-                        for i in self.storage_specs.index.get_level_values(
-                            "plant_id_eia"
-                        )
-                    },
+                        for i in es_ids
+                    ],
+                    axis=1,
                 )
                 .groupby(pd.Grouper(freq=freq))
-                .max()
-                .filter(like="max"),
+                .max(),
             ],
             axis=1,
         )
@@ -1109,20 +1106,20 @@ class DispatchModel(IOMixin):
             **{
                 f"storage_{i}_mw_utilization": out[f"storage_{i}_max_mw"]
                 / (
-                    self.storage_specs.loc[i, "capacity_mw"].item()
-                    if np.all(self.storage_specs.loc[i, "capacity_mw"] > 0)
+                    self.storage_specs.loc[i, "capacity_mw"].sum()
+                    if self.storage_specs.loc[i, "capacity_mw"].sum() > 0
                     else 1.0
                 )
-                for i in self.storage_specs.index.get_level_values("plant_id_eia")
+                for i in es_ids
             },
             **{
                 f"storage_{i}_hrs_utilization": out[f"storage_{i}_max_hrs"]
                 / (
-                    self.storage_specs.loc[i, "duration_hrs"].item()
-                    if np.all(self.storage_specs.loc[i, "duration_hrs"] > 0)
+                    self.storage_specs.loc[i, "duration_hrs"].sum()
+                    if self.storage_specs.loc[i, "duration_hrs"].sum() > 0
                     else 1.0
                 )
-                for i in self.storage_specs.index.get_level_values("plant_id_eia")
+                for i in es_ids
             },
         )
 
@@ -1199,25 +1196,18 @@ class DispatchModel(IOMixin):
     ) -> pd.DataFrame:
         """Create granular summary of storage plant metrics."""
         out = (
-            self.storage_dispatch.filter(regex="^dis|^grid")
+            self.storage_dispatch.loc[:, ["discharge", "gridcharge"]]
             .groupby([pd.Grouper(freq=freq)])
             .sum()
-            .stack()
+            .stack([0, 1, 2])
+            .to_frame(name="redispatch_mwh")
             .reset_index()
-            .rename(columns={0: "redispatch_mwh"})
         )
 
-        out[["kind", "plant_id_eia"]] = out.level_1.str.split("_", expand=True)
         out = (
-            out.astype({"plant_id_eia": int})
-            .assign(
+            out.assign(
                 redispatch_mwh=lambda x: x.redispatch_mwh.mask(
-                    x.kind == "gridcharge", x.redispatch_mwh * -1
-                ),
-                generator_id=lambda x: x.plant_id_eia.replace(
-                    self.storage_specs.reset_index(
-                        "generator_id"
-                    ).generator_id.to_dict()
+                    x.technology_description == "gridcharge", x.redispatch_mwh * -1
                 ),
             )
             .groupby(["plant_id_eia", "generator_id", "datetime"])
@@ -1435,9 +1425,11 @@ class DispatchModel(IOMixin):
 
     def _plot_prep(self):
         if "plot_prep" not in self._cached:
-            storage = self.storage_dispatch.assign(
-                charge=lambda x: -1 * x.filter(regex="^gridcharge").sum(axis=1),
-                discharge=lambda x: x.filter(regex="^discharge").sum(axis=1),
+            storage = (
+                self.storage_dispatch.loc[:, ["gridcharge", "discharge"]]
+                .groupby(level=0, axis=1)
+                .sum()
+                .assign(charge=lambda x: x.gridcharge * -1)
             )
             try:
                 re = self.re_summary(freq="H").redispatch_mwh.unstack(level=0)
@@ -1480,23 +1472,13 @@ class DispatchModel(IOMixin):
                 ),
                 axis=1,
             ),
-            self.storage_dispatch.filter(like="discharge").set_axis(
-                pd.MultiIndex.from_frame(
-                    self.storage_specs.assign(
-                        technology_description="discharge"
-                    ).technology_description.reset_index()
-                ),
-                axis=1,
+            self.storage_dispatch.loc[:, ["discharge"]].reorder_levels(
+                [1, 2, 0], axis=1
             ),
             -1
-            * self.storage_dispatch.filter(like="gridcharge").set_axis(
-                pd.MultiIndex.from_frame(
-                    self.storage_specs.assign(
-                        technology_description="charge"
-                    ).technology_description.reset_index()
-                ),
-                axis=1,
-            ),
+            * self.storage_dispatch.loc[:, ["gridcharge"]]
+            .reorder_levels([1, 2, 0], axis=1)
+            .rename(columns={"gridcharge": "charge"}),
             -1
             * self.system_data.curtailment.to_frame(
                 name=(999, "curtailment", "Curtailment")
