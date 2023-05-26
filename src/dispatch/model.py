@@ -1057,7 +1057,7 @@ class DispatchModel(IOMixin):
 
         Number of hours when storage charge or discharge was in various bins.
         """
-        rates = self.storage_dispatch.filter(like="charge")
+        rates = self.storage_dispatch.loc[:, "charge"]
         # a mediocre way to define the bins...
         d_max = int(np.ceil(rates.max().max()))
         g_bins = [
@@ -1076,7 +1076,7 @@ class DispatchModel(IOMixin):
 
         Number of hours during which state of charge was in various duration bins.
         """
-        df = self.storage_dispatch.filter(like="soc")
+        df = self.storage_dispatch.loc[:, "soc"]
         durs = df / self.storage_specs.capacity_mw.to_numpy(dtype=float)
         # a mediocre way to define the bins...
         d_max = int(np.ceil(durs.max().max()))
