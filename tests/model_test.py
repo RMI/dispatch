@@ -1,5 +1,6 @@
 """Where dispatch tests will go."""
 import logging
+import sys
 from io import BytesIO
 
 import numpy as np
@@ -211,6 +212,10 @@ class TestOutputs:
             raise AssertionError
 
 
+@pytest.mark.skipif(
+    (sys.platform == "win32") & (sys.version_info > (3, 10)),
+    reason="plotly or kaleido intermittently hangs on windows in python 3.11",
+)
 class TestPlotting:
     """Tests for plotting methods."""
 
