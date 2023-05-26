@@ -1,4 +1,5 @@
 """Where dispatch tests will go."""
+import logging
 from io import BytesIO
 
 import numpy as np
@@ -9,6 +10,8 @@ from dispatch import DispatchModel
 from dispatch.helpers import zero_profiles_outside_operating_dates
 from etoolbox.datazip import DataZip
 from etoolbox.utils.testing import idfn
+
+logger = logging.getLogger(__name__)
 
 
 def test_new_no_dates(fossil_profiles, re_profiles, fossil_specs, fossil_cost):
@@ -41,10 +44,10 @@ def test_new_no_dates(fossil_profiles, re_profiles, fossil_specs, fossil_cost):
 @pytest.mark.parametrize(
     ("attr", "expected"),
     [
-        ("redispatch", {"f": 456_721_046, "r": 388_909_588}),
-        ("storage_dispatch", {"f": 298_137_664, "r": 250_620_351}),
-        ("system_data", {"f": 121_399_436, "r": 99_388_747}),
-        ("starts", {"f": 72_932, "r": 54_035}),
+        ("redispatch", {"f": 399_672_109, "r": 370_228_932}),
+        ("storage_dispatch", {"f": 266_660_550, "r": 235_078_425}),
+        ("system_data", {"f": 49_509_985, "r": 75_636_546}),
+        ("starts", {"f": 108_678, "r": 68_007}),
     ],
     ids=idfn,
 )
@@ -426,10 +429,10 @@ def test_dispatchable_exclude(
 @pytest.mark.parametrize(
     ("gen", "col_set", "col", "expected"),
     [
-        ((55380, "CTG1"), "redispatch_", "mwh", 26250540),
-        ((55380, "CTG1"), "redispatch_", "cost_fuel", 376806368),
-        ((55380, "CTG1"), "redispatch_", "cost_vom", 11450807),
-        ((55380, "CTG1"), "redispatch_", "cost_startup", 65282580),
+        ((55380, "CTG1"), "redispatch_", "mwh", 25033526),
+        ((55380, "CTG1"), "redispatch_", "cost_fuel", 359337060),
+        ((55380, "CTG1"), "redispatch_", "cost_vom", 10919931),
+        ((55380, "CTG1"), "redispatch_", "cost_startup", 79994814),
         ((55380, "CTG1"), "redispatch_", "cost_fom", 1689013.875),
         ((55380, "CTG1"), "historical_", "mwh", 1.0),
         ((55380, "CTG1"), "historical_", "cost_fuel", 1.0),
@@ -543,6 +546,14 @@ def test_non_unique_storage_ids(ent_redispatch, re_ids, expected):
             DispatchModel(**ent_redispatch)()
 
 
+def test_system_level_summary_rollup(ent_redispatch):
+    """Test that storage_rollup in system_level_summary works."""
+    dm = DispatchModel(**ent_redispatch)()
+    assert not dm.system_level_summary(
+        freq="YS", storage_rollup={"other": [-40, -39]}
+    ).empty
+
+
 def test_bad_exclude_no_limit(ent_redispatch):
     """Test that both ``exclude`` and ``no_limit`` fails."""
     ent_redispatch["dispatchable_specs"] = ent_redispatch["dispatchable_specs"].assign(
@@ -580,6 +591,130 @@ def test_repr(ent_fresh):
     """Test repr."""
     self = DispatchModel(**ent_fresh)
     assert "n_dispatchable=24" in repr(self)
+
+
+@pytest.mark.parametrize(
+    ("kind", "expected"),
+    [
+        (
+            "deficit",
+            {
+                "57": 0.0,
+                "aps": 4.631323e-7,
+                "epe": 3.2663479e-20,
+                "fpc": 2.8729943e-6,
+                "fpl": 1.512245e-4,
+                "ldwp": 1.640462e-4,
+                "miso": 2.684052e-6,
+                "nyis": 3.62941e-6,
+                "pac": 4.23462e-6,
+                "pjm": 2.26282e-6,
+                "psco": 5.255995e-5,
+                "tva": 7.56522274e-6,
+            },
+        ),
+        (
+            "curtailment",
+            {
+                "57": 1.087665e-5,
+                "aps": 9.35579e-6,
+                "epe": 4.1907475e-7,
+                "fpc": 9.07320697e-6,
+                "fpl": 8.60302e-5,
+                "ldwp": 4.794772e-2,
+                "miso": 7.311725e-5,
+                "nyis": 4.40259e-10,
+                "pac": 6.05654e-6,
+                "pjm": 3.74322e-5,
+                "psco": 2.117926e-4,
+                "tva": 5.7364898e-7,
+            },
+        ),
+    ],
+    ids=idfn,
+)
+def test_deficit_curtailment(ba_dm, kind, expected):
+    """Test that deficit and curtailment have not regressed.
+
+    The goal is to have a test that can be run as we make changes to the engine to check
+    that key performance metrics are not getting worse.
+    """
+    name, dm = ba_dm
+    actual = dm.system_data[kind].sum() / dm.load_profile.sum()
+    expected = expected[name]
+    assert actual <= expected
+    if not np.isclose(actual, expected, rtol=1e-6, atol=0):
+        logger.warning("%s %s: expected=%e, actual=%e", name, kind, expected, actual)
+
+
+def sweep(test_dir):
+    """Run dispatch on many BAs with different coefficient settings."""
+    bas = [
+        "57",
+        "193",
+        "aps",
+        "caiso",
+        "duke",
+        "epe",
+        "erco",
+        "fpc",
+        "fpl",
+        "ldwp",
+        "miso",
+        "nyis",
+        "pac",
+        "pjm",
+        "psco",
+        "tva",
+    ]
+    coeffs = np.arange(0.0, 2.0, 0.1)
+    df = pd.DataFrame(
+        index=pd.MultiIndex.from_product([bas, coeffs], names=["ba", "coeff"]),
+        columns=["deficit", "curtailment"],
+    )
+    for ba in bas:
+        try:
+            data = dict(DataZip(test_dir / f"data/ba/{ba}.zip").items())
+            dm = DispatchModel(**data)
+            for coeff in coeffs:
+                dm(dynamic_reserve_coeff=coeff)
+                df.loc[(ba, coeff), "deficit"] = (
+                    dm.system_data.deficit.sum() / dm.load_profile.sum()
+                )
+                df.loc[(ba, coeff), "curtailment"] = (
+                    dm.system_data.curtailment.sum() / dm.load_profile.sum()
+                )
+        except Exception as exc:
+            logger.warning("%s, %r", ba, exc)
+    return df
+
+
+@pytest.mark.skip(reason="exploration not testing")
+def test_sweep(test_dir):
+    """Explore impact of different coefficients on deficit and curtailment."""
+    import plotly.express as px
+
+    df = sweep(test_dir)
+    f2 = (
+        px.scatter(
+            df.reset_index()
+            .dropna()
+            .melt(id_vars=["ba", "coeff"], value_vars=["deficit", "curtailment"]),
+            x="coeff",
+            y="value",
+            color="variable",
+            facet_col="ba",
+            facet_col_wrap=3,
+            facet_col_spacing=0.1,
+            height=900,
+        )
+        .for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+        .update_yaxes(
+            matches=None, showticklabels=True, tickformat=".1e", rangemode="tozero"
+        )
+    )
+    f2.write_image(test_dir / "data/def.pdf")
+    raise AssertionError()
 
 
 @pytest.mark.skip(reason="for debugging only")

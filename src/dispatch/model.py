@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 import warnings
 from datetime import datetime
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -25,7 +26,7 @@ from etoolbox.datazip import IOMixin
 
 from dispatch import __version__
 from dispatch.constants import COLOR_MAP, MTDF, PLOT_MAP
-from dispatch.engine import dispatch_engine
+from dispatch.engine import dispatch_engine, dispatch_engine_auto
 from dispatch.helpers import dispatch_key, zero_profiles_outside_operating_dates
 from dispatch.metadata import LOAD_PROFILE_SCHEMA, Validator
 
@@ -57,9 +58,11 @@ class DispatchModel(IOMixin):
         "storage_dispatch",
         "system_data",
         "starts",
+        "config",
         "_metadata",
         "_cached",
     )
+    default_config = {"dynamic_reserve_coeff": "auto"}
 
     def __init__(
         self,
@@ -72,6 +75,7 @@ class DispatchModel(IOMixin):
         re_plant_specs: pd.DataFrame | None = None,
         jit: bool = True,  # noqa: FBT001, FBT002
         name: str = "",
+        config: dict | None = None,
     ):
         """Initialize DispatchModel.
 
@@ -161,6 +165,13 @@ class DispatchModel(IOMixin):
             jit: if ``True``, use numba to compile the dispatch engine, ``False`` is
                 mostly for debugging
             name: a name, only used in the ``repr``
+            config: a dict of changes to :attr:`.DispatchModel.default_config`, can
+                include:
+
+                - dynamic_reserve_coeff: passed to
+                  :func:`dispatch.engine.dynamic_reserve` the default value is 'auto'
+                  which then tries a number of values and selects the best using
+                  :func:`dispatch.engine.choose_best_coefficient`.
 
         >>> pd.options.display.width = 1000
         >>> pd.options.display.max_columns = 6
@@ -398,6 +409,10 @@ class DispatchModel(IOMixin):
             "created": datetime.now().strftime("%c"),
             "jit": jit,
         }
+        if config is None:
+            self.config = self.default_config
+        else:
+            self.config = self.default_config | config
 
         self.load_profile: pd.Series = LOAD_PROFILE_SCHEMA.validate(load_profile)
 
@@ -451,7 +466,7 @@ class DispatchModel(IOMixin):
             )
         )
         self.system_data = MTDF.reindex(
-            columns=["deficit", "dirty_charge", "curtailment"]
+            columns=["deficit", "dirty_charge", "curtailment", "load_adjustment"]
         )
         self.starts = MTDF.reindex(columns=self.dispatchable_specs.index)
         self._cached = {}
@@ -681,7 +696,7 @@ class DispatchModel(IOMixin):
         return out
 
     # TODO probably a bad idea to use __call__, but nice to not have to think of a name
-    def __call__(self) -> DispatchModel:
+    def __call__(self, **kwargs) -> DispatchModel:
         """Run dispatch model."""
         # determine any dispatchable resources that should not be limited by historical
         # dispatch and set their max output to the greater of their capacity and
@@ -706,16 +721,21 @@ class DispatchModel(IOMixin):
         if np.any(to_exclude == 0.0):
             d_prof = d_prof * to_exclude
 
-        # no_limit = self.dispatchable_specs.no_limit.to_numpy()
-        # if np.any(no_limit):
-        #     d_prof[:, no_limit] = np.maximum(
-        #         d_prof[:, no_limit],
-        #         self.dispatchable_specs.loc[no_limit, "capacity_mw"].to_numpy(),
-        #     )
+        coeff = (self.config | kwargs)["dynamic_reserve_coeff"]
 
-        func = dispatch_engine if self._metadata["jit"] else dispatch_engine.py_func
+        if self._metadata["jit"]:
+            func = dispatch_engine_auto
+            coeff = -10.0 if coeff == "auto" else coeff
+        else:
+            func = dispatch_engine.py_func
+            if coeff == "auto":
+                LOGGER.warning(
+                    "when `jit == False` we cannot automatically determine "
+                    "`dynamic_reserve_coeff` so it will be set to 1."
+                )
+                coeff = 1
 
-        fos_prof, storage, deficits, starts = func(
+        fos_prof, storage, system, starts = func(
             net_load=self.net_load_profile.to_numpy(dtype=np.float_),
             hr_to_cost_idx=(
                 self.net_load_profile.index.year
@@ -748,6 +768,7 @@ class DispatchModel(IOMixin):
             ),
             storage_dc_charge=self.dc_charge().to_numpy(dtype=np.float_),
             storage_reserve=self.storage_specs.reserve.to_numpy(),
+            dynamic_reserve_coeff=coeff,
         )
         self.redispatch = pd.DataFrame(
             fos_prof,
@@ -760,7 +781,7 @@ class DispatchModel(IOMixin):
             columns=self.storage_dispatch.columns,
         )
         self.system_data = pd.DataFrame(
-            deficits,
+            system,
             index=self.dt_idx,
             columns=self.system_data.columns,
         )
@@ -918,13 +939,24 @@ class DispatchModel(IOMixin):
         ).sort_index()
 
     def hrs_to_check(
-        self, cutoff: float = 0.01, comparison: pd.Series[float] | float | None = None
+        self,
+        kind: Literal["deficit", "curtailment"] = "deficit",
+        cutoff: float = 0.01,
+        comparison: pd.Series[float] | float | None = None,
     ) -> list[pd.Timestamp]:
         """Hours from dispatch to look at more closely.
 
         Hours with positive deficits are ones where not all of net load was served we
         want to be able to easily check the two hours immediately before these positive
         deficit hours.
+
+        Args:
+            kind: 'curtailment' or 'deficit'
+            cutoff: if deficit / curtailment exceeds this proportion of
+                ``comparison``, include the hour
+            comparison: default is annual peak load
+
+        Returns: list of hours
         """
         if comparison is None:
             comparison = self.load_profile.groupby([pd.Grouper(freq="YS")]).transform(
@@ -935,15 +967,25 @@ class DispatchModel(IOMixin):
             {
                 hr
                 for dhr in self.system_data[
-                    self.system_data.deficit / comparison > cutoff
+                    self.system_data[kind] / comparison > cutoff
                 ].index
-                for hr in (dhr - 2 * td_1h, dhr - td_1h, dhr)
+                for hr in (dhr - 2 * td_1h, dhr - td_1h, dhr, dhr + td_1h)
                 if hr in self.load_profile.index
             }
         )
 
-    def hourly_data_check(self, cutoff: float = 0.01):
-        """Aggregate data for :meth:`.DispatchModel.hrs_to_check`."""
+    def hourly_data_check(
+        self, kind: Literal["deficit", "curtailment"] = "deficit", cutoff: float = 0.01
+    ) -> pd.DataFrame:
+        """Aggregate data for :meth:`.DispatchModel.hrs_to_check`.
+
+        Args:
+            kind: 'curtailment' or 'deficit'
+            cutoff: if deficit / curtailment exceeds this proportion of
+                ``comparison``, include the hour
+
+        Returns: context for hours preceding deficit or curtailment hours
+        """
         max_disp = zero_profiles_outside_operating_dates(
             pd.DataFrame(
                 1.0,
@@ -957,17 +999,25 @@ class DispatchModel(IOMixin):
             ),
         )
 
-        available = np.where(
-            self.dispatchable_specs.no_limit.to_numpy(),
-            np.maximum(
-                self.dispatchable_profiles,
-                self.dispatchable_specs.loc[:, "capacity_mw"].to_numpy(),
+        available = zero_profiles_outside_operating_dates(
+            pd.DataFrame(
+                np.where(
+                    self.dispatchable_specs.no_limit.to_numpy(),
+                    np.maximum(
+                        self.dispatchable_profiles,
+                        self.dispatchable_specs.loc[:, "capacity_mw"].to_numpy(),
+                    ),
+                    np.where(
+                        ~self.dispatchable_specs.exclude.to_numpy(),
+                        self.dispatchable_profiles,
+                        0.0,
+                    ),
+                ),
+                index=self.dispatchable_profiles.index,
+                columns=self.dispatchable_profiles.columns,
             ),
-            np.where(
-                ~self.dispatchable_specs.exclude.to_numpy(),
-                self.dispatchable_profiles,
-                0.0,
-            ),
+            self.dispatchable_specs.operating_date,
+            self.dispatchable_specs.retirement_date,
         )
 
         headroom = available - np.roll(self.redispatch, 1, axis=0)
@@ -981,28 +1031,25 @@ class DispatchModel(IOMixin):
             {
                 "gross_load": self.load_profile,
                 "net_load": self.net_load_profile,
-                "deficit": self.system_data.deficit,
+                "load_adjustment": self.system_data.load_adjustment,
+                kind: self.system_data[kind],
                 "max_dispatch": max_disp.sum(axis=1),
                 "redispatch": self.redispatch.sum(axis=1),
                 "historical_dispatch": self.dispatchable_profiles.sum(axis=1),
-                "available": pd.Series(
-                    available.sum(axis=1), index=self.load_profile.index
-                ),
+                "available": available.sum(axis=1),
                 "headroom_hr-1": pd.Series(
                     max_ramp_from_previous.sum(axis=1), index=self.load_profile.index
                 ),
                 "net_storage": (
-                    self.storage_dispatch.filter(regex="^discharge").sum(axis=1)
-                    - self.storage_dispatch.filter(regex="^gridcharge").sum(axis=1)
+                    self.storage_dispatch.loc[:, "discharge"].sum(axis=1)
+                    - self.storage_dispatch.loc[:, "gridcharge"].sum(axis=1)
                 ),
-                "state_of_charge": self.storage_dispatch.filter(regex="^soc").sum(
-                    axis=1
-                ),
+                "state_of_charge": self.storage_dispatch.loc[:, "soc"].sum(axis=1),
                 "re": self.re_profiles_ac.sum(axis=1),
                 "re_excess": self.re_excess.sum(axis=1),
             },
             axis=1,
-        ).loc[self.hrs_to_check(cutoff=cutoff), :]
+        ).loc[self.hrs_to_check(kind=kind, cutoff=cutoff), :]
         return out
 
     def storage_capacity(self) -> pd.DataFrame:
@@ -1044,10 +1091,28 @@ class DispatchModel(IOMixin):
             axis=1,
         )
 
-    def system_level_summary(self, freq: str = "YS", **kwargs) -> pd.DataFrame:
-        """Create system and storage summary metrics."""
+    def system_level_summary(
+        self, freq: str = "YS", storage_rollup: dict | None = None, **kwargs
+    ) -> pd.DataFrame:
+        """Create system and storage summary metrics.
+
+        Args:
+            freq: temporal frequency to aggregate hourly data to.
+            storage_rollup: as {group name: [id1, id2, ...]} ids included here will
+                be aggregated together according to the group names and will not be
+                included in their own columns. Utilization metrics are not available.
+            **kwargs:
+
+        Returns: summary of curtailment, deficit, storage and select metrics
+        """
         es_roll_up = self.storage_dispatch.groupby(level=[0, 1], axis=1).sum()
         es_ids = self.storage_specs.index.get_level_values("plant_id_eia").unique()
+        if storage_rollup is not None:
+            es_ids = sorted(
+                set(es_ids) - {i for v in storage_rollup.values() for i in v}
+            )
+        else:
+            storage_rollup = {}
 
         out = pd.concat(
             [
@@ -1087,6 +1152,14 @@ class DispatchModel(IOMixin):
                         for i in es_ids
                     ]
                     + [
+                        es_roll_up.loc[:, (slice(None), ids)]
+                        .groupby(level=0, axis=1)
+                        .sum()[["charge", "discharge"]]
+                        .max(axis=1)
+                        .to_frame(name=f"storage_{name}_max_mw")
+                        for name, ids in storage_rollup.items()
+                    ]
+                    + [
                         es_roll_up[("soc", i)].to_frame(name=f"storage_{i}_max_hrs")
                         / (
                             self.storage_specs.loc[i, "capacity_mw"].sum()
@@ -1094,6 +1167,17 @@ class DispatchModel(IOMixin):
                             else 1.0
                         )
                         for i in es_ids
+                    ]
+                    + [
+                        es_roll_up.loc[:, ("soc", ids)]
+                        .sum(axis=1)
+                        .to_frame(name=f"storage_{name}_max_hrs")
+                        / (
+                            self.storage_specs.loc[ids, "capacity_mw"].sum()
+                            if self.storage_specs.loc[ids, "capacity_mw"].sum() > 0
+                            else 1.0
+                        )
+                        for name, ids in storage_rollup.items()
                     ],
                     axis=1,
                 )

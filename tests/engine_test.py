@@ -7,8 +7,10 @@ from dispatch.engine import (
     adjust_for_storage_reserve,
     calculate_generator_output,
     charge_storage,
+    choose_best_coefficient,
     discharge_storage,
     dispatch_engine,
+    dispatch_engine_auto,
     dynamic_reserve,
     make_rank_arrays,
     validate_inputs,
@@ -55,11 +57,50 @@ def test_engine(py_func):
         storage_op_hour=np.array((0, 0)),
         storage_dc_charge=np.zeros((len(NL), 2)),
         storage_reserve=np.array([0.1, 0.1]),
+        dynamic_reserve_coeff=1.5,
     )
     if py_func:
         redispatch, es, sl, st = dispatch_engine.py_func(**in_dict)
     else:
         redispatch, es, sl, st = dispatch_engine(**in_dict)
+    assert np.all(redispatch.sum(axis=1) + es[:, 1, :].sum(axis=1) >= NL)
+
+
+@pytest.mark.parametrize("py_func", [True, False], ids=idfn)
+@pytest.mark.parametrize(
+    ("coeff", "reserve"),
+    [
+        ("auto", 0.0),
+        ("auto", 0.1),
+        (0.5, 0.0),
+        (0.5, 0.1),
+        (0.0, 0.0),
+        (0.0, 0.1),
+    ],
+    ids=idfn,
+)
+def test_dispatch_engine_auto(py_func, coeff, reserve):
+    """Trivial test for the dispatch engine."""
+    in_dict = dict(  # noqa: C408
+        net_load=np.array(NL),
+        hr_to_cost_idx=np.zeros(len(NL), dtype=int),
+        historical_dispatch=np.array([CAP] * len(NL), dtype=float),
+        dispatchable_ramp_mw=np.array(CAP, dtype=float),
+        dispatchable_startup_cost=np.array([[1000.0], [1000.0], [100.0]], dtype=float),
+        dispatchable_marginal_cost=np.array([[10.0], [20.0], [50.0]], dtype=float),
+        dispatchable_min_uptime=np.zeros_like(CAP, dtype=np.int_),
+        storage_mw=np.array([400, 200], dtype=float),
+        storage_hrs=np.array([4, 12], dtype=float),
+        storage_eff=np.array((0.9, 0.9), dtype=float),
+        storage_op_hour=np.array((0, 0)),
+        storage_dc_charge=np.zeros((len(NL), 2), dtype=float),
+        storage_reserve=np.array([reserve, reserve], dtype=float),
+        dynamic_reserve_coeff=-10.0 if coeff == "auto" else coeff,
+    )
+    if py_func:
+        redispatch, es, sl, st = dispatch_engine_auto.py_func(**in_dict)
+    else:
+        redispatch, es, sl, st = dispatch_engine_auto(**in_dict)
     assert np.all(redispatch.sum(axis=1) + es[:, 1, :].sum(axis=1) >= NL)
 
 
@@ -79,6 +120,7 @@ def test_engine_pyfunc_numba():
         storage_op_hour=np.array((0, 0)),
         storage_dc_charge=np.zeros((len(NL), 2)),
         storage_reserve=np.array([0.1, 0.1]),
+        dynamic_reserve_coeff=1.5,
     )
     redispatch, es, sl, st = dispatch_engine(
         net_load=np.array(NL),
@@ -94,6 +136,7 @@ def test_engine_pyfunc_numba():
         storage_op_hour=np.array((0, 0)),
         storage_dc_charge=np.zeros((len(NL), 2)),
         storage_reserve=np.array([0.1, 0.1]),
+        dynamic_reserve_coeff=1.5,
     )
     assert np.all(redispatch == redispatch_py)
     assert np.all(es == es_py)
@@ -375,8 +418,31 @@ def test_dynamic_reserve(py_func, a, b, expected):
     net_load = a + b * np.sin(np.arange(0, 4, np.pi / 24))
     if py_func:
         result = dynamic_reserve.py_func(
-            hr=0, reserve=np.array([0.0, 0.1]), net_load=net_load
+            hr=0, reserve=np.array([0.0, 0.1]), net_load=net_load, coeff=1.5
         )
     else:
-        result = dynamic_reserve(hr=0, reserve=np.array([0.0, 0.1]), net_load=net_load)
+        result = dynamic_reserve(
+            hr=0, reserve=np.array([0.0, 0.1]), net_load=net_load, coeff=1.5
+        )
     assert np.all(result == np.array([expected, 0.1]))
+
+
+@pytest.mark.parametrize("py_func", [True, False], ids=idfn)
+@pytest.mark.parametrize(
+    ("comp", "expected"),
+    [
+        (np.array([[0, 1e7], [1e-6, 1e6], [1e-5, 1e5], [1e-4, 1e4], [1e-3, 1e3]]), 3),
+        (np.array([[100, 1e7], [7e-2, 1e6], [2e-4, 1e5], [6e-4, 1e4], [1e-3, 1e3]]), 2),
+        (np.array([[1e-3, 1e3], [2e-3, 1e5], [6e-3, 1e4], [1e-2, 1e5]]), 0),
+    ],
+    ids=idfn,
+)
+def test_optimal_idx(py_func, comp, expected):
+    """Test selection of optimal index."""
+    comp = np.column_stack(
+        (comp[:, 0], np.zeros(len(comp)), comp[:, 1], np.zeros(len(comp)))
+    )
+    if py_func:
+        assert choose_best_coefficient.py_func(comp) == expected
+    else:
+        assert choose_best_coefficient(comp) == expected

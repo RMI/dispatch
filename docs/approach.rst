@@ -4,12 +4,31 @@ Approach
 
 In which we explain in greater detail how the thing works.
 
-
+---------------------------------------------------------------------------------------
+Preparing the input data
+---------------------------------------------------------------------------------------
+#. Data alignment and validation
+#. Determining renewable AC profiles and excess for DC charging
+#. Calculating net load
 
 
 ---------------------------------------------------------------------------------------
-Issues in the current approach
+Dispatch logic
 ---------------------------------------------------------------------------------------
+#. The first hour
+#. Dynamic reserves
+#. Provisional deficit
+#. Operating generators
+#. Charge storage
+#. Discharge storage (first round)
+#. Start generators
+#. Discharge storage (second round)
+
+
+---------------------------------------------------------------------------------------
+Limitations
+---------------------------------------------------------------------------------------
+
 #. Place of storage in dispatch sequence means it reduces fossil dispatch more than it
    helps reliability. It can even make the latter worse by deferring fossil start-up
    until it is too late, i.e. make the required ramp steeper than the resources can
@@ -19,11 +38,3 @@ Issues in the current approach
    deficits in those hours.
 #. No ability to save state of charge for future needs or deliberately bank it by
    charging with fossil. This is absolutely required for storage to replace peakers.
-
----------------------------------------------------------------------------------------
-Things to consider without adding look-aheads
----------------------------------------------------------------------------------------
-#. Enforce minimum uptime for fossil generators. This will provide more opportunities
-   for charging storage.
-#. Segment dispatchable generators and storage to allow interspersing in the dispatch
-   sequence.

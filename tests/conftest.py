@@ -4,6 +4,7 @@ Defines useful fixtures, command line args.
 """
 import logging
 import shutil
+import time
 from pathlib import Path
 
 import numpy as np
@@ -88,6 +89,31 @@ def ent_redispatch(test_dir) -> dict:
     return dict(DataZip(test_dir / "data/8redispatch.zip").items())
 
 
+@pytest.fixture(
+    scope="session",
+    params=[
+        "57",
+        "aps",
+        "epe",
+        "fpc",
+        "fpl",
+        "ldwp",
+        "miso",
+        "nyis",
+        "pac",
+        "psco",
+        "tva",
+    ],
+)
+def ba_dm(test_dir, request) -> tuple[str, DispatchModel]:
+    """Complete input data for DispatchModel."""
+    a = time.perf_counter()
+    data = dict(DataZip(test_dir / f"data/{request.param}.zip").items())
+    dm = DispatchModel(**data, config={"dynamic_reserve_coeff": "auto"})()
+    logger.info("%s: %G seconds", request.param, time.perf_counter() - a)
+    return request.param, dm
+
+
 @pytest.fixture(scope="session", params=["8fresh", "8redispatch"])
 def ent_dm(test_dir, request) -> tuple[str, DispatchModel]:
     """Fossil Profiles."""
@@ -95,7 +121,7 @@ def ent_dm(test_dir, request) -> tuple[str, DispatchModel]:
     data = dict(DataZip(test_dir / f"data/{request.param}.zip").items())
     return (
         indicator[request.param],
-        DispatchModel(**data)(),
+        DispatchModel(**data, config={"dynamic_reserve_coeff": 1.5})(),
     )
 
 
@@ -107,7 +133,7 @@ def ent_out_for_excl_test(test_dir):
     ent_redispatch["dispatchable_specs"] = ent_redispatch["dispatchable_specs"].assign(
         exclude=lambda x: np.where(x.index == (55380, "CTG1"), True, False),
     )
-    self = DispatchModel(**ent_redispatch)
+    self = DispatchModel(**ent_redispatch, config={"dynamic_reserve_coeff": 1.5})
     self()
     df = self.dispatchable_summary(by=None)
     return df.groupby(level=[0, 1]).sum()
@@ -121,7 +147,7 @@ def ent_out_for_no_limit_test(test_dir):
     ent_redispatch["dispatchable_specs"] = ent_redispatch["dispatchable_specs"].assign(
         no_limit=lambda x: np.where(x.index == (55380, "CTG1"), True, False),
     )
-    self = DispatchModel(**ent_redispatch)
+    self = DispatchModel(**ent_redispatch, config={"dynamic_reserve_coeff": 1.5})
     self()
     df = self.dispatchable_summary(by=None)
     return df.groupby(level=[0, 1]).sum()
@@ -132,7 +158,7 @@ def ent_out_for_test(test_dir):
     """Dispatchable_summary without excluded generator."""
     ent_out_for_test = dict(DataZip(test_dir / "data/8redispatch.zip").items())
 
-    self = DispatchModel(**ent_out_for_test)
+    self = DispatchModel(**ent_out_for_test, config={"dynamic_reserve_coeff": 1.5})
     self()
     df = self.dispatchable_summary(by=None)
     return df.groupby(level=[0, 1]).sum()
