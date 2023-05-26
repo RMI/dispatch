@@ -27,20 +27,24 @@ Description
 =======================================================================================
 
 ``Dispatch`` is a hugely simplified production cost model. It takes in a
-portfolio of dispatchable and storage resources and asks, how can these resources
-be dispatched to meet [net] load? And how much would it cost?
+portfolio of dispatchable, fixed-output and storage resources and asks, how can these
+resources be dispatched to meet [net] load? And how much would it cost?
 
 It contains no optimization, security constraints, or formal unit commitment. It
 attempts a loose approximation of a production cost model by applying the following
 procedure in each hour:
 
-1. Iterate through operating dispatchable plants in order of their marginal cost and
+1. Augment or diminish load to be met by operating dispatchable plants based on state
+   of charge relative to storage reserve. The storage reserve can be dynamically set
+   each hour based on ramping requirements over the next 24 hours.
+2. Iterate through operating dispatchable plants in order of their marginal cost and
    adjust their output to meet load, limited by their ramp rate.
-2. If there is excess energy from renewables, use it to charge storage. If there is
-   still unmet load, discharge storage.
-3. If there is still unmet load, iterate through non-operating plants in order of
+3. If there is excess energy from renewables, use it to charge storage. If there is
+   still unmet load, discharge storage but holding some in state of charge in reserve.
+4. If there is still unmet load, iterate through non-operating plants in order of
    their start-up cost and turn them on if they are needed to meet load, limited by
    their ramp rate.
+5. If there is still unmet load, use any reserve state of charge to meet load.
 
 For more information about how the model works and how to use it, please see the
 `model documentation <https://rmi.github.io/dispatch/>`__.

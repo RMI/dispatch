@@ -12,14 +12,17 @@ What's New?
 ^^^^^^^^^^^
 *  Initial implementation of dynamic storage reserves. If storage does not have a
    reserve or the reserve is ``0.0``, we calculate a dynamic reserve based on the next
-   24 hours of net load using :eq:`reserve`.
+   24 hours of net load using :eq:`reserve`. The value of ``coeff`` can be set manually
+   when creating :class:`.DispatchModel`, or automatically (default) by trying a number
+   of values between 0.0 and 1.5 and selecting the one that best minimizes deficit and
+   curtailment, using :func:`dispatch.engine.choose_best_coefficient`.
 
 .. math::
    :label: reserve
 
       ramp &= \frac{max(load_{h+1}, ..., load_{h+24})}{load_h} - 1
 
-      reserve &= 1 - e^{-1.5 ramp}
+      reserve &= 1 - e^{-coeff \times ramp}
 
 *  Additional deficit and curtailment metrics in
    :meth:`.DispatchModel.system_level_summary`.
@@ -27,6 +30,10 @@ What's New?
    now include all columns provided in ``<x>_specs``.
 *  Enable multiple storage generators under a single ``plant_id_eia`` so long as they
    don't share a ``plant_id_eia`` with a renewable generator.
+*  :meth:`.DispatchModel.system_level_summary` allows for the roll-up of storage
+   facilities to create higher-level metrics using the ``storage_rollup`` parameter.
+*  :meth:`.DispatchModel.hourly_data_check` allows exploration of hours preceding and
+   including both deficit and curtailment hours.
 
 Bug Fixes
 ^^^^^^^^^

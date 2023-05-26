@@ -4,6 +4,152 @@ from __future__ import annotations
 import numpy as np
 from numba import njit
 
+CHARGE_IDX = 0
+DISCHARGE_IDX = 1
+SOC_IDX = 2
+GRIDCHARGE_IDX = 3
+
+DEFICIT_IDX = 0
+DIRTY_IDX = 1
+CURTAILMENT_IDX = 2
+ADJUSTMENT_IDX = 3
+
+
+@njit(error_model="numpy")
+def dispatch_engine_auto(
+    net_load: np.ndarray,
+    hr_to_cost_idx: np.ndarray,
+    historical_dispatch: np.ndarray,
+    dispatchable_ramp_mw: np.ndarray,
+    dispatchable_startup_cost: np.ndarray,
+    dispatchable_marginal_cost: np.ndarray,
+    dispatchable_min_uptime: np.ndarray,
+    storage_mw: np.ndarray,
+    storage_hrs: np.ndarray,
+    storage_eff: np.ndarray,
+    storage_op_hour: np.ndarray,
+    storage_dc_charge: np.ndarray,
+    storage_reserve: np.ndarray,
+    dynamic_reserve_coeff: float,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Autotune ``dynamic_reserve_coeff`` in :func:`.dispatch_engine`.
+
+    Args:
+        net_load: net load, as in net of RE generation, negative net load means
+            excess renewables
+        hr_to_cost_idx: an array that contains for each hour, the index of the correct
+            column in ``dispatchable_marginal_cost`` that contains cost data for that
+            hour
+        historical_dispatch: historic generator dispatch, acts as an hourly upper
+            constraint on this dispatch
+        dispatchable_ramp_mw: max one hour ramp in MW
+        dispatchable_startup_cost: startup cost in $ for each dispatchable generator
+        dispatchable_marginal_cost: annual marginal cost for each dispatchable
+            generator in $/MWh rows are generators and columns are years
+        dispatchable_min_uptime: minimum hrs a generator must operate before its
+            output can be reduced
+        storage_mw: max charge/discharge rate for storage in MW
+        storage_hrs: duration of storage
+        storage_eff: storage round-trip efficiency
+        storage_op_hour: first hour in which storage is available, i.e. the index of
+            the operating date
+        storage_dc_charge: an array whose columns match each storage facility, and a
+            row for each hour representing how much energy would be curtailed at an
+            attached renewable facility because it exceeds the system's inverter. This
+            then represents how much the storage in an RE+Storage facility could be
+            charged by otherwise curtailed energy when ilr>1.
+        storage_reserve: portion of a storage facility's SOC that will be held in
+            reserve until after dispatchable resource startup.
+        dynamic_reserve_coeff: coefficient passed to
+            :func:`dispatch.engine.dynamic_reserve` to use in exponential function.
+            ``-10.0`` means autotune this parameter.
+
+
+    Returns:
+        -   **redispatch** (:class:`numpy.ndarray`) - new hourly dispatch
+        -   **storage** (:class:`numpy.ndarray`) - hourly charge, discharge, and state
+            of charge data
+        -   **system_level** (:class:`numpy.ndarray`) - hourly deficit, dirty charge,
+            and total curtailment dat
+        -   **starts** (:class:`numpy.ndarray`) - count of starts for each generator in
+            each year
+    """
+    validate_inputs(
+        net_load,
+        hr_to_cost_idx,
+        historical_dispatch,
+        dispatchable_ramp_mw,
+        dispatchable_startup_cost,
+        dispatchable_marginal_cost,
+        storage_mw,
+        storage_hrs,
+        storage_eff,
+        storage_dc_charge,
+        storage_reserve,
+    )
+    reserve_is_dynamic = dynamic_reserve_coeff == -10.0
+    have_dynamic_reserve_storage = np.sum(storage_mw[storage_reserve == 0.0]) > 0.0
+    if reserve_is_dynamic and have_dynamic_reserve_storage:
+        coeffs = np.arange(0.0, 1.5, 0.25)
+        results = []
+        comparison = np.zeros((len(coeffs), 4))
+        for ix, coeff in enumerate(coeffs):
+            redispatch, storage, system_level, starts = dispatch_engine(
+                net_load=net_load,
+                hr_to_cost_idx=hr_to_cost_idx,
+                historical_dispatch=historical_dispatch,
+                dispatchable_ramp_mw=dispatchable_ramp_mw,
+                dispatchable_startup_cost=dispatchable_startup_cost,
+                dispatchable_marginal_cost=dispatchable_marginal_cost,
+                dispatchable_min_uptime=dispatchable_min_uptime,
+                storage_mw=storage_mw,
+                storage_hrs=storage_hrs,
+                storage_eff=storage_eff,
+                storage_op_hour=storage_op_hour,
+                storage_dc_charge=storage_dc_charge,
+                storage_reserve=storage_reserve,
+                dynamic_reserve_coeff=coeff,
+            )
+            comparison[ix, :] = np.sum(system_level, axis=0) / np.sum(net_load)
+            results.append((redispatch, storage, system_level, starts))
+        return results[choose_best_coefficient(comparison)]
+
+    return dispatch_engine(
+        net_load=net_load,
+        hr_to_cost_idx=hr_to_cost_idx,
+        historical_dispatch=historical_dispatch,
+        dispatchable_ramp_mw=dispatchable_ramp_mw,
+        dispatchable_startup_cost=dispatchable_startup_cost,
+        dispatchable_marginal_cost=dispatchable_marginal_cost,
+        dispatchable_min_uptime=dispatchable_min_uptime,
+        storage_mw=storage_mw,
+        storage_hrs=storage_hrs,
+        storage_eff=storage_eff,
+        storage_op_hour=storage_op_hour,
+        storage_dc_charge=storage_dc_charge,
+        storage_reserve=storage_reserve,
+        dynamic_reserve_coeff=dynamic_reserve_coeff,
+    )
+
+
+@njit(error_model="numpy")
+def choose_best_coefficient(comparison: np.ndarray) -> int:
+    """Select the optimal combination of deficit and curtailment.
+
+    Args:
+        comparison:
+
+    Returns: index of the optimal case
+    """
+    mins = np.argmin(comparison, axis=0)
+    if mins[DEFICIT_IDX] == mins[CURTAILMENT_IDX]:
+        return mins[DEFICIT_IDX]
+    comparison = np.column_stack((comparison, np.arange(0, len(comparison))))
+    ok_deficit = comparison[comparison[:, DEFICIT_IDX] <= 1e-4]
+    if len(ok_deficit) > 0:
+        return int(ok_deficit[np.argmin(ok_deficit[:, CURTAILMENT_IDX], axis=0), 4])
+    return int(np.argmin(comparison[:, DEFICIT_IDX]))
+
 
 @njit(error_model="numpy")
 def dispatch_engine(  # noqa: C901
@@ -20,6 +166,7 @@ def dispatch_engine(  # noqa: C901
     storage_op_hour: np.ndarray,
     storage_dc_charge: np.ndarray,
     storage_reserve: np.ndarray,
+    dynamic_reserve_coeff: float,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Dispatch engine that can be compiled with :func:`numba.jit`.
 
@@ -56,6 +203,8 @@ def dispatch_engine(  # noqa: C901
             charged by otherwise curtailed energy when ilr>1.
         storage_reserve: portion of a storage facility's SOC that will be held in
             reserve until after dispatchable resource startup.
+        dynamic_reserve_coeff: coefficient passed to
+            :func:`dispatch.engine.dynamic_reserve` to use in exponential function.
 
 
     Returns:
@@ -63,24 +212,10 @@ def dispatch_engine(  # noqa: C901
         -   **storage** (:class:`numpy.ndarray`) - hourly charge, discharge, and state
             of charge data
         -   **system_level** (:class:`numpy.ndarray`) - hourly deficit, dirty charge,
-            and total curtailment dat
+            and total curtailment data
         -   **starts** (:class:`numpy.ndarray`) - count of starts for each generator in
             each year
     """
-    validate_inputs(
-        net_load,
-        hr_to_cost_idx,
-        historical_dispatch,
-        dispatchable_ramp_mw,
-        dispatchable_startup_cost,
-        dispatchable_marginal_cost,
-        storage_mw,
-        storage_hrs,
-        storage_eff,
-        storage_dc_charge,
-        storage_reserve,
-    )
-
     storage_soc_max: np.ndarray = storage_mw * storage_hrs
 
     marginal_ranks, start_ranks = make_rank_arrays(
@@ -95,8 +230,8 @@ def dispatch_engine(  # noqa: C901
     # (0) charge, (1) discharge, (2) state of charge, (3) grid charge
     storage: np.ndarray = np.zeros((len(net_load), 4, len(storage_mw)))
     # array to keep track of system level data (0) deficits, (1) dirty charge,
-    # (2) curtailment
-    system_level: np.ndarray = np.zeros((len(net_load), 3))
+    # (2) curtailment, (3) adjustment to deficit
+    system_level: np.ndarray = np.zeros((len(net_load), 4))
     # internal dispatch data we need to track; (0) current run operating_hours
     # (1) whether we touched the generator in the first round of dispatch
     operating_data: np.ndarray = np.zeros(
@@ -118,6 +253,7 @@ def dispatch_engine(  # noqa: C901
             hr=hr,
             reserve=storage_reserve,
             net_load=net_load,
+            coeff=dynamic_reserve_coeff,
         )
 
         # because of the look-backs, the first hour has to be done differently
@@ -144,18 +280,21 @@ def dispatch_engine(  # noqa: C901
 
                     # update the deficit if we are grid charging
                     if deficit < 0.0:
-                        deficit += storage[hr, 3, storage_idx]
+                        deficit += storage[hr, GRIDCHARGE_IDX, storage_idx]
             continue
 
+        deficit_adjustment = adjust_for_storage_reserve(
+            state_of_charge=storage[hr - 1, SOC_IDX, :],
+            mw=storage_mw,
+            reserve=storage_reserve_,
+            # only want to adjust the provisional deficit for storage that is
+            # operating
+            max_state_of_charge=storage_soc_max * (hr >= storage_op_hour),
+        )
+        system_level[hr, ADJUSTMENT_IDX] = deficit_adjustment
         provisional_deficit = max(
             0.0,
-            deficit
-            + adjust_for_storage_reserve(
-                state_of_charge=storage[hr - 1, 2, :],
-                mw=storage_mw,
-                reserve=storage_reserve_,
-                max_state_of_charge=storage_soc_max,
-            ),
+            deficit + deficit_adjustment,
         )
 
         # new hour so reset where we keep track if we've touched a generator for
@@ -207,7 +346,7 @@ def dispatch_engine(  # noqa: C901
                 storage[hr, :, storage_idx] = charge_storage(
                     deficit=deficit,
                     state_of_charge=storage[
-                        hr - 1, 2, storage_idx
+                        hr - 1, SOC_IDX, storage_idx
                     ],  # previous state_of_charge
                     dc_charge=storage_dc_charge[hr, storage_idx],
                     mw=storage_mw[storage_idx],
@@ -215,10 +354,10 @@ def dispatch_engine(  # noqa: C901
                     eff=storage_eff[storage_idx],
                 )
                 # alias grid_charge
-                grid_charge = storage[hr, 3, storage_idx]
+                grid_charge = storage[hr, GRIDCHARGE_IDX, storage_idx]
                 # calculate the amount of charging that was dirty
                 # TODO check that this calculation is actually correct
-                system_level[hr, 1] += min(
+                system_level[hr, DIRTY_IDX] += min(
                     max(0, grid_charge - net_load[hr] * -1), grid_charge
                 )
                 # if we are charging from the grid, need to update the deficit
@@ -232,7 +371,7 @@ def dispatch_engine(  # noqa: C901
         # is a positive deficit
         if deficit <= 0.0:
             # store excess generation (-deficit) as curtailment
-            system_level[hr, 2] = -deficit
+            system_level[hr, CURTAILMENT_IDX] = -deficit
             continue
 
         # discharge batteries, the amount is the lesser of state of charge,
@@ -248,17 +387,21 @@ def dispatch_engine(  # noqa: C901
             ):
                 # if we got here because of DC-coupled charging, we still need to
                 # propagate forward state_of_charge
-                storage[hr, 2, storage_idx] = storage[hr - 1, 2, storage_idx]
+                storage[hr, SOC_IDX, storage_idx] = storage[
+                    hr - 1, SOC_IDX, storage_idx
+                ]
                 continue
             discharge = discharge_storage(
                 desired_mw=deficit,
-                state_of_charge=storage[hr - 1, 2, storage_idx],
+                state_of_charge=storage[hr - 1, SOC_IDX, storage_idx],
                 mw=storage_mw[storage_idx],
                 max_state_of_charge=storage_soc_max[storage_idx],
                 reserve=storage_reserve_[storage_idx],
             )
-            storage[hr, 1, storage_idx] = discharge
-            storage[hr, 2, storage_idx] = storage[hr - 1, 2, storage_idx] - discharge
+            storage[hr, DISCHARGE_IDX, storage_idx] = discharge
+            storage[hr, SOC_IDX, storage_idx] = (
+                storage[hr - 1, SOC_IDX, storage_idx] - discharge
+            )
             deficit -= discharge
 
         # once we've dealt with operating generators and storage, if there is no
@@ -305,14 +448,14 @@ def dispatch_engine(  # noqa: C901
                 desired_mw=deficit,
                 # may have already used the battery this hour so use the current hour
                 # state of charge
-                state_of_charge=storage[hr, 2, storage_idx],
+                state_of_charge=storage[hr, SOC_IDX, storage_idx],
                 # already used some of the battery's MW this hour
-                mw=storage_mw[storage_idx] - storage[hr, 1, storage_idx],
+                mw=storage_mw[storage_idx] - storage[hr, DISCHARGE_IDX, storage_idx],
                 max_state_of_charge=storage_soc_max[storage_idx],
                 reserve=0.0,
             )
-            storage[hr, 1, storage_idx] += discharge
-            storage[hr, 2, storage_idx] -= discharge
+            storage[hr, DISCHARGE_IDX, storage_idx] += discharge
+            storage[hr, SOC_IDX, storage_idx] -= discharge
             deficit -= discharge
 
             if deficit == 0.0:
@@ -323,14 +466,14 @@ def dispatch_engine(  # noqa: C901
 
         # if we end up here that means we never got the deficit to zero, we want
         # to keep track of that
-        system_level[hr, 0] = deficit
+        system_level[hr, DEFICIT_IDX] = deficit
 
-    assert not np.any(
-        storage[storage[:, 1, 0] > np.roll(storage[:, 2, 0], 1)]
-    ), "discharge exceeded previous state of charge in at least 1 hour for es0"
-    assert not np.any(
-        storage[storage[:, 1, 1] > np.roll(storage[:, 2, 1], 1)]
-    ), "discharge exceeded previous state of charge in at least 1 hour for es1"
+    # assert not np.any(
+    #     storage[storage[:, 1, 0] > np.roll(storage[:, 2, 0], 1)]
+    # ), "discharge exceeded previous state of charge in at least 1 hour for es0"
+    # assert not np.any(
+    #     storage[storage[:, 1, 1] > np.roll(storage[:, 2, 1], 1)]
+    # ), "discharge exceeded previous state of charge in at least 1 hour for es1"
     assert np.all(
         redispatch <= historical_dispatch * (1 + 1e-4)
     ), "redispatch exceeded historical dispatch in at least 1 hour"
@@ -345,7 +488,11 @@ def dispatch_engine(  # noqa: C901
         ), "gridcharge exceeded charge for at least one storage facility/hour"
 
     for es_i in range(storage.shape[2]):
-        if np.any(storage[storage[:, 1, es_i] > np.roll(storage[:, 2, es_i], 1)]):
+        if np.any(
+            storage[
+                storage[:, DISCHARGE_IDX, es_i] > np.roll(storage[:, SOC_IDX, es_i], 1)
+            ]
+        ):
             print(es_i)
             raise AssertionError(
                 "discharge exceeded previous state of charge in at least 1 hour for above storage number"
@@ -359,13 +506,22 @@ def dynamic_reserve(
     hr: int,
     reserve: np.ndarray,
     net_load: np.ndarray,
+    coeff: float,
 ) -> np.ndarray:
-    """Adjust storage reserve based on 24hr net load.
+    r"""Adjust storage reserve based on 24hr net load.
 
     Args:
         hr: hour index
         reserve: storage reserve defaults
         net_load: net load profile
+        coeff: coefficient in exponential
+
+    .. math::
+       :label: reserve
+
+          ramp &= \frac{max(load_{h+1}, ..., load_{h+24})}{load_h} - 1
+
+          reserve &= 1 - e^{-coeff \times ramp}
 
     Returns: adjusted reserves
     """
@@ -374,7 +530,7 @@ def dynamic_reserve(
         return reserve
     projected_increase = max(0.0, np.max(projected) / net_load[hr] - 1)
     return np.where(
-        reserve == 0.0, np.around(1 - np.exp(-1.5 * projected_increase), 2), reserve
+        reserve == 0.0, np.around(1 - np.exp(-coeff * projected_increase), 2), reserve
     )
 
 
