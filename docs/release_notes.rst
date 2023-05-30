@@ -43,6 +43,7 @@ Bug Fixes
    before their operating date. We now compare the modeled year to the operating year
    rather than the date. This provides the expected output when outputs are aggregated
    annually as is the typical case.
+*  Fixed renewable name maps for plotting in :const:`dispatch.constants.PLOT_MAP`.
 
 
 .. _release-v0-5-0:
