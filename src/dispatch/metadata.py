@@ -4,6 +4,7 @@ from typing import Any
 
 import pandas as pd
 import pandera as pa
+import polars as pl
 
 LOGGER = logging.getLogger(__name__)
 
@@ -255,3 +256,54 @@ class Validator:
                 "`re_profiles` and `load_profile` indexes must match"
             ) from exc
         return re_plant_specs, re_profiles
+
+
+class IDConverter:
+    """Helper for converting ids.
+
+    Converting between :mod:`pandas` and :mod:`polars`, especially for
+    multi-level columns.
+
+    """
+
+    def __init__(  # noqa: D107
+        self, dispatchable_specs, re_plant_specs, storage_specs, dt_idx
+    ):
+        self.disp_plant_ids = {f"{p}_{g}": p for p, g in dispatchable_specs.index}
+        self.disp_gen_ids = {f"{p}_{g}": g for p, g in dispatchable_specs.index}
+        # self.re_plant_ids = {f"{p}_{g}": p for p, g in re_plant_specs.index}
+        # self.re_gen_ids = {f"{p}_{g}": g for p, g in storage_specs.index}
+        # self.es_plant_ids = {f"{p}_{g}": p for p, g in storage_specs.index}
+        # self.es_gen_ids = {f"{p}_{g}": g for p, g in storage_specs.index}
+        self.disp_convert = (
+            pl.from_pandas(dispatchable_specs.index.to_frame())
+            .with_columns(
+                pl.concat_str(
+                    [pl.col("plant_id_eia"), pl.col("generator_id")], separator="_"
+                ).alias("combined_id")
+            )
+            .lazy()
+        )
+        self.disp_big_idx = (
+            pl.concat(
+                [
+                    self.disp_convert.with_columns(pl.lit(x).alias("datetime"))
+                    for x in (dt_idx.min(), dt_idx.max())
+                ]
+            )
+            .sort(["plant_id_eia", "generator_id", "datetime"])
+            .set_sorted("plant_id_eia", "generator_id", "datetime")
+            .collect()
+            .upsample(
+                "datetime",
+                every="1h",
+                by=["plant_id_eia", "generator_id"],
+                maintain_order=True,
+            )
+            .select(pl.all().forward_fill())
+            .select(["plant_id_eia", "generator_id", "datetime", "combined_id"])
+        )
+
+    @property
+    def disp_schema_pl(self):  # noqa: D102
+        return {k: pl.Float32 for k in self.disp_plant_ids}

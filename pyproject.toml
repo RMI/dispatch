@@ -24,6 +24,7 @@ dependencies = [
     "numpy >= 1.18.5,<2",
     "pandas >= 1.4,< 2.1",
     "pandera >= 0.12, < 0.16",
+    "polars >=0.17, < 0.19",
     "pyarrow>=7, <13",
     "rmi.etoolbox @ git+https://github.com/rmi/etoolbox.git",
 ]
