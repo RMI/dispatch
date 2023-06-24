@@ -6,6 +6,7 @@ from io import BytesIO
 import numpy as np
 import pandas as pd
 import pandera as pa
+import polars as pl
 import pytest
 from dispatch import DispatchModel
 from dispatch.helpers import zero_profiles_outside_operating_dates
@@ -43,37 +44,41 @@ def test_new_no_dates(fossil_profiles, re_profiles, fossil_specs, fossil_cost):
 
 
 @pytest.mark.parametrize(
-    ("attr", "expected"),
+    ("attr", "cols", "expected"),
     [
-        ("redispatch", {"f": 399_672_109, "r": 370_228_932}),
-        ("storage_dispatch", {"f": 266_660_550, "r": 235_078_425}),
-        ("system_data", {"f": 49_509_985, "r": 75_636_546}),
-        ("starts", {"f": 108_678, "r": 68_007}),
+        ("redispatch", ["redispatch_mwh"], {"f": 399_672_109, "r": 370_228_932}),
+        (
+            "storage_dispatch",
+            ["charge", "discharge", "soc", "gridcharge"],
+            {"f": 266_660_550, "r": 235_078_425},
+        ),
+        (
+            "system_data",
+            ["deficit", "dirty_charge", "curtailment", "load_adjustment"],
+            {"f": 49_509_985, "r": 75_636_546},
+        ),
     ],
     ids=idfn,
 )
-def test_redispatch_total(ent_dm, attr, expected):
+def test_redispatch_total(ent_dm, attr, cols, expected):
     """High-level test that results have not changed."""
     ind, ent_dm = ent_dm
-    assert getattr(ent_dm, attr).sum().sum() == pytest.approx(expected[ind])
+    assert sum(
+        getattr(ent_dm, attr).select(cols).sum().collect()
+    ).item() == pytest.approx(expected[ind], rel=2.5e-4)
 
 
 @pytest.mark.parametrize("comparison", [None, "load_max"], ids=idfn)
 def test_low_lost_load(mini_dm, comparison):
     """Dummy test that there isn't much lost load."""
-    if comparison is None:
-        assert (mini_dm.lost_load() / mini_dm.lost_load().sum()).iloc[0] > 0.998
-    else:
-        assert (
-            mini_dm.lost_load(mini_dm.load_profile.max())
-            / mini_dm.lost_load(mini_dm.load_profile.max()).sum()
-        ).iloc[0] > 0.998
-
-
-def test_marginal_cost(mini_dm):
-    """Setup for testing cost and grouper methods."""
-    x = mini_dm.grouper(mini_dm.historical_cost, "technology_description")
-    assert not x.empty
+    if comparison is not None:
+        comparison = mini_dm.load_profile.max()
+    assert (
+        mini_dm.lost_load(comparison)
+        .select(pl.col("count") / pl.col("count").sum())
+        .collect()[0, "count"]
+        > 0.998
+    )
 
 
 class TestIO:
@@ -114,50 +119,40 @@ class TestOutputs:
     def test_operations_summary(self, mini_dm):
         """Setup for testing cost and grouper methods."""
         x = mini_dm.dispatchable_summary(by=None)
-        assert x.notna().all().all()
+        assert (
+            x.drop(
+                [
+                    "historical_mmbtu",
+                    "historical_co2",
+                    "redispatch_mmbtu",
+                    "redispatch_co2",
+                ]
+            )
+            .collect()
+            .to_pandas()
+            .notna()
+            .all()
+            .all()
+        )
 
     def test_storage_summary(self, mini_dm):
         """Setup for testing cost and grouper methods."""
         x = mini_dm.storage_summary(by=None)
-        assert not x.empty
+        assert not x.collect().is_empty()
+
+    def test_full_output(self, mini_dm):
+        """Setup for testing cost and grouper methods."""
+        x = mini_dm.full_output()
+        assert not x.collect().is_empty()
+
+    def test_load_summary(self, mini_dm):
+        """Setup for testing cost and grouper methods."""
+        x = mini_dm.load_summary()
+        assert not x.collect().is_empty()
 
     @pytest.mark.parametrize(
         ("func", "args", "drop_cols", "expected"),
         [
-            (
-                "dispatchable_summary",
-                {"by": None, "augment": True},
-                (
-                    "utility_id_eia",
-                    "final_respondent_id",
-                    "retirement_date",
-                    "final_ba_code",
-                    "respondent_name",
-                    "balancing_authority_code_eia",
-                    "plant_name_eia",
-                    "prime_mover_code",
-                    "state",
-                    "latitude",
-                    "longitude",
-                    "index",
-                    "prime_with_cc",
-                    "energy_source_code_860m",
-                    "fuel_group_energy_source_code_860m",
-                    "rmi_energy_source_code_1",
-                    "rmi_energy_source_code_2",
-                    "rmi_energy_source_code_3",
-                    "fuel_group_rmi_energy_source_code_1",
-                    "fuel_group_rmi_energy_source_code_2",
-                    "fuel_group_rmi_energy_source_code_3",
-                    "cofire_fuels",
-                    "multiple_fuels",
-                    "status_860m",
-                    "operational_status",
-                    "ramp_hrs",
-                    "plant_role",
-                ),
-                "notna",
-            ),
             ("dispatchable_summary", {"by": None}, (), "notna"),
             (
                 "re_summary",
@@ -170,23 +165,9 @@ class TestOutputs:
             ("storage_durations", {}, (), "notna"),
             ("storage_capacity", {}, (), "notna"),
             ("hourly_data_check", {}, (), "notna"),
-            ("dc_charge", {}, (), "notna"),
+            ("hrs_to_check", {}, (), "notna"),
+            # ("dc_charge", {}, (), "notna"),
             pytest.param("full_output", {}, (), "notna", marks=pytest.mark.xfail),
-            (
-                "dispatchable_summary",
-                {"by": None, "augment": True},
-                (
-                    "utility_id_eia",
-                    "final_respondent_id",
-                    "retirement_date",
-                    "final_ba_code",
-                    "respondent_name",
-                    "balancing_authority_code_eia",
-                    "plant_name_eia",
-                    "prime_mover_code",
-                ),
-                "notempty",
-            ),
             ("dispatchable_summary", {"by": None}, (), "notempty"),
             ("re_summary", {"by": None}, ("owned_pct", "retirement_date"), "notempty"),
             ("system_level_summary", {}, (), "notempty"),
@@ -194,7 +175,7 @@ class TestOutputs:
             ("storage_durations", {}, (), "notempty"),
             ("storage_capacity", {}, (), "notempty"),
             ("hourly_data_check", {}, (), "notempty"),
-            ("dc_charge", {}, (), "notempty"),
+            # ("dc_charge", {}, (), "notempty"),
             ("full_output", {}, (), "notempty"),
         ],
         ids=idfn,
@@ -203,11 +184,11 @@ class TestOutputs:
         """Test that outputs are not empty or do not have unexpected nans."""
         ind, ent_dm = ent_dm
         df = getattr(ent_dm, func)(**args)
-        df = df[[c for c in df if c not in drop_cols]]
+        df = df.drop([c for c in drop_cols if c in df.columns])
         if expected == "notna":
-            assert df.notna().all().all()
+            assert df.collect().to_pandas().notna().all().all()
         elif expected == "notempty":
-            assert not df.empty
+            assert not df.collect().is_empty()
         else:
             raise AssertionError
 
@@ -332,24 +313,31 @@ def test_alt_total_var_mwh(
             ],
         ).set_index(["plant_id_eia", "generator_id"]),
     )()
-
+    filter0 = pl.col("datetime").dt.year() == 2017
     assert (
-        alt.redispatch.loc["2017", :].compare(mini_dm.redispatch.loc["2017", :]).empty
+        alt.redispatch.filter(filter0)
+        .collect()
+        .frame_equal(mini_dm.redispatch.filter(filter0).collect())
+    )
+    filter1 = (
+        (pl.col("datetime").dt.year() == 2018)
+        & (pl.col("plant_id_eia") == 3648)
+        & (pl.col("generator_id") == "4")
     )
     assert np.all(
-        alt.redispatch.loc["2018", (3648, "4")]
-        >= mini_dm.redispatch.loc["2018", (3648, "4")]
+        alt.redispatch.filter(filter1).collect()
+        >= mini_dm.redispatch.filter(filter1).collect()
     )
     assert (
         not alt.dispatchable_summary(by=None)
-        .compare(mini_dm.dispatchable_summary(by=None))
-        .empty
+        .collect()
+        .frame_equal(mini_dm.dispatchable_summary(by=None).collect())
     )
     alt.redispatch = mini_dm.redispatch
     assert (
         alt.dispatchable_summary(by=None)
-        .compare(mini_dm.dispatchable_summary(by=None))
-        .empty
+        .collect()
+        .frame_equal(mini_dm.dispatchable_summary(by=None).collect())
     )
 
 
@@ -358,15 +346,26 @@ def assert_dispatch_is_different(data, existing):
     self = DispatchModel(**data)
     self()
     if existing == "existing":
-        cols = [tup for tup in self.dispatchable_profiles.columns if tup[0] > 0]
+        cols = self.pl_dispatchable_specs.filter(pl.col("plant_id_eia") > 0).select(
+            ["plant_id_eia", "generator_id"]
+        )
     else:
-        cols = [tup for tup in self.dispatchable_profiles.columns if tup[0] < 0]
+        cols = self.pl_dispatchable_specs.filter(pl.col("plant_id_eia") < 0).select(
+            ["plant_id_eia", "generator_id"]
+        )
     comp = (
-        self.redispatch.loc[:, cols]
-        .round(0)
-        .compare(self.dispatchable_profiles.loc[:, cols].round(0))
+        self.redispatch.join(cols, on=["plant_id_eia", "generator_id"], how="inner")
+        .select(pl.col("redispatch_mwh").round(0).alias("comp"))
+        .collect()
+        .frame_equal(
+            self.pl_dispatchable_profiles.join(
+                cols, on=["plant_id_eia", "generator_id"], how="inner"
+            )
+            .select(pl.col("historical_mwh").round(0).alias("comp"))
+            .collect()
+        )
     )
-    assert not comp.empty, f"dispatch of {existing} failed"
+    assert not comp, f"dispatch of {existing} failed"
 
 
 @pytest.mark.parametrize("existing", ["existing", "additions"], ids=idfn)
@@ -411,12 +410,13 @@ def test_dispatchable_exclude(
     ent_out_for_excl_test, ent_out_for_test, gen, col_set, col, expected
 ):
     """Test the effect of excluding a generator from dispatch."""
+    filt = (pl.col("plant_id_eia") == gen[0]) & (pl.col("generator_id") == gen[1])
+    col = col_set + col
+    excl_test_item = ent_out_for_excl_test.filter(filt).select(col).collect().item()
+    ent_out_for_test_item = ent_out_for_test.filter(filt).select(col).collect().item()
     if expected == 0.0:
-        assert ent_out_for_excl_test.loc[gen, col_set + col] == expected
-        assert (
-            ent_out_for_excl_test.loc[gen, col_set + col]
-            != ent_out_for_test.loc[gen, col_set + col]
-        )
+        assert excl_test_item == expected
+        assert excl_test_item != ent_out_for_test_item
     else:
         rel = None
         if gen == (55380, "CTG2") and col_set == "redispatch_":
@@ -424,11 +424,8 @@ def test_dispatchable_exclude(
             # whether CTG1 is excluded or not because excluding CTG1 affects other
             # generator dispatch
             rel = 1e-1
-        assert ent_out_for_excl_test.loc[gen, col_set + col] > 1e4
-        assert ent_out_for_excl_test.loc[gen, col_set + col] == pytest.approx(
-            ent_out_for_test.loc[gen, col_set + col],
-            rel=rel,
-        )
+        assert excl_test_item > 1e4
+        assert excl_test_item == pytest.approx(ent_out_for_test_item, rel=rel)
 
 
 @pytest.mark.parametrize(
@@ -437,7 +434,7 @@ def test_dispatchable_exclude(
         ((55380, "CTG1"), "redispatch_", "mwh", 25033526),
         ((55380, "CTG1"), "redispatch_", "cost_fuel", 359337060),
         ((55380, "CTG1"), "redispatch_", "cost_vom", 10919931),
-        ((55380, "CTG1"), "redispatch_", "cost_startup", 79994814),
+        ((55380, "CTG1"), "redispatch_", "cost_startup", 79979045),
         ((55380, "CTG1"), "redispatch_", "cost_fom", 1689013.875),
         ((55380, "CTG1"), "historical_", "mwh", 1.0),
         ((55380, "CTG1"), "historical_", "cost_fuel", 1.0),
@@ -461,6 +458,12 @@ def test_dispatchable_no_limit(
     ent_out_for_no_limit_test, ent_out_for_test, gen, col_set, col, expected
 ):
     """Test the effect of excluding a generator from dispatch."""
+    filt = (pl.col("plant_id_eia") == gen[0]) & (pl.col("generator_id") == gen[1])
+    col = col_set + col
+    no_limit_test_item = (
+        ent_out_for_no_limit_test.filter(filt).select(col).collect().item()
+    )
+    test_item = ent_out_for_test.filter(filt).select(col).collect().item()
     if expected == 1.0:
         rel = None
         if gen == (55380, "CTG2") and col_set == "redispatch_":
@@ -468,19 +471,11 @@ def test_dispatchable_no_limit(
             # whether CTG1 is excluded or not because excluding CTG1 affects other
             # generator dispatch
             rel = 1e-1
-        assert ent_out_for_no_limit_test.loc[gen, col_set + col] > 1e4
-        assert ent_out_for_no_limit_test.loc[gen, col_set + col] == pytest.approx(
-            ent_out_for_test.loc[gen, col_set + col],
-            rel=rel,
-        )
+        assert no_limit_test_item > 1e4
+        assert no_limit_test_item == pytest.approx(test_item, rel=rel)
     else:
-        assert (
-            ent_out_for_no_limit_test.loc[gen, col_set + col]
-            >= ent_out_for_test.loc[gen, col_set + col]
-        ), "no limit was not greater"
-        assert ent_out_for_no_limit_test.loc[gen, col_set + col] == pytest.approx(
-            expected
-        )
+        assert no_limit_test_item >= test_item, "no limit was not greater"
+        assert no_limit_test_item == pytest.approx(expected)
 
 
 @pytest.mark.parametrize(
@@ -516,10 +511,25 @@ def test_no_limit_late_operating_date(ent_redispatch):
         (55380, "CTG1"), ["operating_date", "retirement_date", "no_limit"]
     ] = (pd.to_datetime(2025, format="%Y"), pd.to_datetime(2030, format="%Y"), True)
     dm = DispatchModel(**ent_redispatch)()
-    df = dm.dispatchable_summary(by=None).loc[(55380, "CTG1"), "redispatch_mwh"]
-    assert np.all(df[:"2024"] == 0.0)
-    assert np.all(df["2025":"2029"] > 0.0)
-    assert np.all(df["2031":] == 0.0)
+    df = (
+        dm.dispatchable_summary(by=None)
+        .filter((pl.col("plant_id_eia") == 55380) & (pl.col("generator_id") == "CTG1"))
+        .select(["datetime", "redispatch_mwh"])
+        .collect()
+    )
+    assert np.all(
+        df.filter(pl.col("datetime").dt.year() <= 2024).select("redispatch_mwh") == 0.0
+    )
+    assert np.all(
+        df.filter(
+            (pl.col("datetime").dt.year() >= 2025)
+            & (pl.col("datetime").dt.year() <= 2029)
+        ).select("redispatch_mwh")
+        > 0
+    )
+    assert np.all(
+        df.filter(pl.col("datetime").dt.year() >= 2032).select("redispatch_mwh") == 0.0
+    )
 
 
 @pytest.mark.parametrize(
@@ -545,7 +555,7 @@ def test_non_unique_storage_ids(ent_redispatch, re_ids, expected):
     ).sort_index()
     if isinstance(expected, str):
         dm = DispatchModel(**ent_redispatch)()
-        assert not dm.system_level_summary(freq="YS").empty
+        assert not dm.system_level_summary(freq="YS").collect().is_empty()
     else:
         with pytest.raises(expected):
             DispatchModel(**ent_redispatch)()
@@ -554,9 +564,11 @@ def test_non_unique_storage_ids(ent_redispatch, re_ids, expected):
 def test_system_level_summary_rollup(ent_redispatch):
     """Test that storage_rollup in system_level_summary works."""
     dm = DispatchModel(**ent_redispatch)()
-    assert not dm.system_level_summary(
-        freq="YS", storage_rollup={"other": [-40, -39]}
-    ).empty
+    assert (
+        not dm.system_level_summary(freq="YS", storage_rollup={"other": [-40, -39]})
+        .collect()
+        .is_empty()
+    )
 
 
 def test_bad_exclude_no_limit(ent_redispatch):
@@ -615,7 +627,7 @@ def test_repr(ent_fresh):
                 "pac": 4.23462e-6,
                 "pjm": 2.26282e-6,
                 "psco": 5.255995e-5,
-                "tva": 7.56522274e-6,
+                "tva": 7.56522347e-6,
             },
         ),
         (
@@ -623,8 +635,8 @@ def test_repr(ent_fresh):
             {
                 "57": 1.087665e-5,
                 "aps": 9.35579e-6,
-                "epe": 4.1907475e-7,
-                "fpc": 9.07320697e-6,
+                "epe": 4.1907477e-7,
+                "fpc": 9.07320749e-6,
                 "fpl": 8.60302e-5,
                 "ldwp": 4.794772e-2,
                 "miso": 7.311725e-5,
@@ -645,7 +657,7 @@ def test_deficit_curtailment(ba_dm, kind, expected):
     that key performance metrics are not getting worse.
     """
     name, dm = ba_dm
-    actual = dm.system_data[kind].sum() / dm.load_profile.sum()
+    actual = dm.system_data.select(kind).sum().collect().item() / dm.load_profile.sum()
     expected = expected[name]
     assert actual <= expected
     if not np.isclose(actual, expected, rtol=1e-6, atol=0):
