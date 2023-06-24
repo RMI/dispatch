@@ -269,41 +269,44 @@ class IDConverter:
     def __init__(  # noqa: D107
         self, dispatchable_specs, re_plant_specs, storage_specs, dt_idx
     ):
-        self.disp_plant_ids = {f"{p}_{g}": p for p, g in dispatchable_specs.index}
-        self.disp_gen_ids = {f"{p}_{g}": g for p, g in dispatchable_specs.index}
-        # self.re_plant_ids = {f"{p}_{g}": p for p, g in re_plant_specs.index}
-        # self.re_gen_ids = {f"{p}_{g}": g for p, g in storage_specs.index}
-        # self.es_plant_ids = {f"{p}_{g}": p for p, g in storage_specs.index}
-        # self.es_gen_ids = {f"{p}_{g}": g for p, g in storage_specs.index}
+        self.dt = (
+            pl.from_pandas(dt_idx.to_frame())
+            .lazy()
+            .select(pl.col("datetime").cast(pl.Datetime("us")))
+        )
+        on = pl.lit(1).alias("on")
+        dt = self.dt.with_columns(on)
+        combined_id = pl.concat_str(
+            [pl.col("plant_id_eia"), pl.col("generator_id")], separator="_"
+        ).alias("combined_id")
+        self.schema = {"schema_overrides": {"plant_id_eia": pl.Int32}}
         self.disp_convert = (
-            pl.from_pandas(dispatchable_specs.index.to_frame())
-            .with_columns(
-                pl.concat_str(
-                    [pl.col("plant_id_eia"), pl.col("generator_id")], separator="_"
-                ).alias("combined_id")
-            )
+            pl.from_pandas(dispatchable_specs.index.to_frame(), **self.schema)
+            .with_columns(combined_id)
             .lazy()
         )
         self.disp_big_idx = (
-            pl.concat(
-                [
-                    self.disp_convert.with_columns(pl.lit(x).alias("datetime"))
-                    for x in (dt_idx.min(), dt_idx.max())
-                ]
+            self.disp_convert.with_columns(on).join(dt, on="on").drop("on").collect()
+        )
+        if re_plant_specs is not None:
+            self.re_convert = (
+                pl.from_pandas(re_plant_specs.index.to_frame(), **self.schema)
+                .with_columns(combined_id)
+                .lazy()
             )
-            .sort(["plant_id_eia", "generator_id", "datetime"])
-            .set_sorted("plant_id_eia", "generator_id", "datetime")
-            .collect()
-            .upsample(
-                "datetime",
-                every="1h",
-                by=["plant_id_eia", "generator_id"],
-                maintain_order=True,
+            self.re_big_idx = (
+                self.re_convert.with_columns(on).join(dt, on="on").drop("on").collect()
             )
-            .select(pl.all().forward_fill())
-            .select(["plant_id_eia", "generator_id", "datetime", "combined_id"])
+
+        self.storage_convert = (
+            pl.from_pandas(storage_specs.index.to_frame(), **self.schema)
+            .with_columns(combined_id)
+            .lazy()
+        )
+        self.storage_big_idx = (
+            self.storage_convert.with_columns(on).join(dt, on="on").drop("on").collect()
         )
 
-    @property
-    def disp_schema_pl(self):  # noqa: D102
-        return {k: pl.Float32 for k in self.disp_plant_ids}
+    def from_pandas(self, df):
+        """Convert and apply schema to :class:`pandas.DataFrame`."""
+        return pl.from_pandas(df.reset_index(), **self.schema).fill_nan(None).lazy()

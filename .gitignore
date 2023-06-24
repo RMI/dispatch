@@ -147,6 +147,8 @@ Thumbs.db
 # PyCharm
 /.idea
 *.iml
+.zed
+Test Results*.html
 
 # Dispatch
 *.zip
