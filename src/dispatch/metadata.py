@@ -261,10 +261,21 @@ class Validator:
 class IDConverter:
     """Helper for converting ids.
 
-    Converting between :mod:`pandas` and :mod:`polars`, especially for
+    Converting between
+    :mod: `pandas` and
+    :mod: `polars`, especially for
     multi-level columns.
-
     """
+
+    __slots__ = (
+        "dt",
+        "disp_convert",
+        "disp_big_idx",
+        "re_convert",
+        "re_big_idx",
+        "storage_convert",
+        "storage_big_idx",
+    )
 
     def __init__(  # noqa: D107
         self, dispatchable_specs, re_plant_specs, storage_specs, dt_idx
@@ -279,7 +290,6 @@ class IDConverter:
         combined_id = pl.concat_str(
             [pl.col("plant_id_eia"), pl.col("generator_id")], separator="_"
         ).alias("combined_id")
-        self.schema = {"schema_overrides": {"plant_id_eia": pl.Int32}}
         self.disp_convert = (
             pl.from_pandas(dispatchable_specs.index.to_frame(), **self.schema)
             .with_columns(combined_id)
@@ -307,6 +317,22 @@ class IDConverter:
             self.storage_convert.with_columns(on).join(dt, on="on").drop("on").collect()
         )
 
+    @property
+    def schema(self):
+        """Default schema overrides."""
+        return {"schema_overrides": {"plant_id_eia": pl.Int32}}
+
     def from_pandas(self, df):
         """Convert and apply schema to :class:`pandas.DataFrame`."""
         return pl.from_pandas(df.reset_index(), **self.schema).fill_nan(None).lazy()
+
+    def __getstate__(self):
+        return None, {
+            name: getattr(self, name) for name in self.__slots__ if hasattr(self, name)
+        }
+
+    def __setstate__(self, state: tuple[Any, dict]):
+        _, state = state
+        for k, v in state.items():
+            if k in self.__slots__:
+                setattr(self, k, v)

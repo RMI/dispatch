@@ -116,9 +116,10 @@ class TestIO:
 class TestOutputs:
     """Tests for summaries and outputs."""
 
-    def test_operations_summary(self, mini_dm):
+    def test_operations_summary(self, ent_dm):
         """Setup for testing cost and grouper methods."""
-        x = mini_dm.dispatchable_summary(by=None)
+        _, ent_dm = ent_dm
+        x = ent_dm.dispatchable_summary(by=None)
         assert (
             x.drop(
                 [
@@ -135,19 +136,22 @@ class TestOutputs:
             .all()
         )
 
-    def test_storage_summary(self, mini_dm):
+    def test_storage_summary(self, ent_dm):
         """Setup for testing cost and grouper methods."""
-        x = mini_dm.storage_summary(by=None)
+        _, ent_dm = ent_dm
+        x = ent_dm.storage_summary(by=None)
         assert not x.collect().is_empty()
 
-    def test_full_output(self, mini_dm):
+    def test_full_output(self, ent_dm):
         """Setup for testing cost and grouper methods."""
-        x = mini_dm.full_output()
+        _, ent_dm = ent_dm
+        x = ent_dm.full_output()
         assert not x.collect().is_empty()
 
-    def test_load_summary(self, mini_dm):
+    def test_load_summary(self, ent_dm):
         """Setup for testing cost and grouper methods."""
-        x = mini_dm.load_summary()
+        _, ent_dm = ent_dm
+        x = ent_dm.load_summary()
         assert not x.collect().is_empty()
 
     @pytest.mark.parametrize(
@@ -157,7 +161,7 @@ class TestOutputs:
             (
                 "re_summary",
                 {"by": None},
-                ("owned_pct", "retirement_date", "fom_per_kw"),
+                ("owned_pct", "retirement_date", "fom_per_kw", "redispatch_cost_fom"),
                 "notna",
             ),
             ("system_level_summary", {}, (), "notna"),
@@ -184,11 +188,13 @@ class TestOutputs:
         """Test that outputs are not empty or do not have unexpected nans."""
         ind, ent_dm = ent_dm
         df = getattr(ent_dm, func)(**args)
-        df = df.drop([c for c in drop_cols if c in df.columns])
+        if isinstance(df, pl.LazyFrame | pl.DataFrame):
+            df = df.drop([c for c in drop_cols if c in df.columns])
+            df = df.collect()
         if expected == "notna":
-            assert df.collect().to_pandas().notna().all().all()
+            assert df.to_pandas().notna().all().all()
         elif expected == "notempty":
-            assert not df.collect().is_empty()
+            assert not df.is_empty()
         else:
             raise AssertionError
 
