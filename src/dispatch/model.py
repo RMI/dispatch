@@ -399,36 +399,35 @@ class DispatchModel(IOMixin):
 
         Explore the results, starting with how much load could not be met.
 
-        >>> dm.lost_load()  # doctest: +NORMALIZE_WHITESPACE
-        (-0.001, 0.0001]    8784
-        (0.0001, 0.02]         0
-        (0.02, 0.05]           0
-        (0.05, 0.1]            0
-        (0.1, 0.15]            0
-        (0.15, 0.2]            0
-        (0.2, 0.3]             0
-        (0.3, 0.4]             0
-        (0.4, 0.5]             0
-        (0.5, 0.75]            0
-        (0.75, 1.0]            0
-        Name: count, dtype: int64
+        >>> dm.lost_load().collect()  # doctest: +NORMALIZE_WHITESPACE
+        shape: (1, 2)
+        ┌─────────────┬───────┐
+        │ category    ┆ count │
+        │ ---         ┆ ---   │
+        │ cat         ┆ u32   │
+        ╞═════════════╪═══════╡
+        │ (-inf, 0.0] ┆ 8784  │
+        └─────────────┴───────┘
 
         Generate a full, combined output of all resources at specified frequency.
 
-        >>> dm.full_output(freq="YS").round(1)  # doctest: +NORMALIZE_WHITESPACE
-                                              capacity_mw  historical_mwh  historical_mmbtu  ...  duration_hrs  roundtrip_eff  reserve
-        plant_id_eia generator_id datetime                                                   ...
-        0            curtailment  2020-01-01          NaN             NaN               NaN  ...           NaN            NaN      NaN
-                     deficit      2020-01-01          NaN             NaN               NaN  ...           NaN            NaN      NaN
-        1            1            2020-01-01        350.0             0.0               0.0  ...           NaN            NaN      NaN
-                     2            2020-01-01        500.0             0.0               0.0  ...           NaN            NaN      NaN
-        2            1            2020-01-01        600.0             0.0               0.0  ...           NaN            NaN      NaN
-        5            1            2020-01-01        500.0             NaN               NaN  ...           NaN            NaN      NaN
-                     es           2020-01-01        250.0             NaN               NaN  ...           4.0            0.9      0.0
-        6            1            2020-01-01        500.0             NaN               NaN  ...           NaN            NaN      NaN
-        7            1            2020-01-01        200.0             NaN               NaN  ...          12.0            0.5      0.0
-        <BLANKLINE>
-        [9 rows x 28 columns]
+        >>> dm.full_output(freq="YS").collect()  # doctest: +NORMALIZE_WHITESPACE
+        shape: (9, 28)
+        ┌──────────────┬──────────────┬─────────────┬─────────────────────┬───┬─────────────┬──────────────┬───────────────┬─────────┐
+        │ plant_id_eia ┆ generator_id ┆ capacity_mw ┆ datetime            ┆ … ┆ gridcharge  ┆ duration_hrs ┆ roundtrip_eff ┆ reserve │
+        │ ---          ┆ ---          ┆ ---         ┆ ---                 ┆   ┆ ---         ┆ ---          ┆ ---           ┆ ---     │
+        │ i32          ┆ str          ┆ f64         ┆ datetime[μs]        ┆   ┆ f32         ┆ i64          ┆ f64           ┆ f64     │
+        ╞══════════════╪══════════════╪═════════════╪═════════════════════╪═══╪═════════════╪══════════════╪═══════════════╪═════════╡
+        │ 0            ┆ curtailment  ┆ null        ┆ 2020-01-01 00:00:00 ┆ … ┆ null        ┆ null         ┆ null          ┆ null    │
+        │ 0            ┆ deficit      ┆ null        ┆ 2020-01-01 00:00:00 ┆ … ┆ null        ┆ null         ┆ null          ┆ null    │
+        │ 1            ┆ 1            ┆ 350.0       ┆ 2020-01-01 00:00:00 ┆ … ┆ null        ┆ null         ┆ null          ┆ null    │
+        │ 1            ┆ 2            ┆ 500.0       ┆ 2020-01-01 00:00:00 ┆ … ┆ null        ┆ null         ┆ null          ┆ null    │
+        │ 2            ┆ 1            ┆ 600.0       ┆ 2020-01-01 00:00:00 ┆ … ┆ null        ┆ null         ┆ null          ┆ null    │
+        │ 5            ┆ 1            ┆ 500.0       ┆ 2020-01-01 00:00:00 ┆ … ┆ null        ┆ null         ┆ null          ┆ null    │
+        │ 5            ┆ es           ┆ 250.0       ┆ 2020-01-01 00:00:00 ┆ … ┆ 3031.205566 ┆ 4            ┆ 0.9           ┆ 0.0     │
+        │ 6            ┆ 1            ┆ 500.0       ┆ 2020-01-01 00:00:00 ┆ … ┆ null        ┆ null         ┆ null          ┆ null    │
+        │ 7            ┆ 1            ┆ 200.0       ┆ 2020-01-01 00:00:00 ┆ … ┆ 184.283997  ┆ 12           ┆ 0.5           ┆ 0.0     │
+        └──────────────┴──────────────┴─────────────┴─────────────────────┴───┴─────────────┴──────────────┴───────────────┴─────────┘
         """
         if not name and "balancing_authority_code_eia" in dispatchable_specs:
             name = dispatchable_specs.balancing_authority_code_eia.mode().iloc[0]
@@ -634,14 +633,6 @@ class DispatchModel(IOMixin):
             **{col: value for col, value in default_values[df_name] if col not in df}
         )
 
-    def __setstate__(self, state: tuple[Any, dict]):
-        _, state = state
-        for k, v in state.items():
-            if k in self.__slots__:
-                setattr(self, k, v)
-        self.dt_idx = self.load_profile.index
-        self._cached = {}
-
     def __getstate__(self):
         state = {}
         for name in self.__slots__:
@@ -654,6 +645,14 @@ class DispatchModel(IOMixin):
                 except Exception as exc:
                     LOGGER.warning("unable to write %s, %r", df_name, exc)
         return None, state
+
+    def __setstate__(self, state: tuple[Any, dict]):
+        _, state = state
+        for k, v in state.items():
+            if k in self.__slots__:
+                setattr(self, k, v)
+        self.dt_idx = self.load_profile.index
+        self._cached = {}
 
     @classmethod
     def from_patio(cls, *args, **kwargs) -> DispatchModel:
@@ -855,90 +854,6 @@ class DispatchModel(IOMixin):
         #     .sort_index()
         # )
         return self
-
-    def grouper(
-        self,
-        df: pd.DataFrame | dict[str, pd.DataFrame],
-        by: str | None = "technology_description",
-        freq: str = "YS",
-        col_name: str | None = None,
-    ) -> pd.DataFrame:
-        """Aggregate a df of generator profiles.
-
-        Columns are grouped using `by` column from
-        :attr:`.DispatchModel.dispatchable_specs` and `freq` determines
-        the output time resolution.
-
-        Args:
-            df: dataframe to apply grouping to, if a dict of dataframes, does the
-                grouping on each and then concatenates them together with keys as
-                column name suffix
-            by: column from :attr:`.DispatchModel.dispatchable_specs` to use for
-                grouping df columns, if None, no column grouping
-            freq: output time resolution
-            col_name: if specified, stack the output and use this as the column name,
-                if `df` is a dict, each df is stacked and `col_name` if any is
-                prepended to the key to form the column name.
-        """
-        if isinstance(df, dict):
-            pref = "" if col_name is None else col_name + "_"
-            return pd.concat(
-                [
-                    self.strict_grouper(
-                        df=df_, by=by, freq=freq, col_name=pref + col_name_
-                    )
-                    for col_name_, df_ in df.items()
-                ],
-                axis=1,
-            )
-        return self.strict_grouper(df=df, by=by, freq=freq, col_name=col_name)
-
-    def strict_grouper(
-        self,
-        df: pd.DataFrame,
-        by: str | None,
-        freq: str,
-        col_name: str | None = None,
-        freq_agg: str = "sum",
-    ) -> pd.DataFrame:
-        """Aggregate a df of generator profiles.
-
-        Columns are grouped using `by` column from
-        :attr:`.DispatchModel.dispatchable_specs` and `freq` determines
-        the output time resolution.
-
-        Args:
-            df: dataframe to apply grouping to
-            by: column from :attr:`.DispatchModel.dispatchable_specs` to use for
-                grouping df columns, if None, no column grouping
-            freq: output time resolution
-            col_name: if specified, stack the output and use this as the column name
-            freq_agg: aggregation func to use in frequency groupby
-        """
-        if by is None:
-            out = df.groupby([pd.Grouper(freq=freq)]).agg(freq_agg)
-            dropna = True
-        else:
-            df = df.copy()
-            col_grouper = self.dispatchable_specs[by].to_dict()
-            df.columns = list(df.columns)
-            out = (
-                df.rename(columns=col_grouper)
-                .groupby(level=0, axis=1)
-                .sum()
-                .groupby([pd.Grouper(freq=freq)])
-                .agg(freq_agg)
-            )
-            out.columns.name = by
-            dropna = False
-        if col_name is None:
-            return out
-        return (
-            out.stack(level=out.columns.names, dropna=dropna)
-            .reorder_levels(order=[*out.columns.names, "datetime"])
-            .to_frame(name=col_name)
-            .sort_index()
-        )
 
     def lost_load(
         self, comparison: pd.Series[float] | np.ndarray | float | None = None
@@ -1328,6 +1243,11 @@ class DispatchModel(IOMixin):
         pl_by = ["plant_id_eia", "generator_id"] if by is None else [by]
         id_cols = ["plant_id_eia", "generator_id"]
 
+        tech_col = (
+            [pl.first("technology_description")]
+            if by != "technology_description"
+            else []
+        )
         return (
             self.pl_re_profiles_ac.join(self.pl_re_plant_specs, on=id_cols)
             .pipe(self._add_capacity)
@@ -1360,6 +1280,8 @@ class DispatchModel(IOMixin):
                 pl.first("ilr"),
                 pl.first("interconnect_mw"),
                 pl.first("fom_per_kw"),
+                pl.first("operating_date"),
+                *tech_col,
             )
         )
 
@@ -1407,6 +1329,7 @@ class DispatchModel(IOMixin):
                 pl.first("duration_hrs"),
                 pl.first("roundtrip_eff"),
                 pl.first("operating_date"),
+                pl.first("technology_description"),
                 pl.first("reserve"),
             )
         )
@@ -1428,19 +1351,19 @@ class DispatchModel(IOMixin):
                 value_name="redispatch_mwh",
             )
             .with_columns(
-                plant_id_eia=pl.lit(0).cast(pl.Float32),
+                plant_id_eia=pl.lit(0).cast(pl.Int32),
                 technology_description=pl.col("generator_id"),
             )
             .select([*id_cols, "datetime", "redispatch_mwh", "technology_description"])
         )
-
         return pl.concat(
             [
                 self.dispatchable_summary(by=None, freq=freq, augment=augment),
                 self.re_summary(by=None, freq=freq),
                 self.storage_summary(by=None, freq=freq),
                 def_cur,
-            ]
+            ],
+            how="diagonal",
         ).sort(["plant_id_eia", "generator_id", "datetime"])
 
     def load_summary(self, freq="YS", **kwargs) -> pl.LazyFrame:
@@ -1526,7 +1449,15 @@ class DispatchModel(IOMixin):
         if not self.is_redispatch:
             out = out.with_columns(historical_cost_fom=pl.lit(0.0))
         if not augment:
-            return out
+            return out.join(
+                self.pl_dispatchable_specs.select(
+                    "plant_id_eia",
+                    "generator_id",
+                    "technology_description",
+                    "operating_date",
+                ),
+                on=["plant_id_eia", "generator_id"],
+            )
         return out.join(
             self.pl_dispatchable_specs.drop("capacity_mw"), on=id_cols
         ).select(
@@ -1590,116 +1521,113 @@ class DispatchModel(IOMixin):
         )
 
     def _plot_prep(self):
-        if "plot_prep" not in self._cached:
-            storage = (
-                self.storage_dispatch.groupby("datetime")
-                .agg(pl.sum("discharge"), pl.sum("gridcharge").alias("charge") * -1)
-                .melt(
+        storage = (
+            self.storage_dispatch.groupby("datetime")
+            .agg(pl.sum("discharge"), pl.sum("gridcharge").alias("charge") * -1)
+            .melt(
+                id_vars="datetime",
+                value_vars=["discharge", "charge"],
+                value_name="redispatch_mwh",
+                variable_name="technology_description",
+            )
+        )
+        try:
+            re = (
+                self.re_summary(freq="1h")
+                .with_columns(pl.col("technology_description").map_dict(PLOT_MAP))
+                .groupby("technology_description", "datetime")
+                .agg(pl.sum("redispatch_mwh"))
+            )
+        except AssertionError:
+            re = pl.LazyFrame(schema=storage.schema)
+
+        return pl.concat(
+            [
+                self.redispatch.join(
+                    self.pl_dispatchable_specs,
+                    on=["plant_id_eia", "generator_id"],
+                )
+                .with_columns(pl.col("technology_description").map_dict(PLOT_MAP))
+                .groupby("technology_description", "datetime")
+                .agg(pl.sum("redispatch_mwh")),
+                re,
+                storage,
+                self.system_data.with_columns(pl.col("curtailment") * -1).melt(
                     id_vars="datetime",
-                    value_vars=["discharge", "charge"],
-                    value_name="redispatch_mwh",
+                    value_vars=["curtailment", "deficit"],
                     variable_name="technology_description",
-                )
-            )
-            try:
-                re = (
-                    self.re_summary(freq="1h")
-                    .with_columns(pl.col("technology_description").map_dict(PLOT_MAP))
-                    .groupby("technology_description", "datetime")
-                    .agg(pl.sum("redispatch_mwh"))
-                )
-            except AssertionError:
-                re = MTDF.reindex(index=self.load_profile.index)
-
-            def _grp(df):
-                return df.rename(columns=PLOT_MAP).groupby(level=0, axis=1).sum()
-
-            self._cached["plot_prep"] = (
-                pd.concat(
-                    [
-                        self.redispatch.join(
-                            self.pl_dispatchable_specs,
-                            on=["plant_id_eia", "generator_id"],
-                        )
-                        .with_columns(
-                            pl.col("technology_description").map_dict(PLOT_MAP)
-                        )
-                        .groupby("technology_description", "datetime")
-                        .agg(pl.sum("redispatch_mwh")),
-                        re.pipe(_grp),
-                        storage,
-                    ],
-                    axis=1,
-                )
-                .assign(
-                    Curtailment=self.system_data.curtailment * -1,
-                    Deficit=self.system_data.deficit,
-                )
-                .rename_axis("resource", axis=1)
-                .stack()
-                .to_frame(name="net_generation_mwh")
-            )
-        return self._cached["plot_prep"]
+                    value_name="redispatch_mwh",
+                ),
+            ],
+            how="diagonal",
+        ).rename(
+            {
+                "technology_description": "resource",
+                "redispatch_mwh": "net_generation_mwh",
+            }
+        )
 
     def _plot_prep_detail(self, begin, end):
+        id_cols = ["plant_id_eia", "generator_id"]
         to_cat = [
-            self.redispatch.set_axis(
-                pd.MultiIndex.from_frame(
-                    self.dispatchable_specs.technology_description.reset_index()
-                ),
-                axis=1,
+            self.redispatch.join(
+                self.pl_dispatchable_specs.select(*id_cols, "technology_description"),
+                on=id_cols,
             ),
-            self.re_profiles_ac.set_axis(
-                pd.MultiIndex.from_frame(
-                    self.re_plant_specs.technology_description.reset_index()
-                ),
-                axis=1,
+            self.pl_re_profiles_ac.join(
+                self.pl_re_plant_specs.select(*id_cols, "technology_description"),
+                on=id_cols,
             ),
-            self.storage_dispatch.loc[:, ["discharge"]].reorder_levels(
-                [1, 2, 0], axis=1
+            self.storage_dispatch.with_columns(charge=pl.col("gridcharge") * -1).melt(
+                id_vars=[*id_cols, "datetime"],
+                value_vars=["discharge", "charge"],
+                variable_name="technology_description",
+                value_name="redispatch_mwh",
             ),
-            -1
-            * self.storage_dispatch.loc[:, ["gridcharge"]]
-            .reorder_levels([1, 2, 0], axis=1)
-            .rename(columns={"gridcharge": "charge"}),
-            -1
-            * self.system_data.curtailment.to_frame(
-                name=(999, "curtailment", "Curtailment")
-            ),
-            self.system_data.deficit.to_frame(name=(999, "deficit", "Deficit")),
-        ]
-
-        def arrange(df):
-            return (
-                df.loc[begin:end, :]
-                .rename_axis(
-                    columns=["plant_id_eia", "generator_id", "technology_description"]
-                )
-                .stack([0, 1, 2])
-                .to_frame(name="net_generation_mwh")
-                .reset_index()
-                .assign(resource=lambda x: x.technology_description.replace(PLOT_MAP))
-                .query("net_generation_mwh != 0.0 & net_generation_mwh.notna()")
+            self.system_data.with_columns(curtailment=pl.col("curtailment") * -1)
+            .melt(
+                id_vars=["datetime"],
+                value_vars=["curtailment", "deficit"],
+                variable_name="generator_id",
+                value_name="redispatch_mwh",
             )
+            .with_columns(
+                technology_description=pl.col("generator_id"),
+                plant_id_eia=pl.lit(999),
+            ),
+        ]
+        redispatch = (
+            pl.concat(to_cat, how="diagonal")
+            .drop("combined_id")
+            .rename({"redispatch_mwh": "net_generation_mwh"})
+            .with_columns(
+                series=pl.lit("redispatch"),
+                resource=pl.col("technology_description")
+                .map_dict(PLOT_MAP)
+                .fill_null(pl.col("technology_description"))
+                .cast(pl.Utf8),
+            )
+        )
+        if self.is_redispatch:
+            hist = (
+                self.pl_dispatchable_profiles.join(
+                    self.pl_dispatchable_specs.select(
+                        "plant_id_eia", "generator_id", "technology_description"
+                    ),
+                    on=["plant_id_eia", "generator_id"],
+                )
+                .rename({"historical_mwh": "net_generation_mwh"})
+                .drop("combined_id")
+                .with_columns(
+                    series=pl.lit("historical"),
+                    resource=pl.col("technology_description").map_dict(PLOT_MAP),
+                )
+            )
+        else:
+            hist = pl.LazyFrame(schema=redispatch.schema)
 
-        return pd.concat(
-            [
-                arrange(
-                    pd.concat(
-                        to_cat,
-                        axis=1,
-                    )
-                ).assign(series="redispatch"),
-                arrange(
-                    self.historical_dispatch.set_axis(
-                        pd.MultiIndex.from_frame(
-                            self.dispatchable_specs.technology_description.reset_index()
-                        ),
-                        axis=1,
-                    )
-                ).assign(series="historical"),
-            ],
-            axis=0,
+        return pl.concat([redispatch, hist], how="diagonal").filter(
+            (pl.col("datetime") >= begin) & (pl.col("datetime") <= end)
         )
 
     def plot_period(
@@ -1710,16 +1638,18 @@ class DispatchModel(IOMixin):
         end = begin + pd.Timedelta(days=7) if end is None else pd.Timestamp(end)
         net_load = self.net_load_profile.loc[begin:end]
         data = self._plot_prep_detail(begin, end)
-        if data.query("series == 'historical'").empty:
+        if data.filter(pl.col("series") == "historical").collect().is_empty():
             if compare_hist:
                 LOGGER.warning("disabling `compare_hist` because no historical data")
             compare_hist = False
         hover_name = "plant_id_eia"
         if not by_gen:
-            data = data.groupby(["datetime", "resource"]).sum().reset_index()
+            data = data.groupby(["datetime", "resource", "series"]).agg(
+                pl.sum("net_generation_mwh")
+            )
             hover_name = "resource"
         if not compare_hist:
-            data = data.query("series == 'redispatch'")
+            data = data.filter(pl.col("series") == "redispatch")
             kwargs = {}
         else:
             kwargs = {"facet_row": "series"}
@@ -1741,9 +1671,10 @@ class DispatchModel(IOMixin):
         # see https://plotly.com/python/facet-plots/#adding-the-same-trace-to-all-facets
         out = (
             px.bar(
-                data.replace(
-                    {"resource": {"charge": "Storage", "discharge": "Storage"}}
-                ).sort_values(["resource"], key=dispatch_key),
+                data.collect()
+                .to_pandas()
+                .replace({"resource": {"charge": "Storage", "discharge": "Storage"}})
+                .sort_values(["resource"], key=dispatch_key),
                 x="datetime",
                 y="net_generation_mwh",
                 color="resource",
@@ -1778,28 +1709,31 @@ class DispatchModel(IOMixin):
 
     def plot_year(self, year: int, freq="D") -> Figure:
         """Monthly facet plot of daily dispatch for a year."""
-        if freq not in ("H", "D"):
-            raise AssertionError("`freq` must be 'D' for day or 'H' for hour")
+        if freq not in ("H", "1h", "D", "1d"):
+            raise AssertionError(
+                "`freq` must be 'D' or '1d' for day, or 'H' or '1h' for hour"
+            )
+        freq = self.pl_freq.get(freq, freq)
         out = (
             self._plot_prep()
-            .loc[str(year), :]
-            .reset_index()
-            .groupby([pd.Grouper(freq=freq, key="datetime"), "resource"])
-            .sum()
-            .reset_index()
-            .assign(
-                day=lambda z: z.datetime.dt.day,
-                hour=lambda z: z.datetime.dt.day * 24 + z.datetime.dt.hour,
-                month=lambda z: z.datetime.dt.strftime("%B"),
-                resource=lambda z: z.resource.replace(
-                    {"charge": "Storage", "discharge": "Storage"}
-                ),
+            .filter(pl.col("datetime").dt.year() == year)
+            .sort(["resource", "datetime"])
+            .groupby_dynamic("datetime", every=freq, period=freq, by="resource")
+            .agg(pl.sum("net_generation_mwh"))
+            .with_columns(
+                day=pl.col("datetime").dt.day(),
+                hour=pl.col("datetime").dt.day() * 24 + pl.col("datetime").dt.hour(),
+                year=pl.col("datetime").dt.strftime("%Y"),
+                month=pl.col("datetime").dt.strftime("%B"),
             )
+            .collect()
+            .to_pandas()
             .sort_values(["resource", "month"], key=dispatch_key)
         )
-        x, yt, ht = {"D": ("day", "MWh", "resource"), "H": ("hour", "MW", "datetime")}[
-            freq
-        ]
+        x, yt, ht = {
+            "1d": ("day", "MWh", "resource"),
+            "1h": ("hour", "MW", "datetime"),
+        }[freq]
         return (
             px.bar(
                 out,
@@ -1828,20 +1762,22 @@ class DispatchModel(IOMixin):
     def plot_all_years(self) -> Figure:
         """Facet plot of daily dispatch for all years."""
         out = (
-            self._plot_prep()
-            .reset_index()
-            .groupby([pd.Grouper(freq="D", key="datetime"), "resource"])
-            .sum()
-            .reset_index()
-            .assign(
-                day=lambda z: z.datetime.dt.day,
-                hour=lambda z: z.datetime.dt.day * 24 + z.datetime.dt.hour,
-                year=lambda z: z.datetime.dt.strftime("%Y"),
-                month=lambda z: z.datetime.dt.strftime("%B"),
-                resource=lambda z: z.resource.replace(
-                    {"charge": "Storage", "discharge": "Storage"}
-                ),
+            (
+                self._plot_prep()
+                .sort(["resource", "datetime"])
+                .groupby_dynamic("datetime", every="1d", period="1d", by="resource")
+                .agg(pl.sum("net_generation_mwh"))
+                .with_columns(
+                    day=pl.col("datetime").dt.day(),
+                    hour=pl.col("datetime").dt.day() * 24
+                    + pl.col("datetime").dt.hour(),
+                    year=pl.col("datetime").dt.strftime("%Y"),
+                    month=pl.col("datetime").dt.strftime("%B"),
+                )
             )
+            .collect()
+            .to_pandas()
+            .replace({"resource": {"charge": "Storage", "discharge": "Storage"}})
             .sort_values(["resource", "year", "month"], key=dispatch_key)
         )
         return (
@@ -1872,7 +1808,7 @@ class DispatchModel(IOMixin):
 
     def plot_output(self, y: str, color="resource", freq="YS") -> Figure:
         """Plot a columns from :meth:`.DispatchModel.full_output`."""
-        to_plot = self.full_output(freq=freq).with_columns(
+        to_plot = self.full_output(freq=freq, augment=True).with_columns(
             year=pl.col("datetime").dt.year(),
             month=pl.col("datetime").dt.month(),
             resource=pl.col("technology_description").map_dict(PLOT_MAP),
@@ -1908,11 +1844,14 @@ class DispatchModel(IOMixin):
                 value_vars=["redispatch_" + y_cat, "historical_" + y_cat],
                 variable_name="series",
                 value_name=y_cat,
-            ).assign(series=lambda x: x.series.str.split("_" + y_cat, expand=True)[0])
+            ).with_columns(pl.col("series").str.replace("_" + y_cat, ""))
             if (
-                series_facet := to_plot1.groupby("series")[y_cat]  # noqa: PD008
-                .sum()
-                .at["historical"]
+                series_facet := to_plot1.groupby("series")
+                .agg(pl.sum(y_cat))
+                .filter(pl.col("series") == "historical")
+                .select(y_cat)
+                .collect()
+                .item()
                 > 0.0
             ):
                 b_kwargs.update(facet_row="series", y=y_cat)
@@ -1925,8 +1864,11 @@ class DispatchModel(IOMixin):
                 b_kwargs.update(facet_row="year", facet_col="series", facet_col_wrap=0)
         return (
             px.bar(
-                to_plot[to_plot[b_kwargs["y"]] != 0.0]
-                .drop_nan(subset=b_kwargs["y"])
+                to_plot.filter(
+                    (pl.col(b_kwargs["y"]) != 0.0) & pl.col(b_kwargs["y"]).is_not_nan()
+                )
+                .collect()
+                .to_pandas()
                 .sort_values(
                     (
                         ["series", "resource", "year"]
