@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 import warnings
 from datetime import datetime
-from typing import Literal
+from typing import ClassVar, Literal
 
 import numpy as np
 import pandas as pd
@@ -62,7 +62,7 @@ class DispatchModel(IOMixin):
         "_metadata",
         "_cached",
     )
-    default_config = {"dynamic_reserve_coeff": "auto"}
+    default_config: ClassVar[dict[str, str]] = {"dynamic_reserve_coeff": "auto"}
 
     def __init__(
         self,

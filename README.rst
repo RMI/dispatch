@@ -17,9 +17,9 @@ Dispatch: A simple and efficient electricity dispatch model
    :target: https://github.com/psf/black>
    :alt: Any color you want, so long as it's black.
 
-.. image:: https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat
-   :target: https://pycqa.github.io/isort/
-   :alt: Imports: isort
+.. image:: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v2.json
+    :target: https://github.com/astral-sh/ruff
+    :alt: Ruff
 
 .. readme-intro
 
