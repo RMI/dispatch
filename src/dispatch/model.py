@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 import warnings
 from datetime import datetime, timedelta
-from typing import Literal
+from typing import ClassVar, Literal
 
 import numpy as np
 import pandas as pd
@@ -70,25 +70,31 @@ class DispatchModel(IOMixin):
         "pl_re_plant_specs",
         "pl_storage_specs",
     )
-    id_schema = {
+    id_schema: ClassVar[dict] = {
         "plant_id_eia": pl.Int32,
         "generator_id": pl.Utf8,
         "datetime": pl.Datetime("us"),
     }
-    es_schema = {
+    es_schema: ClassVar[dict] = {
         "charge": pl.Float32,
         "discharge": pl.Float32,
         "soc": pl.Float32,
         "gridcharge": pl.Float32,
     }
-    sys_schema = {
+    sys_schema: ClassVar[dict] = {
         "deficit": pl.Float32,
         "dirty_charge": pl.Float32,
         "curtailment": pl.Float32,
         "load_adjustment": pl.Float32,
     }
-    pl_freq = {"YS": "1y", "AS": "1y", "MS": "1mo", "D": "1d", "H": "1h"}
-    default_config = {"dynamic_reserve_coeff": "auto"}
+    pl_freq: ClassVar[dict] = {
+        "YS": "1y",
+        "AS": "1y",
+        "MS": "1mo",
+        "D": "1d",
+        "H": "1h",
+    }
+    default_config: ClassVar[dict[str, str]] = {"dynamic_reserve_coeff": "auto"}
 
     def __init__(
         self,
@@ -408,7 +414,9 @@ class DispatchModel(IOMixin):
 
         Generate a full, combined output of all resources at specified frequency.
 
-        >>> dm.full_output(freq="YS").collect().to_pandas()  # doctest: +NORMALIZE_WHITESPACE
+        >>> dm.full_output(
+        ...     freq="YS"
+        ... ).collect().to_pandas()  # doctest: +NORMALIZE_WHITESPACE
            plant_id_eia generator_id  capacity_mw  ... duration_hrs  roundtrip_eff  reserve
         0             0  curtailment          NaN  ...          NaN            NaN      NaN
         1             0      deficit          NaN  ...          NaN            NaN      NaN
