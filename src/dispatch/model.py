@@ -397,37 +397,30 @@ class DispatchModel(IOMixin):
 
         >>> dm = dm()
 
-        Explore the results, starting with how much load could not be met.
+        Explore the results, starting with how much load could not be met. The results
+        are now returned as :class:`polars.LazyFrame` so `collect()` must be called on
+        them to see the results. We convert to :class:`pandas.DataFrame` to show how
+        that would be done.
 
-        >>> dm.lost_load().collect()  # doctest: +NORMALIZE_WHITESPACE
-        shape: (1, 2)
-        ┌─────────────┬───────┐
-        │ category    ┆ count │
-        │ ---         ┆ ---   │
-        │ cat         ┆ u32   │
-        ╞═════════════╪═══════╡
-        │ (-inf, 0.0] ┆ 8784  │
-        └─────────────┴───────┘
+        >>> dm.lost_load().collect().to_pandas()  # doctest: +NORMALIZE_WHITESPACE
+              category  count
+        0  (-inf, 0.0]   8784
 
         Generate a full, combined output of all resources at specified frequency.
 
-        >>> dm.full_output(freq="YS").collect()  # doctest: +NORMALIZE_WHITESPACE
-        shape: (9, 28)
-        ┌──────────────┬──────────────┬─────────────┬─────────────────────┬───┬─────────────┬──────────────┬───────────────┬─────────┐
-        │ plant_id_eia ┆ generator_id ┆ capacity_mw ┆ datetime            ┆ … ┆ gridcharge  ┆ duration_hrs ┆ roundtrip_eff ┆ reserve │
-        │ ---          ┆ ---          ┆ ---         ┆ ---                 ┆   ┆ ---         ┆ ---          ┆ ---           ┆ ---     │
-        │ i32          ┆ str          ┆ f64         ┆ datetime[μs]        ┆   ┆ f32         ┆ i64          ┆ f64           ┆ f64     │
-        ╞══════════════╪══════════════╪═════════════╪═════════════════════╪═══╪═════════════╪══════════════╪═══════════════╪═════════╡
-        │ 0            ┆ curtailment  ┆ null        ┆ 2020-01-01 00:00:00 ┆ … ┆ null        ┆ null         ┆ null          ┆ null    │
-        │ 0            ┆ deficit      ┆ null        ┆ 2020-01-01 00:00:00 ┆ … ┆ null        ┆ null         ┆ null          ┆ null    │
-        │ 1            ┆ 1            ┆ 350.0       ┆ 2020-01-01 00:00:00 ┆ … ┆ null        ┆ null         ┆ null          ┆ null    │
-        │ 1            ┆ 2            ┆ 500.0       ┆ 2020-01-01 00:00:00 ┆ … ┆ null        ┆ null         ┆ null          ┆ null    │
-        │ 2            ┆ 1            ┆ 600.0       ┆ 2020-01-01 00:00:00 ┆ … ┆ null        ┆ null         ┆ null          ┆ null    │
-        │ 5            ┆ 1            ┆ 500.0       ┆ 2020-01-01 00:00:00 ┆ … ┆ null        ┆ null         ┆ null          ┆ null    │
-        │ 5            ┆ es           ┆ 250.0       ┆ 2020-01-01 00:00:00 ┆ … ┆ 3031.205566 ┆ 4            ┆ 0.9           ┆ 0.0     │
-        │ 6            ┆ 1            ┆ 500.0       ┆ 2020-01-01 00:00:00 ┆ … ┆ null        ┆ null         ┆ null          ┆ null    │
-        │ 7            ┆ 1            ┆ 200.0       ┆ 2020-01-01 00:00:00 ┆ … ┆ 184.283997  ┆ 12           ┆ 0.5           ┆ 0.0     │
-        └──────────────┴──────────────┴─────────────┴─────────────────────┴───┴─────────────┴──────────────┴───────────────┴─────────┘
+        >>> dm.full_output(freq="YS").collect().to_pandas()  # doctest: +NORMALIZE_WHITESPACE
+           plant_id_eia generator_id  capacity_mw  ... duration_hrs  roundtrip_eff  reserve
+        0             0  curtailment          NaN  ...          NaN            NaN      NaN
+        1             0      deficit          NaN  ...          NaN            NaN      NaN
+        2             1            1        350.0  ...          NaN            NaN      NaN
+        3             1            2        500.0  ...          NaN            NaN      NaN
+        4             2            1        600.0  ...          NaN            NaN      NaN
+        5             5            1        500.0  ...          NaN            NaN      NaN
+        6             5           es        250.0  ...          4.0            0.9      0.0
+        7             6            1        500.0  ...          NaN            NaN      NaN
+        8             7            1        200.0  ...         12.0            0.5      0.0
+        <BLANKLINE>
+        [9 rows x 28 columns]
         """
         if not name and "balancing_authority_code_eia" in dispatchable_specs:
             name = dispatchable_specs.balancing_authority_code_eia.mode().iloc[0]
@@ -636,8 +629,9 @@ class DispatchModel(IOMixin):
     def __getstate__(self):
         state = {}
         for name in self.__slots__:
-            if all((hasattr(self, name), name not in ("_cached", "dt_idx"))):
+            if all((hasattr(self, name), name not in ("_cached", "dt_idx", "_polars"))):
                 state[name] = getattr(self, name)
+        state["polars_state"] = self._polars.__getstate__()
         if not self.redispatch.collect().is_empty():
             for df_name in ("full_output", "load_summary"):
                 try:
@@ -653,6 +647,8 @@ class DispatchModel(IOMixin):
                 setattr(self, k, v)
         self.dt_idx = self.load_profile.index
         self._cached = {}
+        self._polars = IDConverter.__new__(IDConverter)
+        self._polars.__setstate__(state["polars_state"])
 
     @classmethod
     def from_patio(cls, *args, **kwargs) -> DispatchModel:

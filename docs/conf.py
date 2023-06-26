@@ -89,6 +89,7 @@ intersphinx_mapping = {
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable", None),
     "pandera": ("https://pandera.readthedocs.io/en/stable", None),
     "plotly": ("https://plotly.com/python-api-reference/", None),
+    "polars": ("https://pola-rs.github.io/polars/py-polars/html/reference/", None),
     "pytest": ("https://docs.pytest.org/en/latest/", None),
     "python": ("https://docs.python.org/3", None),
     "scipy": ("https://docs.scipy.org/doc/scipy/", None),
