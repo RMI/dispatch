@@ -15,7 +15,7 @@ CURTAILMENT_IDX = 2
 ADJUSTMENT_IDX = 3
 
 
-@njit(error_model="numpy")
+@njit(error_model="numpy", cache=True)
 def dispatch_engine_auto(
     net_load: np.ndarray,
     hr_to_cost_idx: np.ndarray,
@@ -132,7 +132,7 @@ def dispatch_engine_auto(
     )
 
 
-@njit(error_model="numpy")
+@njit(error_model="numpy", cache=True)
 def choose_best_coefficient(comparison: np.ndarray) -> int:
     """Select the optimal combination of deficit and curtailment.
 
@@ -151,7 +151,7 @@ def choose_best_coefficient(comparison: np.ndarray) -> int:
     return int(np.argmin(comparison[:, DEFICIT_IDX]))
 
 
-@njit(error_model="numpy")
+@njit(error_model="numpy", cache=True)
 def dispatch_engine(  # noqa: C901
     net_load: np.ndarray,
     hr_to_cost_idx: np.ndarray,
@@ -501,7 +501,7 @@ def dispatch_engine(  # noqa: C901
     return redispatch, storage, system_level, starts
 
 
-@njit
+@njit(cache=True)
 def dynamic_reserve(
     hr: int,
     reserve: np.ndarray,
@@ -534,7 +534,7 @@ def dynamic_reserve(
     )
 
 
-@njit
+@njit(cache=True)
 def adjust_for_storage_reserve(
     state_of_charge: np.ndarray,
     mw: np.ndarray,
@@ -581,7 +581,7 @@ def adjust_for_storage_reserve(
     )
 
 
-@njit
+@njit(cache=True)
 def discharge_storage(
     desired_mw: float,
     state_of_charge: float,
@@ -608,7 +608,7 @@ def discharge_storage(
     )
 
 
-@njit
+@njit(cache=True)
 def calculate_generator_output(
     desired_mw: float,
     max_mw: float,
@@ -653,7 +653,7 @@ def calculate_generator_output(
     )
 
 
-@njit
+@njit(cache=True)
 def make_rank_arrays(
     marginal_cost: np.ndarray, startup_cost: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -694,7 +694,7 @@ def make_rank_arrays(
     return marginal_ranks, start_ranks
 
 
-@njit
+@njit(cache=True)
 def charge_storage(
     deficit: float,
     state_of_charge: float,
@@ -745,7 +745,7 @@ def charge_storage(
     return charge, 0.0, state_of_charge, grid_charge
 
 
-@njit
+@njit(cache=True)
 def validate_inputs(
     net_load,
     hr_to_cost_idx,

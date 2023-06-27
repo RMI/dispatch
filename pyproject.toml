@@ -33,8 +33,8 @@ dependencies = [
 dev = [
     "black[jupyter] >= 22,< 24",
     "docformatter>=1.5,<1.8",
-    "ruff>0.0.215,<0.0.271",
-    "tox>=3.20,<4.6",
+    "ruff>0.0.215,<0.0.276",
+    "tox>=3.20,<4.7",
     "twine>=3.3,<4.1",  # Used to make releases to PyPI
 ]
 doc = [
@@ -51,15 +51,15 @@ tests = [
     "coverage>=5.3,<7.3",
     "doc8>=0.9,<1.2",
     "pre-commit>=2.9,<3.4",
-    "pytest>=6.2,<7.4",
+    "pytest>=6.2,<7.5",
     "pytest-console-scripts>=1.1,<1.5",
     "pytest-cov>=2.10,<4.2",
     "rstcheck[sphinx,toml]>=5.0,<6.2",
-    "ruff>0.0.215,<0.0.271",
-    "tox>=3.20,<4.6",
+    "ruff>0.0.215,<0.0.276",
+    "tox>=3.20,<4.7",
 ]
 viz = [
-    "plotly>5.10,<5.15",
+    "plotly>5.10,<5.16",
     "kaleido>0.2,<0.2.2",
 ]
 
