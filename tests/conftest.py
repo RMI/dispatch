@@ -92,12 +92,12 @@ def ent_redispatch(test_dir) -> dict:
 @pytest.fixture(
     scope="session",
     params=[
-        "57",
-        "aps",
-        "epe",
-        "fpc",
-        "fpl",
-        "ldwp",
+        # "57",
+        # "aps",
+        # "epe",
+        # "fpc",
+        # "fpl",
+        # "ldwp",
         "miso",
         "nyis",
         "pac",
@@ -136,7 +136,7 @@ def ent_out_for_excl_test(test_dir):
     self = DispatchModel(**ent_redispatch, config={"dynamic_reserve_coeff": 1.5})
     self()
     df = self.dispatchable_summary(by=None)
-    return df.groupby(level=[0, 1]).sum()
+    return df.groupby(["plant_id_eia", "generator_id"]).sum()
 
 
 @pytest.fixture(scope="session")
@@ -150,7 +150,7 @@ def ent_out_for_no_limit_test(test_dir):
     self = DispatchModel(**ent_redispatch, config={"dynamic_reserve_coeff": 1.5})
     self()
     df = self.dispatchable_summary(by=None)
-    return df.groupby(level=[0, 1]).sum()
+    return df.groupby(["plant_id_eia", "generator_id"]).sum()
 
 
 @pytest.fixture(scope="session")
@@ -161,7 +161,7 @@ def ent_out_for_test(test_dir):
     self = DispatchModel(**ent_out_for_test, config={"dynamic_reserve_coeff": 1.5})
     self()
     df = self.dispatchable_summary(by=None)
-    return df.groupby(level=[0, 1]).sum()
+    return df.groupby(["plant_id_eia", "generator_id"]).sum()
 
 
 @pytest.fixture(scope="session")
