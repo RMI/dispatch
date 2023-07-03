@@ -31,8 +31,8 @@ repos:
   ########################################################################################
 
   # Linter and formatter that replaces flake8, isort, etc.
-  - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: "v0.0.275"
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: "v0.0.276"
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
