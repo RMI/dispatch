@@ -191,8 +191,8 @@ class Validator:
                 "`dispatchable_specs`"
             ) from exc
         self.obj._metadata["marginal_cost_freq"] = marg_freq
-        if "YS" not in marg_freq and "AS" not in marg_freq:
-            raise AssertionError("Cost data must be `YS`")
+        if not any(("YS" in marg_freq, "AS" in marg_freq, "MS" in marg_freq)):
+            raise AssertionError(f"Cost data must be `YS` not `{marg_freq}`")
         marg_dts = dispatchable_cost.index.get_level_values("datetime")
         missing_prds = [
             d
@@ -201,6 +201,20 @@ class Validator:
         ]
         if missing_prds:
             raise AssertionError(f"{missing_prds} not in `dispatchable_cost`")
+
+        missing_gens = (
+            dispatchable_cost.reset_index()  # noqa: PD010, PD013
+            .pivot(
+                index=["plant_id_eia", "generator_id"],
+                columns="datetime",
+                values="fom_per_kw",
+            )
+            .isna()
+            .stack()
+        )
+        if not (missing_gens := missing_gens[missing_gens]).empty:
+            msg = missing_gens.to_string().replace("\n", "\n\t")
+            raise AssertionError(f"missing periods from `dispatchable_cost`: \n{msg}")
         return dispatchable_cost
 
     def storage_specs(self, storage_specs: pd.DataFrame) -> pd.DataFrame:

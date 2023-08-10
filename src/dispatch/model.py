@@ -106,9 +106,9 @@ class DispatchModel(IOMixin):
             dispatchable_profiles: set the maximum output of each generator in
                 each hour.
             dispatchable_cost: cost metrics for each dispatchable generator in
-                each year must be tidy with :class:`pandas.MultiIndex` of
-                ``['plant_id_eia', 'generator_id', 'datetime']``, columns must
-                include:
+                each period must be tidy with :class:`pandas.MultiIndex` of
+                ``['plant_id_eia', 'generator_id', 'datetime']``, data can be annual
+                or monthly, columns must include:
 
                 -   vom_per_mwh: variable O&M (USD/MWh)
                 -   fuel_per_mwh: fuel cost (USD/MWh)
@@ -468,7 +468,6 @@ class DispatchModel(IOMixin):
         self.system_data = MTDF.reindex(
             columns=["deficit", "dirty_charge", "curtailment", "load_adjustment"]
         )
-        self.starts = MTDF.reindex(columns=self.dispatchable_specs.index)
         self._cached = {}
 
     def re_and_net_load(self, re_profiles):
@@ -587,6 +586,21 @@ class DispatchModel(IOMixin):
                 except Exception as exc:
                     LOGGER.warning("unable to write %s, %r", df_name, exc)
         return None, state
+
+    def __getattr__(self, item):
+        """Get values from ``self._metadata`` as if they were properties."""
+        try:
+            return self._metadata[item]
+        except KeyError:
+            raise AttributeError(
+                f"'{self.__class__.__qualname__}' object has no attribute '{item}'"
+            ) from None
+
+    def set_metadata(self, key, value: Any) -> None:
+        """Set a value in metadata."""
+        if key in ("name", "version", "created", "jit", "marginal_cost_freq"):
+            raise KeyError(f"{key=} is reserved.")
+        self._metadata[key] = value
 
     @classmethod
     def from_patio(cls, *args, **kwargs) -> DispatchModel:
@@ -735,12 +749,14 @@ class DispatchModel(IOMixin):
                 )
                 coeff = 1
 
+        u_ix = self.dispatchable_cost.index.get_level_values("datetime").unique()
+        cost_idx = pd.Series(range(len(u_ix)), index=u_ix.sort_values()).reindex(
+            index=self.load_profile.index, method="ffill"
+        )
+
         fos_prof, storage, system, starts = func(
             net_load=self.net_load_profile.to_numpy(dtype=np.float_),
-            hr_to_cost_idx=(
-                self.net_load_profile.index.year
-                - self.net_load_profile.index.year.min()
-            ).to_numpy(dtype=np.int64),
+            hr_to_cost_idx=cost_idx.to_numpy(dtype=np.int64),
             historical_dispatch=d_prof,
             dispatchable_ramp_mw=self.dispatchable_specs.ramp_rate.to_numpy(
                 dtype=np.float_
@@ -784,16 +800,6 @@ class DispatchModel(IOMixin):
             system,
             index=self.dt_idx,
             columns=self.system_data.columns,
-        )
-        self.starts = (
-            pd.DataFrame(
-                starts.T,
-                columns=self.dispatchable_specs.index,
-                index=self.yrs_idx,
-            )
-            .stack([0, 1])
-            .reorder_levels([1, 2, 0])
-            .sort_index()
         )
         return self
 

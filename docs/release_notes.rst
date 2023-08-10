@@ -34,6 +34,9 @@ What's New?
    facilities to create higher-level metrics using the ``storage_rollup`` parameter.
 *  :meth:`.DispatchModel.hourly_data_check` allows exploration of hours preceding and
    including both deficit and curtailment hours.
+*  :class:`.DispatchModel` now accepts ``dispatchable_cost`` with monthly frequency.
+*  Added :meth:`.DispatchModel.set_metadata` to safely set metadata.
+   :meth:`.DispatchModel.__getattr__` allows retrieving metadata using attribute access.
 
 Bug Fixes
 ^^^^^^^^^

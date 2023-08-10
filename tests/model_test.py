@@ -48,7 +48,7 @@ def test_new_no_dates(fossil_profiles, re_profiles, fossil_specs, fossil_cost):
         ("redispatch", {"f": 399_672_109, "r": 370_228_932}),
         ("storage_dispatch", {"f": 266_660_550, "r": 235_078_425}),
         ("system_data", {"f": 49_509_985, "r": 75_636_546}),
-        ("starts", {"f": 108_678, "r": 68_007}),
+        # ("starts", {"f": 108_678, "r": 68_007}),
     ],
     ids=idfn,
 )
@@ -650,6 +650,27 @@ def test_deficit_curtailment(ba_dm, kind, expected):
     assert actual <= expected
     if not np.isclose(actual, expected, rtol=1e-6, atol=0):
         logger.warning("%s %s: expected=%e, actual=%e", name, kind, expected, actual)
+
+
+def test_monthly_cost(test_dir):
+    """Test that DispatchModel works with monthly cost data."""
+    with DataZip(test_dir / "data/duke_monthly.zip") as dz:
+        data = dict(dz.items())
+    dm = DispatchModel(**data, config={"dynamic_reserve_coeff": "auto"})()
+    df = dm.full_output()
+    assert not df.empty
+
+
+@pytest.mark.parametrize(
+    ("attr", "expected"), [("name", "PACE"), ("foo", AttributeError)], ids=idfn
+)
+def test_metadata(mini_dm, attr, expected):
+    """Test that __getattr__ works."""
+    if isinstance(expected, str):
+        assert getattr(mini_dm, attr) == expected
+    else:
+        with pytest.raises(expected):
+            getattr(mini_dm, attr)
 
 
 def sweep(test_dir):
