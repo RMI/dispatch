@@ -167,14 +167,17 @@ class Validator:
 
     def dispatchable_cost(self, dispatchable_cost: pd.DataFrame) -> pd.DataFrame:
         """Validate dispatchable_cost."""
-        try:
-            marg_freq = dispatchable_cost.index.levels[2].freqstr
-            if marg_freq is None:
-                raise RuntimeError
-        except (AttributeError, RuntimeError):
+        marg_freq = dispatchable_cost.index.levels[2].freqstr
+        if marg_freq is None:
             marg_freq = pd.infer_freq(
                 dispatchable_cost.index.get_level_values(2).unique()
             )
+        if marg_freq is None:
+            freq_dict = {1: "A", 12: "M", 52: "W", 365: "D"}
+            full = dispatchable_cost.index.get_level_values(2).unique()
+            is_start = all(full.day.unique() == 1)
+            per_year = int(len(full) / len(full.year.unique()))
+            marg_freq = freq_dict.get(per_year, "") + "S" if is_start else ""
 
         dispatchable_cost = self.dispatchable_cost_schema.validate(dispatchable_cost)
         # make sure al
@@ -190,9 +193,9 @@ class Validator:
                 "generators in `dispatchable_cost` do not match generators in "
                 "`dispatchable_specs`"
             ) from exc
-        self.obj._metadata["marginal_cost_freq"] = marg_freq
+        # self.obj._metadata["marginal_cost_freq"] = marg_freq
         if not any(("YS" in marg_freq, "AS" in marg_freq, "MS" in marg_freq)):
-            raise AssertionError(f"Cost data must be `YS` not `{marg_freq}`")
+            raise AssertionError(f"Cost data must be `YS` or not `{marg_freq}`")
         marg_dts = dispatchable_cost.index.get_level_values("datetime")
         missing_prds = [
             d
