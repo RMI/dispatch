@@ -47,6 +47,9 @@ Bug Fixes
    rather than the date. This provides the expected output when outputs are aggregated
    annually as is the typical case.
 *  Fixed renewable name maps for plotting in :const:`dispatch.constants.PLOT_MAP`.
+*  Added a second fallback method for determining the frequency of cost data in
+   :meth:`.Validator.dispatchable_cost`. While this isn't needed within the model
+   anymore, it is used to determine if there is missing data.
 
 
 .. _release-v0-5-0:
