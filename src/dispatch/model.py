@@ -451,6 +451,10 @@ class DispatchModel(IOMixin):
         self.re_plant_specs, re_profiles = validator.renewables(
             re_plant_specs, re_profiles
         )
+        if self.re_plant_specs is not None:
+            self.re_plant_specs = self.re_plant_specs.pipe(
+                self._add_optional_cols, df_name="re_plant_specs"
+            )
         (
             self.net_load_profile,
             self.re_profiles_ac,
@@ -564,7 +568,8 @@ class DispatchModel(IOMixin):
                 ("exclude", False),
                 ("no_limit", False),
             ),
-            "storage_specs": (("reserve", 0.0),),
+            "storage_specs": (("reserve", 0.0), ("retirement_date", pd.NaT)),
+            "re_plant_specs": (("retirement_date", pd.NaT),),
         }
         return df.assign(
             **{col: value for col, value in default_values[df_name] if col not in df}
@@ -1268,14 +1273,29 @@ class DispatchModel(IOMixin):
             # .assign(redispatch_mwh=lambda x: x.historical_mwh)
             .reset_index()
             .merge(
-                self.re_plant_specs,
+                self.strict_grouper(
+                    zero_profiles_outside_operating_dates(
+                        pd.DataFrame(
+                            1,
+                            index=self.load_profile.index,
+                            columns=self.re_plant_specs.index,
+                        ),
+                        self.re_plant_specs.operating_date,
+                        self.re_plant_specs.retirement_date,
+                        self.re_plant_specs.capacity_mw,
+                    ),
+                    by=None,
+                    freq=freq,
+                    col_name="capacity_mw",
+                    freq_agg="max",
+                ).reset_index(),
+                on=["plant_id_eia", "generator_id", "datetime"],
+                validate="1:1",
+            )
+            .merge(
+                self.re_plant_specs.reset_index().drop(columns=["capacity_mw"]),
                 on=["plant_id_eia", "generator_id"],
                 validate="m:1",
-            )
-            .assign(
-                capacity_mw=lambda x: x.capacity_mw.where(
-                    x.operating_date.dt.year < x.datetime.dt.year, 0
-                )
             )
         )
         if by is None:
@@ -1308,14 +1328,29 @@ class DispatchModel(IOMixin):
             .redispatch_mwh.sum()
             .reset_index()
             .merge(
-                self.storage_specs.reset_index(),
+                self.strict_grouper(
+                    zero_profiles_outside_operating_dates(
+                        pd.DataFrame(
+                            1,
+                            index=self.load_profile.index,
+                            columns=self.storage_specs.index,
+                        ),
+                        self.storage_specs.operating_date,
+                        self.storage_specs.retirement_date,
+                        self.storage_specs.capacity_mw,
+                    ),
+                    by=None,
+                    freq=freq,
+                    col_name="capacity_mw",
+                    freq_agg="max",
+                ).reset_index(),
+                on=["plant_id_eia", "generator_id", "datetime"],
+                validate="1:1",
+            )
+            .merge(
+                self.storage_specs.reset_index().drop(columns=["capacity_mw"]),
                 on=["plant_id_eia", "generator_id"],
                 validate="m:1",
-            )
-            .assign(
-                capacity_mw=lambda x: x.capacity_mw.where(
-                    x.operating_date.dt.year < x.datetime.dt.year, 0
-                )
             )
         )
         if by is None:
