@@ -53,7 +53,9 @@ Bug Fixes
 *  Fixed a bug where profile index validation failed because :mod:`pandera`
    :class:`pandas.DatetimeIndex` type validation was applied inconsistently between
    :class:`pandas.DataFrame` and :class:`pandas.Series`.
-
+*  Fixed a bug where the ``capacity_mw`` column returned by
+   :meth:`.DispatchModel.re_summary` and :meth:`.DispatchModel.storage_summary`
+   was zero in the first year of operations when ``freq='YS'``.
 
 .. _release-v0-5-0:
 
