@@ -11,7 +11,9 @@ LOGGER = logging.getLogger(__name__)
 DT_SCHEMA = pa.Index(pa.Timestamp, name="datetime")
 PID_SCHEMA = pa.Index(int, name="plant_id_eia")
 GID_SCHEMA = pa.Index(str, name="generator_id")
-LOAD_PROFILE_SCHEMA = pa.SeriesSchema(pa.Float, index=DT_SCHEMA, coerce=True)
+LOAD_PROFILE_SCHEMA = pa.DataFrameSchema(
+    columns={"load": pa.Column(pa.Float)}, index=DT_SCHEMA, coerce=True
+)
 
 
 class Validator:

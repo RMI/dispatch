@@ -50,6 +50,9 @@ Bug Fixes
 *  Added a second fallback method for determining the frequency of cost data in
    :meth:`.Validator.dispatchable_cost`. While this isn't needed within the model
    anymore, it is used to determine if there is missing data.
+*  Fixed a bug where profile index validation failed because :mod:`pandera`
+   :class:`pandas.DatetimeIndex` type validation was applied inconsistently between
+   :class:`pandas.DataFrame` and :class:`pandas.Series`.
 
 
 .. _release-v0-5-0:
