@@ -414,7 +414,11 @@ class DispatchModel(IOMixin):
         else:
             self.config = self.default_config | config
 
-        self.load_profile: pd.Series = LOAD_PROFILE_SCHEMA.validate(load_profile)
+        # pandera series validation does not coerce index datetime correctly so must
+        # validate as df
+        self.load_profile: pd.Series = LOAD_PROFILE_SCHEMA.validate(
+            load_profile.to_frame("load")
+        ).squeeze()
 
         self.dt_idx = self.load_profile.index
         self.yrs_idx = self.dt_idx.to_series().groupby([pd.Grouper(freq="YS")]).first()
