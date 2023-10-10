@@ -31,6 +31,7 @@ def dispatch_engine_auto(
     storage_dc_charge: np.ndarray,
     storage_reserve: np.ndarray,
     dynamic_reserve_coeff: float,
+    marginal_for_startup_rank: bool = False,  # noqa: FBT001, FBT002
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Autotune ``dynamic_reserve_coeff`` in :func:`.dispatch_engine`.
 
@@ -63,6 +64,9 @@ def dispatch_engine_auto(
         dynamic_reserve_coeff: coefficient passed to
             :func:`dispatch.engine.dynamic_reserve` to use in exponential function.
             ``-10.0`` means autotune this parameter.
+        marginal_for_startup_rank: if True, rather than using
+            ``dispatchable_startup_cost`` to order generators for startup, use marginal
+            cost rank
 
 
     Returns:
@@ -109,6 +113,7 @@ def dispatch_engine_auto(
                 storage_dc_charge=storage_dc_charge,
                 storage_reserve=storage_reserve,
                 dynamic_reserve_coeff=coeff,
+                marginal_for_startup_rank=marginal_for_startup_rank,
             )
             comparison[ix, :] = np.sum(system_level, axis=0) / np.sum(net_load)
             results.append((redispatch, storage, system_level, starts))
@@ -129,6 +134,7 @@ def dispatch_engine_auto(
         storage_dc_charge=storage_dc_charge,
         storage_reserve=storage_reserve,
         dynamic_reserve_coeff=dynamic_reserve_coeff,
+        marginal_for_startup_rank=marginal_for_startup_rank,
     )
 
 
@@ -167,6 +173,7 @@ def dispatch_engine(  # noqa: C901
     storage_dc_charge: np.ndarray,
     storage_reserve: np.ndarray,
     dynamic_reserve_coeff: float,
+    marginal_for_startup_rank: bool,  # noqa: FBT001
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Dispatch engine that can be compiled with :func:`numba.jit`.
 
@@ -205,6 +212,9 @@ def dispatch_engine(  # noqa: C901
             reserve until after dispatchable resource startup.
         dynamic_reserve_coeff: coefficient passed to
             :func:`dispatch.engine.dynamic_reserve` to use in exponential function.
+        marginal_for_startup_rank: if True, rather than using
+            ``dispatchable_startup_cost`` to order generators for startup, use marginal
+            cost rank
 
 
     Returns:
@@ -221,6 +231,8 @@ def dispatch_engine(  # noqa: C901
     marginal_ranks, start_ranks = make_rank_arrays(
         dispatchable_marginal_cost, dispatchable_startup_cost
     )
+    if marginal_for_startup_rank:
+        start_ranks = marginal_ranks
 
     # create an array to keep track of re-dispatch
     redispatch: np.ndarray = np.zeros_like(historical_dispatch)

@@ -37,6 +37,11 @@ What's New?
 *  :class:`.DispatchModel` now accepts ``dispatchable_cost`` with monthly frequency.
 *  Added :meth:`.DispatchModel.set_metadata` to safely set metadata.
    :meth:`.DispatchModel.__getattr__` allows retrieving metadata using attribute access.
+*  Added ``marginal_for_startup_rank`` flag to :func:`.dispatch_engine` and
+   :class:`.DispatchModel` ``config`` to use marginal cost rank to order generators for
+   startup rather than startup cost. Given costs from :mod:`rmi.gencost` have very low
+   startup cost relative to marginal costs, marginal costs can be a better metric for
+   committing units.
 
 Bug Fixes
 ^^^^^^^^^

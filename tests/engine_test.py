@@ -41,7 +41,8 @@ CAP = [500, 400, 300]
 
 
 @pytest.mark.parametrize("py_func", [True, False], ids=idfn)
-def test_engine(py_func):
+@pytest.mark.parametrize("marginal_for_startup_rank", [True, False], ids=idfn)
+def test_engine(py_func, marginal_for_startup_rank):
     """Trivial test for the dispatch engine."""
     in_dict = dict(  # noqa: C408
         net_load=np.array(NL),
@@ -58,6 +59,7 @@ def test_engine(py_func):
         storage_dc_charge=np.zeros((len(NL), 2)),
         storage_reserve=np.array([0.1, 0.1]),
         dynamic_reserve_coeff=1.5,
+        marginal_for_startup_rank=marginal_for_startup_rank,
     )
     if py_func:
         redispatch, es, sl, st = dispatch_engine.py_func(**in_dict)
@@ -66,6 +68,7 @@ def test_engine(py_func):
     assert np.all(redispatch.sum(axis=1) + es[:, 1, :].sum(axis=1) >= NL)
 
 
+@pytest.mark.parametrize("marginal_for_startup_rank", [True, False], ids=idfn)
 @pytest.mark.parametrize("py_func", [True, False], ids=idfn)
 @pytest.mark.parametrize(
     ("coeff", "reserve"),
@@ -79,7 +82,7 @@ def test_engine(py_func):
     ],
     ids=idfn,
 )
-def test_dispatch_engine_auto(py_func, coeff, reserve):
+def test_dispatch_engine_auto(py_func, coeff, reserve, marginal_for_startup_rank):
     """Trivial test for the dispatch engine."""
     in_dict = dict(  # noqa: C408
         net_load=np.array(NL),
@@ -96,6 +99,7 @@ def test_dispatch_engine_auto(py_func, coeff, reserve):
         storage_dc_charge=np.zeros((len(NL), 2), dtype=float),
         storage_reserve=np.array([reserve, reserve], dtype=float),
         dynamic_reserve_coeff=-10.0 if coeff == "auto" else coeff,
+        marginal_for_startup_rank=marginal_for_startup_rank,
     )
     if py_func:
         redispatch, es, sl, st = dispatch_engine_auto.py_func(**in_dict)
@@ -121,6 +125,7 @@ def test_engine_pyfunc_numba():
         storage_dc_charge=np.zeros((len(NL), 2)),
         storage_reserve=np.array([0.1, 0.1]),
         dynamic_reserve_coeff=1.5,
+        marginal_for_startup_rank=False,
     )
     redispatch, es, sl, st = dispatch_engine(
         net_load=np.array(NL),
@@ -137,11 +142,37 @@ def test_engine_pyfunc_numba():
         storage_dc_charge=np.zeros((len(NL), 2)),
         storage_reserve=np.array([0.1, 0.1]),
         dynamic_reserve_coeff=1.5,
+        marginal_for_startup_rank=False,
     )
     assert np.all(redispatch == redispatch_py)
     assert np.all(es == es_py)
     assert np.all(sl == sl_py)
     assert np.all(st == st_py)
+
+
+def test_engine_marginal_for_startup_rank():
+    """Test that ``marginal_for_startup_rank`` uses lower marginal cost generators."""
+    in_dict = dict(  # noqa: C408
+        net_load=np.array(NL),
+        hr_to_cost_idx=np.zeros(len(NL), dtype=int),
+        historical_dispatch=np.array([CAP] * len(NL)),
+        dispatchable_ramp_mw=np.array(CAP),
+        dispatchable_startup_cost=np.array([[1000.0], [1000.0], [100.0]]),
+        dispatchable_marginal_cost=np.array([[10.0], [20.0], [50.0]]),
+        dispatchable_min_uptime=np.zeros_like(CAP, dtype=np.int_),
+        storage_mw=np.array([400, 200]),
+        storage_hrs=np.array([4, 12]),
+        storage_eff=np.array((0.9, 0.9)),
+        storage_op_hour=np.array((0, 0)),
+        storage_dc_charge=np.zeros((len(NL), 2)),
+        storage_reserve=np.array([0.1, 0.1]),
+        dynamic_reserve_coeff=1.5,
+    )
+    redis_m, *_ = dispatch_engine.py_func(**in_dict, marginal_for_startup_rank=True)
+    redis, *_ = dispatch_engine.py_func(**in_dict, marginal_for_startup_rank=False)
+    diff = redis_m - redis
+    assert diff[:, 0].sum() > 0
+    assert diff[:, 2].sum() < 0
 
 
 @pytest.mark.parametrize(

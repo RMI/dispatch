@@ -58,6 +58,22 @@ def test_redispatch_total(ent_dm, attr, expected):
     assert getattr(ent_dm, attr).sum().sum() == pytest.approx(expected[ind])
 
 
+@pytest.mark.parametrize(
+    ("attr", "expected"),
+    [
+        ("redispatch", {"f": 399_164_260, "r": 370_199_520}),
+        ("storage_dispatch", {"f": 263_867_618, "r": 232_788_258}),
+        ("system_data", {"f": 50_259_729, "r": 76_623_300}),
+    ],
+    ids=idfn,
+)
+def test_redispatch_marginal_for_startup_rank_total(ent_dm, attr, expected):
+    """High-level test of marginal_for_startup_rank that results have not changed."""
+    ind, ent_dm = ent_dm
+    ent_dm = ent_dm(marginal_for_startup_rank=True)
+    assert getattr(ent_dm, attr).sum().sum() == pytest.approx(expected[ind])
+
+
 @pytest.mark.parametrize("comparison", [None, "load_max"], ids=idfn)
 def test_low_lost_load(mini_dm, comparison):
     """Dummy test that there isn't much lost load."""

@@ -62,7 +62,10 @@ class DispatchModel(IOMixin):
         "_metadata",
         "_cached",
     )
-    default_config: ClassVar[dict[str, str]] = {"dynamic_reserve_coeff": "auto"}
+    default_config: ClassVar[dict[str, str | bool]] = {
+        "dynamic_reserve_coeff": "auto",
+        "marginal_for_startup_rank": False,
+    }
 
     def __init__(
         self,
@@ -744,7 +747,8 @@ class DispatchModel(IOMixin):
         if np.any(to_exclude == 0.0):
             d_prof = d_prof * to_exclude
 
-        coeff = (self.config | kwargs)["dynamic_reserve_coeff"]
+        config = self.config | kwargs
+        coeff = config["dynamic_reserve_coeff"]
 
         if self._metadata["jit"]:
             func = dispatch_engine_auto
@@ -794,6 +798,7 @@ class DispatchModel(IOMixin):
             storage_dc_charge=self.dc_charge().to_numpy(dtype=np.float_),
             storage_reserve=self.storage_specs.reserve.to_numpy(),
             dynamic_reserve_coeff=coeff,
+            marginal_for_startup_rank=config["marginal_for_startup_rank"],
         )
         self.redispatch = pd.DataFrame(
             fos_prof,
