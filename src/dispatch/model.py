@@ -522,9 +522,9 @@ class DispatchModel(IOMixin):
         # to select the correct columns from self.re_excess and name them in such a way
         # that combine_first works properly since it combines by index/column
         re_excess = (
-            self.re_excess.groupby(level=0, axis=1)
+            self.re_excess.T.groupby(level=0)
             .sum()
-            .sort_index(axis=1, ascending=False)
+            .T.sort_index(axis=1, ascending=False)
         )
         re_excess = re_excess.loc[:, [pid for pid, _ in dc_charge if pid in re_excess]]
         # put the correct storage index column names on the re_excess data
@@ -830,9 +830,7 @@ class DispatchModel(IOMixin):
             (profs == 0) & (np.roll(profs, -1, axis=0) > 0), 1, 0
         ) * self.dispatchable_cost.startup_cost.unstack(
             level=("plant_id_eia", "generator_id")
-        ).reindex(
-            index=self.load_profile.index, method="ffill"
-        )
+        ).reindex(index=self.load_profile.index, method="ffill")
         fom = (
             zero_profiles_outside_operating_dates(
                 self.dispatchable_cost.fom.unstack(
@@ -921,9 +919,9 @@ class DispatchModel(IOMixin):
             df.columns = list(df.columns)
             out = (
                 df.rename(columns=col_grouper)
-                .groupby(level=0, axis=1)
+                .T.groupby(level=0)
                 .sum()
-                .groupby([pd.Grouper(freq=freq)])
+                .T.groupby([pd.Grouper(freq=freq)])
                 .agg(freq_agg)
             )
             out.columns.name = by
@@ -954,9 +952,7 @@ class DispatchModel(IOMixin):
                 ", "
             ),
         )
-        return pd.value_counts(
-            pd.cut(durs, list(bins), include_lowest=True)
-        ).sort_index()
+        return pd.cut(durs, list(bins), include_lowest=True).value_counts().sort_index()
 
     def hrs_to_check(
         self,
@@ -1081,13 +1077,11 @@ class DispatchModel(IOMixin):
         # a mediocre way to define the bins...
         d_max = int(np.ceil(rates.max().max()))
         g_bins = [
-            y
-            for x in range(1, 6)
-            for y in (1.0 * 10**x, 2.5 * 10.0**x, 5.0 * 10**x)
+            y for x in range(1, 6) for y in (1.0 * 10**x, 2.5 * 10.0**x, 5.0 * 10**x)
         ]
         bins = [0, 0.01] + [x for x in g_bins if x < d_max] + [d_max]
         return pd.concat(
-            [pd.value_counts(pd.cut(rates[col], bins)) for col in rates],
+            [pd.cut(rates[col], bins).value_counts() for col in rates],
             axis=1,
         ).sort_index()
 
@@ -1101,13 +1095,11 @@ class DispatchModel(IOMixin):
         # a mediocre way to define the bins...
         d_max = int(np.ceil(durs.max().max()))
         g_bins = [0.0, 0.01, 2.0, 4.0] + [
-            y
-            for x in range(1, 6)
-            for y in (1.0 * 10**x, 2.5 * 10.0**x, 5.0 * 10**x)
+            y for x in range(1, 6) for y in (1.0 * 10**x, 2.5 * 10.0**x, 5.0 * 10**x)
         ]
         bins = [x for x in g_bins if x < d_max] + [d_max]
         return pd.concat(
-            [pd.value_counts(pd.cut(durs[col], bins)).sort_index() for col in durs],
+            [pd.cut(durs[col], bins).value_counts().sort_index() for col in durs],
             axis=1,
         )
 
@@ -1125,7 +1117,7 @@ class DispatchModel(IOMixin):
 
         Returns: summary of curtailment, deficit, storage and select metrics
         """
-        es_roll_up = self.storage_dispatch.groupby(level=[0, 1], axis=1).sum()
+        es_roll_up = self.storage_dispatch.T.groupby(level=[0, 1]).sum().T
         es_ids = self.storage_specs.index.get_level_values("plant_id_eia").unique()
         if storage_rollup is not None:
             es_ids = sorted(
@@ -1173,8 +1165,9 @@ class DispatchModel(IOMixin):
                     ]
                     + [
                         es_roll_up.loc[:, (slice(None), ids)]
-                        .groupby(level=0, axis=1)
-                        .sum()[["charge", "discharge"]]
+                        .T.groupby(level=0)
+                        .sum()
+                        .T[["charge", "discharge"]]
                         .max(axis=1)
                         .to_frame(name=f"storage_{name}_max_mw")
                         for name, ids in storage_rollup.items()
@@ -1245,7 +1238,7 @@ class DispatchModel(IOMixin):
                     * 1000
                     * self.re_plant_specs.fom_per_kw
                 )
-                .to_frame(name=self.yrs_idx[0])
+                .to_frame(name=self.yrs_idx.iloc[0])
                 .reindex(self.yrs_idx, axis=1, method="ffill")
                 .T,
                 self.re_plant_specs.operating_date.apply(
@@ -1561,9 +1554,9 @@ class DispatchModel(IOMixin):
         if "plot_prep" not in self._cached:
             storage = (
                 self.storage_dispatch.loc[:, ["gridcharge", "discharge"]]
-                .groupby(level=0, axis=1)
+                .T.groupby(level=0)
                 .sum()
-                .assign(charge=lambda x: x.gridcharge * -1)
+                .T.assign(charge=lambda x: x.gridcharge * -1)
             )
             try:
                 re = self.re_summary(freq="H").redispatch_mwh.unstack(level=0)
@@ -1571,7 +1564,7 @@ class DispatchModel(IOMixin):
                 re = MTDF.reindex(index=self.load_profile.index)
 
             def _grp(df):
-                return df.rename(columns=PLOT_MAP).groupby(level=0, axis=1).sum()
+                return df.rename(columns=PLOT_MAP).T.groupby(level=0).sum().T
 
             self._cached["plot_prep"] = (
                 pd.concat(

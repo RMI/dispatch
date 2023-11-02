@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools<66", "setuptools_scm[toml]<8", "wheel"]
+requires = ["setuptools>=64", "setuptools_scm>=8", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -15,6 +15,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
 ]
 requires-python = ">=3.10,<3.12"
 dependencies = [
@@ -30,7 +31,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "black[jupyter] >= 22,< 24",
+#    "black[jupyter] >= 22,< 24",
     "docformatter>=1.5,<1.8",
     "ruff>0.0.215,<0.1.4",
     "tox>=3.20,<4.12",
@@ -38,7 +39,7 @@ dev = [
 ]
 doc = [
     "doc8>=0.9,<1.2",
-    "furo>=2022.4.7",
+    "furo>=2023.09.10",
     "sphinx>=4,!=5.1.0,<7.2.7",
     "sphinx-autoapi>=1.8,<3.1",
     "sphinx-issues>=1.2,<3.1",
@@ -46,7 +47,7 @@ doc = [
     "sphinxcontrib-mermaid>0.7,<0.10.0",
 ]
 tests = [
-    "blackdoc>=0.3.8,<0.3.9",  # runs black on doctests
+#    "blackdoc>=0.3.8,<0.3.9",  # runs black on doctests
     "coverage>=5.3,<7.4",
     "doc8>=0.9,<1.2",
     "pre-commit>=2.9,<3.6",
@@ -66,15 +67,15 @@ viz = [
 version = {attr = "dispatch._version.__version__"}
 
 [tool.setuptools_scm]
-write_to = "src/dispatch/_version.py"
+version_file = "src/dispatch/_version.py"
 
 #######################################################################################
 # Configurations for linters and other tools
 #######################################################################################
-[tool.black]
-line-length = 88
-target-version = ["py310", "py311"]
-include = "\\.pyi?$"
+#[tool.black]
+#line-length = 88
+#target-version = ["py310", "py311"]
+#include = "\\.pyi?$"
 
 [tool.docformatter]
 wrap-summaries = 88
@@ -139,11 +140,28 @@ ignore = [
     "D416",
     "D417",
     "E501",  # black handles code line length
-
+    # conflict with ruff format
+    "W191",  # tab-indentation
+    "E111",  # indentation-with-invalid-multiple
+    "E114",  # indentation-with-invalid-multiple-comment
+    "E117",  # over-indented
+    "D206",  # indent-with-spaces
+    "D300",  # triple-single-quotes
+    "Q000",  # bad-quotes-inline-string
+    "Q001",  # bad-quotes-multiline-string
+    "Q002",  # bad-quotes-docstring
+    "Q003",  # avoidable-escaped-quote
+    "COM812",  # missing-trailing-comma
+    "COM819",  # prohibited-trailing-comma
+    "ISC001",  # single-line-implicit-string-concatenation
+    "ISC002",  # multi-line-implicit-string-concatenation
 ]
 
 [tool.ruff.pycodestyle]
 max-doc-length = 88
+
+[tool.ruff.pydocstyle]
+convention = "google"
 
 [tool.ruff.flake8-tidy-imports]
 ban-relative-imports = "all"

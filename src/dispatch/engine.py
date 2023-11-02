@@ -335,8 +335,9 @@ def dispatch_engine(  # noqa: C901
             redispatch[hr, generator_idx] = generator_output
             # update operating hours and mark that we took care of this generator
             operating_data[generator_idx, :] = (
-                operating_hours + 1 if generator_output > 0.0 else 0
-            ), 1
+                (operating_hours + 1 if generator_output > 0.0 else 0),
+                1,
+            )
             # keep a running total of remaining deficit, having this value be negative
             # just makes the loop code more complicated, if it actually should be
             # negative we capture that when we calculate the true deficit based

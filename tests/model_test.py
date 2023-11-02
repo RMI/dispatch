@@ -17,9 +17,9 @@ logger = logging.getLogger(__name__)
 
 def test_new_no_dates(fossil_profiles, re_profiles, fossil_specs, fossil_cost):
     """Test that :meth:`.DispatchModel.from_fresh` fills in missing dates."""
-    fossil_specs.iloc[
-        0, fossil_specs.columns.get_loc("retirement_date")
-    ] = fossil_profiles.index.max() - pd.Timedelta(weeks=15)
+    fossil_specs.iloc[0, fossil_specs.columns.get_loc("retirement_date")] = (
+        fossil_profiles.index.max() - pd.Timedelta(weeks=15)
+    )
     self = DispatchModel.from_fresh(
         net_load_profile=fossil_profiles.sum(axis=1),
         dispatchable_specs=fossil_specs.drop(
