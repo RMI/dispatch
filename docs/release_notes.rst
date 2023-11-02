@@ -42,6 +42,11 @@ What's New?
    startup rather than startup cost. Given costs from :mod:`rmi.gencost` have very low
    startup cost relative to marginal costs, marginal costs can be a better metric for
    committing units.
+*  Update build tool versions in ``pyproject.toml`` and ``environment.yml``.
+*  Address :mod:`pandas` :class:`DeprecationWarning` in :meth:`pandas.DataFrame.groupby`
+   and :func:`pandas.value_counts`.
+*  Remove local pytest and blackdoc hooks from pre-commit.
+*  Switch from black to ruff format for autoformatting.
 
 Bug Fixes
 ^^^^^^^^^
