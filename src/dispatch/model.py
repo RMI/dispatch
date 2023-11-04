@@ -139,6 +139,13 @@ class DispatchModel(IOMixin):
                     after dispatchable startup. If this is not provided or the reserve
                     is 0.0, the reserve will be set dynamically each hour looking
                     out 24 hours.
+                -   charge_mw: [Optional] a peak charge rate that is different than
+                    ``capacity_mw``, which remains the discharge rate. If not provided,
+                    this will be set to equal ``capacity_mw``.
+                -   charge_eff: [Optional] when not provided, assumed to be the square
+                    root of roundtrip_eff
+                -   discharge_eff: [Optional] when not provided, assumed to be the
+                    square root of roundtrip_eff
 
                 The index must be a :class:`pandas.MultiIndex` of
                 ``['plant_id_eia', 'generator_id']``.
@@ -390,19 +397,19 @@ class DispatchModel(IOMixin):
         Generate a full, combined output of all resources at specified frequency.
 
         >>> dm.full_output(freq="YS").round(1)  # doctest: +NORMALIZE_WHITESPACE
-                                              capacity_mw  historical_mwh  historical_mmbtu  ...  duration_hrs  roundtrip_eff  reserve
+                                              capacity_mw  historical_mwh  historical_mmbtu  ...  charge_eff  discharge_eff  reserve
         plant_id_eia generator_id datetime                                                   ...
-        0            curtailment  2020-01-01          NaN             NaN               NaN  ...           NaN            NaN      NaN
-                     deficit      2020-01-01          NaN             NaN               NaN  ...           NaN            NaN      NaN
-        1            1            2020-01-01        350.0             0.0               0.0  ...           NaN            NaN      NaN
-                     2            2020-01-01        500.0             0.0               0.0  ...           NaN            NaN      NaN
-        2            1            2020-01-01        600.0             0.0               0.0  ...           NaN            NaN      NaN
-        5            1            2020-01-01        500.0             NaN               NaN  ...           NaN            NaN      NaN
-                     es           2020-01-01        250.0             NaN               NaN  ...           4.0            0.9      0.0
-        6            1            2020-01-01        500.0             NaN               NaN  ...           NaN            NaN      NaN
-        7            1            2020-01-01        200.0             NaN               NaN  ...          12.0            0.5      0.0
+        0            curtailment  2020-01-01          NaN             NaN               NaN  ...         NaN            NaN      NaN
+                     deficit      2020-01-01          NaN             NaN               NaN  ...         NaN            NaN      NaN
+        1            1            2020-01-01        350.0             0.0               0.0  ...         NaN            NaN      NaN
+                     2            2020-01-01        500.0             0.0               0.0  ...         NaN            NaN      NaN
+        2            1            2020-01-01        600.0             0.0               0.0  ...         NaN            NaN      NaN
+        5            1            2020-01-01        500.0             NaN               NaN  ...         NaN            NaN      NaN
+                     es           2020-01-01        250.0             NaN               NaN  ...         0.9            1.0      0.0
+        6            1            2020-01-01        500.0             NaN               NaN  ...         NaN            NaN      NaN
+        7            1            2020-01-01        200.0             NaN               NaN  ...         0.5            1.0      0.0
         <BLANKLINE>
-        [9 rows x 34 columns]
+        [9 rows x 37 columns]
         """
         if not name and "balancing_authority_code_eia" in dispatchable_specs:
             name = dispatchable_specs.balancing_authority_code_eia.mode().iloc[0]
@@ -441,8 +448,10 @@ class DispatchModel(IOMixin):
         self.dispatchable_cost: pd.DataFrame = validator.dispatchable_cost(
             dispatchable_cost
         ).pipe(self._add_total_and_missing_cols)
-        self.storage_specs: pd.DataFrame = validator.storage_specs(storage_specs).pipe(
-            self._add_optional_cols, df_name="storage_specs"
+        self.storage_specs: pd.DataFrame = (
+            validator.storage_specs(storage_specs)
+            .pipe(self._upgrade_storage_specs)
+            .pipe(self._add_optional_cols, df_name="storage_specs")
         )
         self.dispatchable_profiles: pd.DataFrame = (
             zero_profiles_outside_operating_dates(
@@ -577,6 +586,15 @@ class DispatchModel(IOMixin):
         return df.assign(
             **{col: value for col, value in default_values[df_name] if col not in df}
         )
+
+    def _upgrade_storage_specs(self, df: pd.DataFrame) -> pd.DataFrame:
+        if "charge_mw" not in df:
+            df = df.assign(charge_mw=lambda x: x.capacity_mw)
+        if all(
+            ("charge_eff" not in df, "discharge_eff" not in df, "roundtrip_eff" in df)
+        ):
+            df = df.assign(charge_eff=lambda x: x.roundtrip_eff, discharge_eff=1.0)
+        return df
 
     def __setstate__(self, state: tuple[Any, dict]):
         _, state = state
@@ -784,8 +802,12 @@ class DispatchModel(IOMixin):
                 dtype=np.int_
             ),
             storage_mw=self.storage_specs.capacity_mw.to_numpy(dtype=np.float_),
+            storage_charge_mw=self.storage_specs.charge_mw.to_numpy(dtype=np.float_),
             storage_hrs=self.storage_specs.duration_hrs.to_numpy(dtype=np.int64),
-            storage_eff=self.storage_specs.roundtrip_eff.to_numpy(dtype=np.float_),
+            storage_charge_eff=self.storage_specs.charge_eff.to_numpy(dtype=np.float_),
+            storage_discharge_eff=self.storage_specs.discharge_eff.to_numpy(
+                dtype=np.float_
+            ),
             # determine the index of the first hour that each storage resource could operate
             storage_op_hour=np.argmax(
                 pd.concat(

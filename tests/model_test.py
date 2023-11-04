@@ -538,6 +538,65 @@ def test_no_limit_late_operating_date(ent_redispatch):
     assert np.all(df["2031":] == 0.0)
 
 
+def test_different_charge_rate(ent_redispatch):
+    """Test that storage having a higher charge rate increases peak charging."""
+    dm0 = DispatchModel(**ent_redispatch)()
+    ent_redispatch["storage_specs"] = ent_redispatch["storage_specs"].assign(
+        charge_mw=lambda x: x.capacity_mw * 2
+    )
+    dm1 = DispatchModel(**ent_redispatch)()
+
+    assert (
+        dm1.storage_dispatch.loc[:, "charge"].max()
+        > dm0.storage_dispatch.loc[:, "charge"].max()
+    ).all()
+
+
+def test_equivalent_efficiency(ent_redispatch):
+    """Test that storage that legacy storage efficiency behavior is consistent."""
+    dm0 = DispatchModel(**ent_redispatch)()
+    ent_redispatch["storage_specs"] = (
+        ent_redispatch["storage_specs"]
+        .rename(columns={"roundtrip_eff": "charge_eff"})
+        .assign(discharge_eff=1.0)
+    )
+    dm1 = DispatchModel(**ent_redispatch)()
+    pd.testing.assert_frame_equal(dm0.storage_dispatch, dm1.storage_dispatch)
+
+
+def test_non_equivalent_efficiency(ent_redispatch):
+    """Test that splitting storage efficiency makes deficits worse."""
+    dm0 = DispatchModel(**ent_redispatch)()
+    ent_redispatch["storage_specs"] = (
+        ent_redispatch["storage_specs"]
+        .rename(columns={"roundtrip_eff": "charge_eff"})
+        .assign(
+            charge_eff=lambda x: np.sqrt(x.charge_eff),
+            discharge_eff=lambda x: x.charge_eff,
+        )
+    )
+    dm1 = DispatchModel(**ent_redispatch)()
+    assert (
+        (
+            (dm1.system_level_summary() - dm0.system_level_summary())[
+                ["deficit_mwh", "curtailment_mwh", "deficit_gt_2pct_count"]
+            ]
+            >= 0
+        )
+        .all()
+        .all()
+    )
+
+
+def test_bad_efficiency(ent_redispatch):
+    """Test that ``charge_eff`` alone raises error."""
+    ent_redispatch["storage_specs"] = ent_redispatch["storage_specs"].rename(
+        columns={"roundtrip_eff": "charge_eff"}
+    )
+    with pytest.raises(AssertionError):
+        _ = DispatchModel(**ent_redispatch)
+
+
 @pytest.mark.parametrize(
     ("re_ids", "expected"),
     [

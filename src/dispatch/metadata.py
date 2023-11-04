@@ -1,5 +1,6 @@
 """Metadata and :mod:`pandera` stuff."""
 import logging
+import warnings
 from typing import Any
 
 import pandas as pd
@@ -65,13 +66,22 @@ class Validator:
             columns={
                 "capacity_mw": pa.Column(float, pa.Check.greater_than_or_equal_to(0)),
                 "duration_hrs": pa.Column(int, pa.Check.greater_than_or_equal_to(0)),
-                "roundtrip_eff": pa.Column(float, pa.Check.in_range(0, 1)),
+                "roundtrip_eff": pa.Column(
+                    float, pa.Check.in_range(0, 1), nullable=False, required=False
+                ),
                 "operating_date": pa.Column(
                     pa.Timestamp,
                     pa.Check.less_than(self.load_profile.index.max()),
                     description="operating_date in storage_specs",
                 ),
                 "reserve": pa.Column(pa.Float, nullable=False, required=False),
+                "charge_mw": pa.Column(pa.Float, nullable=False, required=False),
+                "charge_eff": pa.Column(
+                    pa.Float, pa.Check.in_range(0, 1), nullable=False, required=False
+                ),
+                "discharge_eff": pa.Column(
+                    pa.Float, pa.Check.in_range(0, 1), nullable=False, required=False
+                ),
             },
             # strict=True,
             coerce=True,
@@ -224,6 +234,21 @@ class Validator:
 
     def storage_specs(self, storage_specs: pd.DataFrame) -> pd.DataFrame:
         """Validate storage_specs."""
+        if "roundtrip_eff" in storage_specs:
+            warnings.warn(
+                "use `charge_eff` and `discharge_eff` instead of `roundtrip_eff`, if "
+                "using `roundtrip_eff`, it is treated as `charge_eff` and "
+                "`discharge_eff` is set to 1.0",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        elif "charge_eff" not in storage_specs or "discharge_eff" not in storage_specs:
+            raise AssertionError(
+                "both `charge_eff` and `discharge_eff` are required, to replicate "
+                "previous behavior, set `charge_eff` as the roundtrip efficiency and "
+                "`discharge_eff` to 1.0"
+            )
+
         out = self.storage_specs_schema.validate(storage_specs)
         check_dup_ids = out.assign(
             id_count=lambda x: x.groupby("plant_id_eia").capacity_mw.transform("count")

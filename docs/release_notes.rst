@@ -47,6 +47,14 @@ What's New?
    and :func:`pandas.value_counts`.
 *  Remove local pytest and blackdoc hooks from pre-commit.
 *  Switch from black to ruff format for autoformatting.
+*  New storage features to represent more types of storage:
+
+   *  Storage charge rate can be different from discharge rate, to use, provide
+      ``charge_mw`` column in ``storage_specs``.
+   *  ``charge_eff`` and ``discharge_eff`` will replace ``roundtrip_eff`` in
+      ``storage_specs`` to enable finer-grained control of when losses occur.
+      Previously ``roundtrip_eff`` was effectively treated as the charge efficiency and
+      there were no discharge losses.
 
 Bug Fixes
 ^^^^^^^^^
