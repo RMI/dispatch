@@ -25,8 +25,10 @@ def dispatch_engine_auto(
     dispatchable_marginal_cost: np.ndarray,
     dispatchable_min_uptime: np.ndarray,
     storage_mw: np.ndarray,
+    storage_charge_mw: np.ndarray,
     storage_hrs: np.ndarray,
-    storage_eff: np.ndarray,
+    storage_charge_eff: np.ndarray,
+    storage_discharge_eff: np.ndarray,
     storage_op_hour: np.ndarray,
     storage_dc_charge: np.ndarray,
     storage_reserve: np.ndarray,
@@ -49,9 +51,11 @@ def dispatch_engine_auto(
             generator in $/MWh rows are generators and columns are years
         dispatchable_min_uptime: minimum hrs a generator must operate before its
             output can be reduced
-        storage_mw: max charge/discharge rate for storage in MW
+        storage_mw: max discharge rate for storage in MW
+        storage_charge_mw: max charge rate for storage in MW
         storage_hrs: duration of storage
-        storage_eff: storage round-trip efficiency
+        storage_charge_eff: storage charge efficiency
+        storage_discharge_eff: storage discharge efficiency
         storage_op_hour: first hour in which storage is available, i.e. the index of
             the operating date
         storage_dc_charge: an array whose columns match each storage facility, and a
@@ -86,8 +90,10 @@ def dispatch_engine_auto(
         dispatchable_startup_cost,
         dispatchable_marginal_cost,
         storage_mw,
+        storage_charge_mw,
         storage_hrs,
-        storage_eff,
+        storage_charge_eff,
+        storage_discharge_eff,
         storage_dc_charge,
         storage_reserve,
     )
@@ -107,8 +113,10 @@ def dispatch_engine_auto(
                 dispatchable_marginal_cost=dispatchable_marginal_cost,
                 dispatchable_min_uptime=dispatchable_min_uptime,
                 storage_mw=storage_mw,
+                storage_charge_mw=storage_charge_mw,
                 storage_hrs=storage_hrs,
-                storage_eff=storage_eff,
+                storage_charge_eff=storage_charge_eff,
+                storage_discharge_eff=storage_discharge_eff,
                 storage_op_hour=storage_op_hour,
                 storage_dc_charge=storage_dc_charge,
                 storage_reserve=storage_reserve,
@@ -128,8 +136,10 @@ def dispatch_engine_auto(
         dispatchable_marginal_cost=dispatchable_marginal_cost,
         dispatchable_min_uptime=dispatchable_min_uptime,
         storage_mw=storage_mw,
+        storage_charge_mw=storage_charge_mw,
         storage_hrs=storage_hrs,
-        storage_eff=storage_eff,
+        storage_charge_eff=storage_charge_eff,
+        storage_discharge_eff=storage_discharge_eff,
         storage_op_hour=storage_op_hour,
         storage_dc_charge=storage_dc_charge,
         storage_reserve=storage_reserve,
@@ -167,8 +177,10 @@ def dispatch_engine(  # noqa: C901
     dispatchable_marginal_cost: np.ndarray,
     dispatchable_min_uptime: np.ndarray,
     storage_mw: np.ndarray,
+    storage_charge_mw: np.ndarray,
     storage_hrs: np.ndarray,
-    storage_eff: np.ndarray,
+    storage_charge_eff: np.ndarray,
+    storage_discharge_eff: np.ndarray,
     storage_op_hour: np.ndarray,
     storage_dc_charge: np.ndarray,
     storage_reserve: np.ndarray,
@@ -198,9 +210,11 @@ def dispatch_engine(  # noqa: C901
             generator in $/MWh rows are generators and columns are years
         dispatchable_min_uptime: minimum hrs a generator must operate before its
             output can be reduced
-        storage_mw: max charge/discharge rate for storage in MW
+        storage_mw: max discharge rate for storage in MW
+        storage_charge_mw: max charge rate for storage in MW
         storage_hrs: duration of storage
-        storage_eff: storage round-trip efficiency
+        storage_charge_eff: storage charge efficiency
+        storage_discharge_eff: storage discharge efficiency
         storage_op_hour: first hour in which storage is available, i.e. the index of
             the operating date
         storage_dc_charge: an array whose columns match each storage facility, and a
@@ -285,9 +299,9 @@ def dispatch_engine(  # noqa: C901
                         state_of_charge=storage_soc_max[storage_idx]
                         * storage_reserve_[storage_idx],
                         dc_charge=storage_dc_charge[hr, storage_idx],
-                        mw=storage_mw[storage_idx],
+                        mw=storage_charge_mw[storage_idx],
                         max_state_of_charge=storage_soc_max[storage_idx],
-                        eff=storage_eff[storage_idx],
+                        eff=storage_charge_eff[storage_idx],
                     )
 
                     # update the deficit if we are grid charging
@@ -362,9 +376,9 @@ def dispatch_engine(  # noqa: C901
                         hr - 1, SOC_IDX, storage_idx
                     ],  # previous state_of_charge
                     dc_charge=storage_dc_charge[hr, storage_idx],
-                    mw=storage_mw[storage_idx],
+                    mw=storage_charge_mw[storage_idx],
                     max_state_of_charge=storage_soc_max[storage_idx],
-                    eff=storage_eff[storage_idx],
+                    eff=storage_charge_eff[storage_idx],
                 )
                 # alias grid_charge
                 grid_charge = storage[hr, GRIDCHARGE_IDX, storage_idx]
@@ -410,10 +424,15 @@ def dispatch_engine(  # noqa: C901
                 mw=storage_mw[storage_idx],
                 max_state_of_charge=storage_soc_max[storage_idx],
                 reserve=storage_reserve_[storage_idx],
+                eff=storage_discharge_eff[storage_idx],
             )
             storage[hr, DISCHARGE_IDX, storage_idx] = discharge
-            storage[hr, SOC_IDX, storage_idx] = (
-                storage[hr - 1, SOC_IDX, storage_idx] - discharge
+            # with discharge efficiency taken into account, we can encounter floating
+            # point errors that cause discharge to be a tiny bit larger than soc
+            storage[hr, SOC_IDX, storage_idx] = max(
+                0.0,
+                storage[hr - 1, SOC_IDX, storage_idx]
+                - discharge / storage_discharge_eff[storage_idx],
             )
             deficit -= discharge
 
@@ -466,9 +485,16 @@ def dispatch_engine(  # noqa: C901
                 mw=storage_mw[storage_idx] - storage[hr, DISCHARGE_IDX, storage_idx],
                 max_state_of_charge=storage_soc_max[storage_idx],
                 reserve=0.0,
+                eff=storage_discharge_eff[storage_idx],
             )
             storage[hr, DISCHARGE_IDX, storage_idx] += discharge
-            storage[hr, SOC_IDX, storage_idx] -= discharge
+            # with discharge efficiency taken into account, we can encounter floating
+            # point errors that cause discharge to be a tiny bit larger than soc
+            storage[hr, SOC_IDX, storage_idx] = max(
+                0.0,
+                storage[hr, SOC_IDX, storage_idx]
+                - discharge / storage_discharge_eff[storage_idx],
+            )
             deficit -= discharge
 
             if deficit == 0.0:
@@ -601,6 +627,7 @@ def discharge_storage(
     mw: float,
     max_state_of_charge: float,
     reserve: float = 0.0,
+    eff: float = 1.0,
 ) -> float:
     """Calculations for discharging storage.
 
@@ -610,15 +637,19 @@ def discharge_storage(
         mw: storage power capacity
         max_state_of_charge: storage energy capacity
         reserve: prevent discharge below this portion of ``max_state_of_charge``
+        eff: discharge efficiency of storage
 
     Returns: amount of storage discharge
     """
-    return min(
+    out = min(
         desired_mw,
         mw,
         # prevent discharge below reserve (or full SOC if reserve is 0.0)
-        max(0.0, state_of_charge - max_state_of_charge * reserve),
+        max(0.0, state_of_charge - max_state_of_charge * reserve) * eff,
     )
+    if out / eff > state_of_charge and not np.isclose(out / eff, state_of_charge):
+        raise ValueError("discharge / eff > state of charge")
+    return out
 
 
 @njit(cache=True)
@@ -767,16 +798,20 @@ def validate_inputs(
     startup_cost,
     marginal_cost,
     storage_mw,
+    storage_charge_mw,
     storage_hrs,
-    storage_eff,
+    storage_charge_eff,
+    storage_discharge_eff,
     storage_dc_charge,
     storage_reserve,
 ) -> None:
     """Validate shape of inputs."""
     if not (
         len(storage_mw)
+        == len(storage_charge_mw)
         == len(storage_hrs)
-        == len(storage_eff)
+        == len(storage_charge_eff)
+        == len(storage_discharge_eff)
         == len(storage_reserve)
         == storage_dc_charge.shape[1]
     ):
