@@ -4,7 +4,7 @@ channels:
 dependencies:
   # Packages required for setting up the environment
   - pip>=21.0,<25
-  - python>=3.10,<3.12
+  - python>=3.10,<3.13
 
   # Use pip to install the package defined by this repo for development:
   - pip:

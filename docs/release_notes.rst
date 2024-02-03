@@ -56,6 +56,8 @@ What's New?
       Previously ``roundtrip_eff`` was effectively treated as the charge efficiency and
       there were no discharge losses.
 
+*  Add support for Python 3.12.
+
 Bug Fixes
 ^^^^^^^^^
 *  Fixed a bug where ``operating_date`` and ``retirement_date`` did not apply to
