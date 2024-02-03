@@ -200,7 +200,7 @@ class DispatchModel(IOMixin):
         ...     + 250 * (np.cos(np.pi * np.arange(8784) / 4392) ** 2)
         ...     + 200 * (np.sin(np.pi * np.arange(8784) / 8784) ** 2),
         ...     index=pd.date_range(
-        ...         "2020-01-01", freq="H", periods=8784, name="datetime"
+        ...         "2020-01-01", freq="h", periods=8784, name="datetime"
         ...     ),
         ... )
         >>> load_profile.head()
@@ -210,7 +210,7 @@ class DispatchModel(IOMixin):
         2020-01-01 02:00:00    807.679083
         2020-01-01 03:00:00    810.680563
         2020-01-01 04:00:00    814.998363
-        Freq: H, dtype: float64
+        Freq: h, dtype: float64
 
         Core specification of dispatchable generators.
 
@@ -245,7 +245,7 @@ class DispatchModel(IOMixin):
         >>> dispatchable_profiles = pd.DataFrame(
         ...     np.tile(dispatchable_specs.capacity_mw.to_numpy(), (8784, 1)),
         ...     index=pd.date_range(
-        ...         "2020-01-01", freq="H", periods=8784, name="datetime"
+        ...         "2020-01-01", freq="h", periods=8784, name="datetime"
         ...     ),
         ...     columns=dispatchable_specs.index,
         ... )
