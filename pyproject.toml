@@ -32,7 +32,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "ruff>0.0.215,<0.3.3",
-    "tox>=3.20,<4.14",
+    "tox>=3.20,<4.15",
     "twine>=3.3,<5.1",  # Used to make releases to PyPI
 ]
 doc = [
@@ -53,7 +53,7 @@ tests = [
     "pytest-cov>=2.10,<4.2",
     "rstcheck[sphinx,toml]>=5.0,<6.3",
     "ruff>0.0.215,<0.3.3",
-    "tox>=3.20,<4.14",
+    "tox>=3.20,<4.15",
 ]
 viz = [
     "plotly>5.10,<5.20",
