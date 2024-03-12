@@ -1,4 +1,5 @@
 """Some helpers for profiles and such."""
+
 from __future__ import annotations
 
 import logging

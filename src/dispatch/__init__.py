@@ -1,4 +1,5 @@
 """RMI's electricity dispatch model."""
+
 import logging
 
 __author__ = "RMI"

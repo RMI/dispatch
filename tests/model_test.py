@@ -1,4 +1,5 @@
 """Where dispatch tests will go."""
+
 import logging
 import sys
 from io import BytesIO
