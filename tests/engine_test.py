@@ -1,6 +1,5 @@
 """Dispatch engine tests."""
 
-
 import numpy as np
 import pytest
 from dispatch.engine import (

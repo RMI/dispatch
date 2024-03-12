@@ -1,4 +1,5 @@
 """Metadata and :mod:`pandera` stuff."""
+
 import logging
 import warnings
 from typing import Any
