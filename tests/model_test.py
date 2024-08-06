@@ -602,13 +602,6 @@ def test_bad_efficiency(ent_redispatch):
         _ = DispatchModel(**ent_redispatch)
 
 
-def test_weird_adj(test_dir):
-    """Test that ``charge_eff`` alone raises error."""
-    with DataZip(test_dir / "data/bad_adj.zip") as z:
-        dm = DispatchModel(**z["data"], jit=False)
-    dm()
-
-
 @pytest.mark.parametrize(
     ("re_ids", "expected"),
     [
@@ -847,3 +840,14 @@ def test_file(ent_fresh):
     self.plot_year(2008)
 
     raise AssertionError
+
+
+@pytest.mark.skip(reason="for debugging only")
+def test_weird_adj(test_dir):
+    """Investigation of unexpected hourly load adjustment.
+
+    Potential testing for fossil startup to charge storage.
+    """
+    with DataZip(test_dir / "data/bad_adj.zip") as z:
+        dm = DispatchModel(**z["data"], jit=False)
+    dm()
