@@ -59,6 +59,7 @@ What's New?
 *  Add support for Python 3.12.
 *  New :meth:`.DispatchModel.redispatch_lambda` and
    :meth:`.DispatchModel.historical_lambda` to calculate hourly marginal costs.
+*  Updates to narrative description of dispatch logic in ``approach.rst``.
 
 Bug Fixes
 ^^^^^^^^^
