@@ -188,6 +188,8 @@ class TestOutputs:
             ("storage_capacity", {}, (), "notna"),
             ("hourly_data_check", {}, (), "notna"),
             ("dc_charge", {}, (), "notna"),
+            ("redispatch_lambda", {}, (), "notna"),
+            ("historical_lambda", {}, (), "notna"),
             pytest.param("full_output", {}, (), "notna", marks=pytest.mark.xfail),
             (
                 "dispatchable_summary",
@@ -220,6 +222,8 @@ class TestOutputs:
         """Test that outputs are not empty or do not have unexpected nans."""
         ind, ent_dm = ent_dm
         df = getattr(ent_dm, func)(**args)
+        if isinstance(df, pd.Series):
+            df = df.to_frame(name=func)
         df = df[[c for c in df if c not in drop_cols]]
         if expected == "notna":
             assert df.notna().all().all()
@@ -596,6 +600,13 @@ def test_bad_efficiency(ent_redispatch):
     )
     with pytest.raises(AssertionError):
         _ = DispatchModel(**ent_redispatch)
+
+
+def test_weird_adj(test_dir):
+    """Test that ``charge_eff`` alone raises error."""
+    with DataZip(test_dir / "data/bad_adj.zip") as z:
+        dm = DispatchModel(**z["data"], jit=False)
+    dm()
 
 
 @pytest.mark.parametrize(
