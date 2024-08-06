@@ -57,6 +57,8 @@ What's New?
       there were no discharge losses.
 
 *  Add support for Python 3.12.
+*  New :meth:`.DispatchModel.redispatch_lambda` and
+   :meth:`.DispatchModel.historical_lambda` to calculate hourly marginal costs.
 
 Bug Fixes
 ^^^^^^^^^

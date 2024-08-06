@@ -874,6 +874,30 @@ class DispatchModel(IOMixin):
         )
         return {"fuel": fuel_cost, "vom": vom_cost, "startup": start_cost, "fom": fom}
 
+    def redispatch_lambda(self) -> pd.DataFrame:
+        """Return hourly marginal cost (aka system lambda) of redispatch."""
+        return (
+            self.dispatchable_cost[["fuel_per_mwh", "vom_per_mwh"]]
+            .sum(axis=1)
+            .reset_index()
+            .pivot(index="datetime", columns=["plant_id_eia", "generator_id"])
+            .droplevel(0, axis=1)
+            .reindex(index=self.load_profile.index, method="ffill")
+            * (self.redispatch > 0).astype(int)
+        ).max(axis=1)
+
+    def historical_lambda(self) -> pd.DataFrame:
+        """Return hourly marginal cost (aka system lambda) of historic dispatch."""
+        return (
+            self.dispatchable_cost[["fuel_per_mwh", "vom_per_mwh"]]
+            .sum(axis=1)
+            .reset_index()
+            .pivot(index="datetime", columns=["plant_id_eia", "generator_id"])
+            .droplevel(0, axis=1)
+            .reindex(index=self.load_profile.index, method="ffill")
+            * (self.dispatchable_profiles > 0).astype(int)
+        ).max(axis=1)
+
     def grouper(
         self,
         df: pd.DataFrame | dict[str, pd.DataFrame],
