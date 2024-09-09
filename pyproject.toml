@@ -41,7 +41,7 @@ doc = [
     "sphinx>=4,!=5.1.0,<8.0.3",
     "sphinx-autoapi>=1.8,<3.4",
     "sphinx-issues>=1.2,<4.2",
-    "sphinx-autodoc-typehints>1.19,<2.4.0",
+    "sphinx-autodoc-typehints>1.19,<2.5.0",
     "sphinxcontrib-mermaid>0.7,<0.10.0",
 ]
 tests = [
