@@ -8,10 +8,11 @@ import numpy as np
 import pandas as pd
 import pandera as pa
 import pytest
-from dispatch import DispatchModel
-from dispatch.helpers import zero_profiles_outside_operating_dates
 from etoolbox.datazip import DataZip
 from etoolbox.utils.testing import idfn
+
+from dispatch import DispatchModel
+from dispatch.helpers import zero_profiles_outside_operating_dates
 
 logger = logging.getLogger(__name__)
 

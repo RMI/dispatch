@@ -11,8 +11,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
-from dispatch import DispatchModel, zero_profiles_outside_operating_dates
 from etoolbox.datazip import DataZip
+
+from dispatch import DispatchModel, zero_profiles_outside_operating_dates
 
 logger = logging.getLogger(__name__)
 
@@ -78,13 +79,13 @@ def fossil_cost(test_dir) -> pd.DataFrame:
     return pd.read_parquet(test_dir / "data/fossil_cost.parquet")
 
 
-@pytest.fixture()
+@pytest.fixture
 def ent_fresh(test_dir) -> dict:
     """Fossil Profiles."""
     return dict(DataZip(test_dir / "data/8fresh.zip").items())
 
 
-@pytest.fixture()
+@pytest.fixture
 def ent_redispatch(test_dir) -> dict:
     """Fossil Profiles."""
     return dict(DataZip(test_dir / "data/8redispatch.zip").items())

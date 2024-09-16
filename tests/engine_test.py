@@ -2,6 +2,8 @@
 
 import numpy as np
 import pytest
+from etoolbox.utils.testing import idfn
+
 from dispatch.engine import (
     adjust_for_storage_reserve,
     calculate_generator_output,
@@ -14,7 +16,6 @@ from dispatch.engine import (
     make_rank_arrays,
     validate_inputs,
 )
-from etoolbox.utils.testing import idfn
 
 NL = [
     -500.0,

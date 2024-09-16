@@ -1,6 +1,7 @@
 """Tests for :mod:`dispatch.helpers`."""
 
 import pandas as pd
+
 from dispatch.helpers import copy_profile, dispatch_key
 
 
