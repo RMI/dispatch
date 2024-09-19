@@ -280,7 +280,7 @@ class DispatchModel(IOMixin):
         ...         names=["plant_id_eia", "generator_id", "datetime"],
         ...     ),
         ... )
-        >>> dispatchable_cost.index.levels[2].freq = "AS-JAN"
+        >>> dispatchable_cost.index.levels[2].freq = "YS-JAN"
         >>> dispatchable_cost  # doctest: +NORMALIZE_WHITESPACE
                                               vom_per_mwh  fuel_per_mwh  fom_per_kw  start_per_kw  heat_rate  co2_factor
         plant_id_eia generator_id datetime
@@ -1606,7 +1606,7 @@ class DispatchModel(IOMixin):
                 .T.assign(charge=lambda x: x.gridcharge * -1)
             )
             try:
-                re = self.re_summary(freq="H").redispatch_mwh.unstack(level=0)
+                re = self.re_summary(freq="h").redispatch_mwh.unstack(level=0)
             except AssertionError:
                 re = MTDF.reindex(index=self.load_profile.index)
 
@@ -1616,7 +1616,7 @@ class DispatchModel(IOMixin):
             self._cached["plot_prep"] = (
                 pd.concat(
                     [
-                        self.grouper(self.redispatch, freq="H").pipe(_grp),
+                        self.grouper(self.redispatch, freq="h").pipe(_grp),
                         re.pipe(_grp),
                         storage[["charge", "discharge"]],
                     ],
@@ -1769,8 +1769,8 @@ class DispatchModel(IOMixin):
 
     def plot_year(self, year: int, freq="D") -> Figure:
         """Monthly facet plot of daily dispatch for a year."""
-        if freq not in ("H", "D"):
-            raise AssertionError("`freq` must be 'D' for day or 'H' for hour")
+        if freq not in ("h", "D", "H"):
+            raise AssertionError("`freq` must be 'D' for day or 'h' for hour")
         out = (
             self._plot_prep()
             .loc[str(year), :]
@@ -1788,8 +1788,8 @@ class DispatchModel(IOMixin):
             )
             .sort_values(["resource", "month"], key=dispatch_key)
         )
-        x, yt, ht = {"D": ("day", "MWh", "resource"), "H": ("hour", "MW", "datetime")}[
-            freq
+        x, yt, ht = {"d": ("day", "MWh", "resource"), "h": ("hour", "MW", "datetime")}[
+            freq.casefold()
         ]
         return (
             px.bar(

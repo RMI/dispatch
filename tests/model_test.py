@@ -251,7 +251,7 @@ class TestPlotting:
         except Exception as exc:
             raise AssertionError("unable to write image") from exc
 
-    @pytest.mark.parametrize("freq", ["D", "H"], ids=idfn)
+    @pytest.mark.parametrize("freq", ["D", "h"], ids=idfn)
     def test_plotting(self, mini_dm, temp_dir, freq):
         """Testing plotting function."""
         y = mini_dm.plot_year(2015, freq=freq)
