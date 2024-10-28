@@ -31,7 +31,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "ruff>0.0.215,<0.7.1",
+    "ruff>0.0.215,<0.7.2",
     "tox>=4.16.0,<4.24",
     "twine>=3.3,<5.2",  # Used to make releases to PyPI
 ]
@@ -52,7 +52,7 @@ tests = [
     "pytest-console-scripts>=1.1,<1.5",
     "pytest-cov>=2.10,<5.1",
     "rstcheck[sphinx,toml]>=5.0,<6.3",
-    "ruff>0.0.215,<0.7.1",
+    "ruff>0.0.215,<0.7.2",
     "tox>=4.16.0,<4.24",
 ]
 viz = [
