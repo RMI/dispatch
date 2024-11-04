@@ -170,7 +170,7 @@ def ent_out_for_test(test_dir):
 def mini_dm(fossil_profiles, fossil_specs, fossil_cost, re_profiles):
     """Setup `DispatchModel`."""
     re = np.array([5000.0, 5000.0, 0.0, 0.0])
-
+    fossil_profiles = fossil_profiles.copy()
     fossil_profiles.columns = fossil_specs.index
     fossil_profiles = zero_profiles_outside_operating_dates(
         fossil_profiles, fossil_specs.operating_date, fossil_specs.retirement_date

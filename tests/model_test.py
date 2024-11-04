@@ -331,7 +331,9 @@ def test_alt_total_var_mwh(
     re = np.array([5000.0, 5000.0, 0.0, 0.0])
     fossil_profiles.columns = fossil_specs.index
     fossil_profiles = zero_profiles_outside_operating_dates(
-        fossil_profiles, fossil_specs.operating_date, fossil_specs.retirement_date
+        fossil_profiles.copy(),
+        fossil_specs.operating_date,
+        fossil_specs.retirement_date,
     )
 
     alt = DispatchModel(

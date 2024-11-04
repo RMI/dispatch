@@ -141,7 +141,7 @@ class Validator:
                     f"These both ``no_limit`` and ``exclude`` cannot be True for the "
                     f"same generator, errors: {list(not_good[not_good].index)}"
                 )
-        return self.dispatchable_specs_schema.validate(dispatchable_specs)
+        return self.dispatchable_specs_schema.validate(dispatchable_specs, inplace=True)
 
     def dispatchable_profiles(
         self, dispatchable_profiles: pd.DataFrame
@@ -166,7 +166,7 @@ class Validator:
             ordered=True,
             coerce=True,
             strict=True,
-        ).validate(dispatchable_profiles)
+        ).validate(dispatchable_profiles, inplace=True)
         try:
             pd.testing.assert_index_equal(
                 dispatchable_profiles.index, self.load_profile.index
@@ -192,7 +192,9 @@ class Validator:
             per_year = int(len(full) / len(full.year.unique()))
             marg_freq = freq_dict.get(per_year, "") + "S" if is_start else ""
 
-        dispatchable_cost = self.dispatchable_cost_schema.validate(dispatchable_cost)
+        dispatchable_cost = self.dispatchable_cost_schema.validate(
+            dispatchable_cost, inplace=True
+        )
         # make sure al
         try:
             pd.testing.assert_index_equal(
@@ -250,7 +252,7 @@ class Validator:
                 "`discharge_eff` to 1.0"
             )
 
-        out = self.storage_specs_schema.validate(storage_specs)
+        out = self.storage_specs_schema.validate(storage_specs, inplace=True)
         check_dup_ids = out.assign(
             id_count=lambda x: x.groupby("plant_id_eia").capacity_mw.transform("count")
         ).query("id_count > 1")
@@ -282,7 +284,9 @@ class Validator:
         """Validate renewable specs and profiles."""
         if re_plant_specs is None or re_profiles is None:
             return re_plant_specs, re_profiles
-        re_plant_specs = self.renewable_specs_schema.validate(re_plant_specs)
+        re_plant_specs = self.renewable_specs_schema.validate(
+            re_plant_specs, inplace=True
+        )
         re_profiles = pa.DataFrameSchema(
             index=DT_SCHEMA,
             columns={
@@ -292,7 +296,7 @@ class Validator:
             ordered=True,
             coerce=True,
             strict=True,
-        ).validate(re_profiles)
+        ).validate(re_profiles, inplace=True)
         try:
             pd.testing.assert_index_equal(re_profiles.index, self.load_profile.index)
         except AssertionError as exc:

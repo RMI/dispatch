@@ -428,7 +428,7 @@ class DispatchModel(IOMixin):
         # pandera series validation does not coerce index datetime correctly so must
         # validate as df
         self.load_profile: pd.Series = LOAD_PROFILE_SCHEMA.validate(
-            load_profile.to_frame("load")
+            load_profile.to_frame("load"), inplace=True
         ).squeeze()
 
         self.dt_idx = self.load_profile.index

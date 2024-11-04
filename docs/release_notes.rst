@@ -60,7 +60,8 @@ What's New?
 *  New :meth:`.DispatchModel.redispatch_lambda` and
    :meth:`.DispatchModel.historical_lambda` to calculate hourly marginal costs.
 *  Updates to narrative description of dispatch logic in ``approach.rst``.
-*  Avoid memory allocation in zero_profiles_outside_operating_dates, hopefully
+*  Attempts to reduce memory use and unnecessary allocations in
+   :func:`.zero_profiles_outside_operating_dates` and by validate inputs inplace.
 *  Get rid of :meth:`.DispatchModel.__getattr__` and create explicit properties
    for access to :attr:`.DispatchModel._metadata` items.
 
