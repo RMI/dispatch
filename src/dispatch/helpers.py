@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 import warnings
 
-import numpy as np
 import pandas as pd
 
 from dispatch.constants import ORDERING
@@ -65,40 +64,28 @@ def zero_profiles_outside_operating_dates(
     """
     if not isinstance(profiles.index, pd.DatetimeIndex):
         raise AssertionError("profiles.index must be a pd.DatetimeIndex")
-    if capacity_mw is None:
-        capacity_mw = pd.Series(1, index=operating_date.index, name="capacity_mw")
-    if profiles.shape[1] == len(operating_date) == len(retirement_date):
+    if (profiles.shape[1] == len(operating_date) == len(retirement_date)) and (
+        (capacity_mw is None) or (len(capacity_mw) == profiles.shape[1])
+    ):
         pass
     else:
         raise AssertionError(
             "`profiles` must have same number of columns as lengths of "
             "`op_date` and `ret_date`"
         )
-    # duplicate the DatetimeIndex so it is the same shape as `profiles`
-    dt_idx = pd.concat(
-        [profiles.index.to_series()] * profiles.shape[1],
-        axis=1,
-    ).to_numpy(dtype=np.datetime64)
-    return pd.DataFrame(
-        (
-            (
-                dt_idx
-                <= retirement_date.fillna(profiles.index.max()).to_numpy(
-                    dtype=np.datetime64
-                )
-            )
-            & (
-                dt_idx
-                >= operating_date.fillna(profiles.index.min()).to_numpy(
-                    dtype=np.datetime64
-                )
-            )
-        )
-        * profiles.to_numpy()
-        * capacity_mw.to_numpy(),
-        index=profiles.index,
-        columns=operating_date.index,
-    )
+    update_operating = operating_date[
+        operating_date.fillna(profiles.index.min()) > profiles.index.min()
+    ]
+    update_retiring = retirement_date[
+        retirement_date.fillna(profiles.index.max()) < profiles.index.max()
+    ]
+    for ix, dt in update_operating.items():
+        profiles.loc[profiles.index < dt, ix] = 0.0
+    for ix, dt in update_retiring.items():
+        profiles.loc[profiles.index > dt, ix] = 0.0
+    if capacity_mw is not None:
+        return profiles * capacity_mw.to_numpy()
+    return profiles
 
 
 def apply_op_ret_date(
