@@ -618,21 +618,14 @@ class DispatchModel(IOMixin):
                     LOGGER.warning("unable to write %s, %r", df_name, exc)
         return None, state
 
-    @property
-    def name(self):  # noqa: D102
-        return self._metadata["name"]
-
-    @property
-    def version(self):  # noqa: D102
-        return self._metadata["version"]
-
-    @property
-    def created(self):  # noqa: D102
-        return self._metadata["created"]
-
-    @property
-    def jit(self):  # noqa: D102
-        return self._metadata["jit"]
+    def __getattr__(self, item):
+        """Get values from ``self._metadata`` as if they were properties."""
+        try:
+            return self._metadata[item]
+        except KeyError:
+            raise AttributeError(
+                f"'{self.__class__.__qualname__}' object has no attribute '{item}'"
+            ) from None
 
     def set_metadata(self, key, value: Any) -> None:
         """Set a value in metadata."""

@@ -62,8 +62,6 @@ What's New?
 *  Updates to narrative description of dispatch logic in ``approach.rst``.
 *  Attempts to reduce memory use and unnecessary allocations in
    :func:`.zero_profiles_outside_operating_dates` and by validate inputs inplace.
-*  Get rid of :meth:`.DispatchModel.__getattr__` and create explicit properties
-   for access to :attr:`.DispatchModel._metadata` items.
 
 Bug Fixes
 ^^^^^^^^^
