@@ -1176,32 +1176,7 @@ class DispatchModel(IOMixin):
         out = pd.concat(
             [
                 # mwh deficit, curtailment, re_curtailment, dirty charge
-                self.system_data.assign(
-                    load_mwh=self.load_profile,
-                    re_mwh=self.re_profiles_ac.sum(axis=1),
-                    re_curtailment_mwh=lambda x: np.minimum(x.curtailment, x.re_mwh),
-                )
-                .groupby(pd.Grouper(freq=freq))
-                .sum()
-                .assign(
-                    deficit_pct=lambda x: x.deficit / x.load_mwh,
-                    curtailment_pct=lambda x: x.curtailment / x.load_mwh,
-                    re_curtailment_pct=lambda x: x.re_curtailment_mwh / x.re_mwh,
-                )
-                .rename(columns={c: f"{c}_mwh" for c in self.system_data}),
-                # max deficit pct of load
-                self.system_data[["deficit"]]
-                .groupby(pd.Grouper(freq=freq))
-                .max()
-                .rename(columns={"deficit": "deficit_max_pct_net_load"})
-                / self.load_profile.max(),
-                # count of deficit greater than 2%
-                pd.Series(
-                    self.system_data[self.system_data / self.load_profile.max() > 0.02]
-                    .groupby(pd.Grouper(freq=freq))
-                    .deficit.count(),
-                    name="deficit_gt_2pct_count",
-                ),
+                self.system_summary_core(freq),
                 # storage op max
                 pd.concat(
                     [
@@ -1246,25 +1221,59 @@ class DispatchModel(IOMixin):
             ],
             axis=1,
         )
+
         return out.assign(
             **{
                 f"storage_{i}_mw_utilization": out[f"storage_{i}_max_mw"]
-                / (
-                    self.storage_specs.loc[i, "capacity_mw"].sum()
-                    if self.storage_specs.loc[i, "capacity_mw"].sum() > 0
-                    else 1.0
-                )
+                / max(self.storage_specs.loc[i, "capacity_mw"].sum(), 1.0)
                 for i in es_ids
             },
             **{
                 f"storage_{i}_hrs_utilization": out[f"storage_{i}_max_hrs"]
-                / (
-                    self.storage_specs.loc[i, "duration_hrs"].sum()
-                    if self.storage_specs.loc[i, "duration_hrs"].sum() > 0
-                    else 1.0
-                )
+                / max(self.storage_specs.loc[i, "duration_hrs"].sum(), 1.0)
                 for i in es_ids
             },
+        )
+
+    def system_summary_core(self, freq: str = "YS"):
+        """Create core system and reliability metrics.
+
+        Args:
+            freq: temporal frequency to aggregate hourly data to.
+
+        Returns: summary of curtailment, deficit, and select metrics
+        """
+        return pd.concat(
+            [
+                self.system_data.assign(
+                    load_mwh=self.load_profile,
+                    re_mwh=self.re_profiles_ac.sum(axis=1),
+                    re_curtailment_mwh=lambda x: np.minimum(x.curtailment, x.re_mwh),
+                )
+                .groupby(pd.Grouper(freq=freq))
+                .sum()
+                .assign(
+                    deficit_pct=lambda x: x.deficit / x.load_mwh,
+                    curtailment_pct=lambda x: x.curtailment / x.load_mwh,
+                    re_curtailment_pct=lambda x: x.re_curtailment_mwh / x.re_mwh,
+                )
+                .rename(columns={c: f"{c}_mwh" for c in self.system_data}),
+                # max deficit pct of load
+                (
+                    max_def := self.system_data.deficit.groupby(pd.Grouper(freq=freq))
+                    .max()
+                    .rename("deficit_max_pct_net_load")
+                    / self.load_profile.max()
+                ),
+                # count of deficit greater than 2%
+                (sdd := self.system_data.deficit)[sdd / self.load_profile.max() > 0.02]
+                .groupby(pd.Grouper(freq=freq))
+                .count()
+                .reindex(index=max_def.index)
+                .fillna(0.0)
+                .rename("deficit_gt_2pct_count"),
+            ],
+            axis=1,
         )
 
     def re_summary(

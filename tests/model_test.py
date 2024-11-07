@@ -586,7 +586,7 @@ def test_non_equivalent_efficiency(ent_redispatch):
     dm1 = DispatchModel(**ent_redispatch)()
     assert (
         (
-            (dm1.system_level_summary() - dm0.system_level_summary())[
+            (dm1.system_summary_core() - dm0.system_summary_core())[
                 ["deficit_mwh", "curtailment_mwh", "deficit_gt_2pct_count"]
             ]
             >= 0

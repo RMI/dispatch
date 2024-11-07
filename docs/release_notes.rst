@@ -62,6 +62,9 @@ What's New?
 *  Updates to narrative description of dispatch logic in ``approach.rst``.
 *  Attempts to reduce memory use and unnecessary allocations in
    :func:`.zero_profiles_outside_operating_dates` and by validate inputs inplace.
+*  Create new :meth:`.DispatchModel.system_summary_core` that includes only a subset of
+   the columns in :meth:`.DispatchModel.system_level_summary` that can be produced
+   faster and excludes storage metrics.
 
 Bug Fixes
 ^^^^^^^^^
