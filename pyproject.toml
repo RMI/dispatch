@@ -57,7 +57,7 @@ tests = [
 ]
 viz = [
     "plotly>5.10,<5.25",
-    "kaleido>0.2,<0.2.2",
+    "kaleido>0.2,<0.4.2",
 ]
 
 [tool.setuptools.dynamic]
