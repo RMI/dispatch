@@ -24,10 +24,10 @@ from dispatch.model import DispatchModel
 
 __all__ = [
     "DispatchModel",
+    "__version__",
+    "apply_op_ret_date",
     "copy_profile",
     "zero_profiles_outside_operating_dates",
-    "apply_op_ret_date",
-    "__version__",
 ]
 
 __projecturl__ = "https://github.com/rmi/dispatch"
