@@ -33,7 +33,7 @@ dependencies = [
 dev = [
     "ruff>0.0.215,<0.8.2",
     "tox>=4.16.0,<4.24",
-    "twine>=3.3,<5.2",  # Used to make releases to PyPI
+    "twine>=3.3,<6.1",  # Used to make releases to PyPI
 ]
 doc = [
     "doc8>=0.9,<1.2",
