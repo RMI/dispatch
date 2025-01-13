@@ -514,18 +514,18 @@ def dispatch_engine(  # noqa: C901
     # assert not np.any(
     #     storage[storage[:, 1, 1] > np.roll(storage[:, 2, 1], 1)]
     # ), "discharge exceeded previous state of charge in at least 1 hour for es1"
-    assert np.all(
-        redispatch <= historical_dispatch * (1 + 1e-4)
-    ), "redispatch exceeded historical dispatch in at least 1 hour"
+    assert np.all(redispatch <= historical_dispatch * (1 + 1e-4)), (
+        "redispatch exceeded historical dispatch in at least 1 hour"
+    )
 
     if np.all(storage_dc_charge == 0.0):
-        assert np.all(
-            storage[:, 0, :] == storage[:, 3, :]
-        ), "charge != gridcharge when storage_dc_charge is all 0.0"
+        assert np.all(storage[:, 0, :] == storage[:, 3, :]), (
+            "charge != gridcharge when storage_dc_charge is all 0.0"
+        )
     else:
-        assert np.all(
-            storage[:, 0, :] >= storage[:, 3, :]
-        ), "gridcharge exceeded charge for at least one storage facility/hour"
+        assert np.all(storage[:, 0, :] >= storage[:, 3, :]), (
+            "gridcharge exceeded charge for at least one storage facility/hour"
+        )
 
     for es_i in range(storage.shape[2]):
         if np.any(
