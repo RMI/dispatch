@@ -46,7 +46,7 @@ doc = [
     "sphinxcontrib-mermaid>0.7,<1.1.0",
 ]
 tests = [
-    "coverage>=5.3,<7.7",
+    "coverage>=5.3,<7.8",
     "doc8>=0.9,<1.2",
     "pre-commit>=2.9,<4.2",
     "pytest>=6.2,<8.4",
