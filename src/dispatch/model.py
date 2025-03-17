@@ -995,9 +995,20 @@ class DispatchModel(IOMixin):
             durs = self.system_data.deficit / comparison
         bins = map(
             float,
-            "0.0, 0.0001, 0.02, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.75, 1.0".split(
-                ", "
-            ),
+            [
+                "0.0",
+                "0.0001",
+                "0.02",
+                "0.05",
+                "0.1",
+                "0.15",
+                "0.2",
+                "0.3",
+                "0.4",
+                "0.5",
+                "0.75",
+                "1.0",
+            ],
         )
         return pd.cut(durs, list(bins), include_lowest=True).value_counts().sort_index()
 
