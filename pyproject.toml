@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=64", "setuptools_scm>=8", "wheel"]
+requires = ["setuptools>=64", "setuptools_scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -32,30 +32,29 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "ruff>0.0.215,<0.11.12",
-    "tox>=4.16.0,<4.27",
-    "twine>=3.3,<6.2",  # Used to make releases to PyPI
+    "coverage>=5.3,<7.9",  # Lets us track what code is being tested
+    "pytest>=6.2,<8.4",  # test framework
 ]
 doc = [
     "doc8>=0.9,<1.2",
     "furo>=2023.09.10",
+    "rstcheck[sphinx,toml]>=5.0,<6.3",
     "sphinx>=4,!=5.1.0,<8.2.4",
     "sphinx-autoapi>=1.8,<3.7",
     "sphinx-issues>=1.2,<5.1",
     "sphinx-autodoc-typehints>1.19,<3.2.0",
     "sphinxcontrib-mermaid>0.7,<1.1.0",
 ]
-tests = [
-    "coverage>=5.3,<7.9",
-    "doc8>=0.9,<1.2",
-    "pre-commit>=2.9,<4.3",
-    "pytest>=6.2,<8.4",
-    "pytest-console-scripts>=1.1,<1.5",
-    "pytest-cov>=2.10,<6.2",
-    "rstcheck[sphinx,toml]>=5.0,<6.3",
-    "ruff>0.0.215,<0.11.12",
-    "tox>=4.16.0,<4.27",
+qa = [ # in local development these are provided globally, here for GHA
+    "pre-commit>=2.9,<4.3",  # Allow us to run pre-commit hooks in testing
+    "ruff>0.0.215,<0.11.13",
 ]
+tooling = [ # in local development these are provided globally
+    "rmi-dispatch[qa]",
+    "tox>=4.16.0,<4.27",  # Python test environment manager
+    "tox-uv>=1.25,<2",
+]
+tests = ["rmi-dispatch[dev,tooling]"]
 viz = [
     "plotly>5.10,<6.2",
     "kaleido>0.2,<0.2.2",
@@ -172,3 +171,44 @@ pydocstyle.convention = "google"
 ]
 "tests/*.py" = ["S101", "SIM117", "F841", "D101", "PD901", "FBT003"]
 "tests/engine_test.py" = ["E501"]
+
+[tool.tox]
+env_list = ["linters", "docs", "ci"]
+
+[tool.tox.env_run_base]
+allowlist_externals = ["bash", "coverage", "sphinx-build", "pytest", "ruff", "pre-commit"]
+runner = "uv-venv-runner"
+passenv = ["ETB_AZURE_SAS_TOKEN", "ETB_AZURE_ACCOUNT_NAME"]
+extras = ["qa", "dev", "doc", "viz"]
+
+[tool.tox.env.linters]
+description = "Run the pre-commit, flake8 and bandit linters."
+commands = [
+    ['pre-commit', 'run', '--all-files', '--show-diff-on-failure', 'python-no-eval'],
+    ['pre-commit', 'run', '--all-files', '--show-diff-on-failure', 'python-no-log-warn'],
+    ['pre-commit', 'run', '--all-files', '--show-diff-on-failure', 'python-check-blanket-noqa'],
+    ['pre-commit', 'run', '--all-files', '--show-diff-on-failure', 'check-merge-conflict'],
+    ['pre-commit', 'run', '--all-files', '--show-diff-on-failure', 'check-yaml'],
+    ['pre-commit', 'run', '--all-files', '--show-diff-on-failure', 'check-case-conflict'],
+    ['pre-commit', 'run', '--all-files', '--show-diff-on-failure', 'debug-statements'],
+    ['pre-commit', 'run', '--all-files', '--show-diff-on-failure', 'name-tests-test'],
+    ['ruff', 'check', '.'],
+]
+
+[tool.tox.env.docs]
+description = "Build the HTML docs from scratch using Sphinx."
+commands = [
+    ['bash', '-c', 'rm -rf docs/_build'],
+    ['doc8', 'docs/', 'README.rst'],
+    ['rstcheck', '--config', 'pyproject.toml', '--recursive', './'],
+    ['sphinx-build', '-b', 'html', 'docs', 'docs/_build/html']
+]
+
+[tool.tox.env.ci]
+description = "un all continuous integration (CI) checks & generate test coverage."
+commands = [
+    ['coverage', 'erase'],
+    ['coverage', 'run', '--source={envsitepackagesdir}/dispatch', '-m', 'pytest', '--doctest-modules', '{envsitepackagesdir}/dispatch', 'tests'],
+    ['coverage', 'lcov', '-o', 'coverage.info'],
+    ['coverage', 'report', '--sort=cover']
+]

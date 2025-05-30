@@ -59,26 +59,9 @@ environment using pip. To install it using pip:
 
    pip install git+https://github.com/rmi/dispatch.git
 
-Or from the dev branch:
 
-.. code-block:: bash
-
-   pip install git+https://github.com/rmi/dispatch.git@dev
-
-
-To create an environment for Dispatch, navigate to the repo folder in terminal and run:
-
-.. code-block:: bash
-
-   mamba update mamba
-   mamba env create --name dispatch --file environment.yml
-
-If you get a ``CondaValueError`` that the prefix already exists, that means an
-environment with the same name already exists. You must remove the old one before
-creating the new one:
-
-.. code-block:: bash
-
-   mamba update mamba
-   mamba env remove --name dispatch
-   mamba env create --name dispatch --file environment.yml
+As a dependency in a project
+-------------------------------------------
+To add it as a dependency in a project add
+``"rmi.dispatch @ git+https://github.com/rmi/dispatch.git"`` to the
+``dependency`` section of ``pyproject.toml``.
