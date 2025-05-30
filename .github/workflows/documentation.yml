@@ -13,15 +13,17 @@ jobs:
           git fetch --depth=1 origin +refs/tags/*:refs/tags/*
           git describe --tags
           git describe --tags $(git rev-list --tags --max-count=1)
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.13"
       - name: Install dependencies
         run: |
-          pip install ./[doc]
+          uv sync --extra doc
       - name: Sphinx build
         run: |
-          sphinx-build -b html docs _build
+          uv run sphinx-build -b html docs _build
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v4
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
