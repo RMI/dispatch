@@ -36,7 +36,7 @@ dev = [
     "pytest>=6.2,<8.5",  # test framework
 ]
 doc = [
-    "doc8>=0.9,<1.2",
+    "doc8>=0.9,<2.1",
     "furo>=2023.09.10",
     "rstcheck[sphinx,toml]>=5.0,<6.3",
     "sphinx>=4,!=5.1.0,<8.2.4",
