@@ -57,7 +57,7 @@ tooling = [ # in local development these are provided globally
 tests = ["rmi-dispatch[dev,tooling]"]
 viz = [
     "plotly>5.10,<6.2",
-    "kaleido>0.2,<0.2.2",
+    "kaleido>0.2,<1.0.1",
 ]
 
 [tool.setuptools.dynamic]
