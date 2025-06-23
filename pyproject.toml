@@ -47,7 +47,7 @@ doc = [
 ]
 qa = [ # in local development these are provided globally, here for GHA
     "pre-commit>=2.9,<4.3",  # Allow us to run pre-commit hooks in testing
-    "ruff>0.0.215,<0.11.14",
+    "ruff>0.0.215,<0.12.1",
 ]
 tooling = [ # in local development these are provided globally
     "rmi-dispatch[qa]",
