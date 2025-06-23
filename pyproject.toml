@@ -51,7 +51,7 @@ qa = [ # in local development these are provided globally, here for GHA
 ]
 tooling = [ # in local development these are provided globally
     "rmi-dispatch[qa]",
-    "tox>=4.16.0,<4.27",  # Python test environment manager
+    "tox>=4.16.0,<4.28",  # Python test environment manager
     "tox-uv>=1.25,<2",
 ]
 tests = ["rmi-dispatch[dev,tooling]"]
