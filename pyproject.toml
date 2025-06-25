@@ -47,6 +47,7 @@ doc = [
 ]
 qa = [ # in local development these are provided globally, here for GHA
     "pre-commit>=2.9,<4.3",  # Allow us to run pre-commit hooks in testing
+    "pre-commit-uv>=4.1,<4.2",
     "ruff>0.0.215,<0.12.1",
 ]
 tooling = [ # in local development these are provided globally
@@ -66,6 +67,8 @@ version = {attr = "dispatch._version.__version__"}
 [tool.setuptools_scm]
 version_file = "src/dispatch/_version.py"
 
+[tool.uv]
+constraint-dependencies = ["kaleido!=0.2.1.post1"]
 #######################################################################################
 # Configurations for linters and other tools
 #######################################################################################
