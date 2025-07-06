@@ -523,8 +523,14 @@ def dispatch_engine(  # noqa: C901
             "charge != gridcharge when storage_dc_charge is all 0.0"
         )
     else:
-        assert np.all(storage[:, 0, :] >= storage[:, 3, :]), (
-            "gridcharge exceeded charge for at least one storage facility/hour"
+        # if not np.all(storage[:, 0, :] >= storage[:, 3, :]):
+        #     raise AssertionError(
+        #     "gridcharge exceeded charge for at least one storage facility/hour"
+        # )
+        compare(
+            storage[:, 0, :],
+            storage[:, 3, :],
+            "gridcharge exceeded charge for at least one storage facility/hour",
         )
 
     for es_i in range(storage.shape[2]):
@@ -539,6 +545,17 @@ def dispatch_engine(  # noqa: C901
             )
 
     return redispatch, storage, system_level, starts
+
+
+@njit(cache=True)
+def compare(a, b, msg):
+    """Check that all entries in a are >= to the corresponding value in b."""
+    assert a.shape == b.shape
+    for a_, b_ in zip(a, b):
+        if np.all(np.isclose(a_, b_) | (a_ >= b_)):
+            continue
+        else:
+            raise AssertionError(msg)
 
 
 @njit(cache=True)
@@ -568,7 +585,12 @@ def dynamic_reserve(
     projected = net_load[hr + 1 : hr + 24]
     if len(projected) == 0:
         return reserve
-    projected_increase = max(0.0, np.max(projected) / net_load[hr] - 1)
+    if net_load[hr] == 0:
+        # equivalent to shifting up the whole profile by the max, muting the %
+        # change relative to shifting by the average, median, etc.
+        projected_increase = 1.0 if np.max(projected) > 0 else 0
+    else:
+        projected_increase = max(0.0, np.max(projected) / net_load[hr] - 1)
     return np.where(
         reserve == 0.0, np.around(1 - np.exp(-coeff * projected_increase), 2), reserve
     )
@@ -786,7 +808,11 @@ def charge_storage(
     grid_charge = max(0.0, charge - dc_charge)
     # calculate new `state_of_charge` and check that it makes sense
     state_of_charge = state_of_charge + charge * eff
-    assert state_of_charge <= max_state_of_charge
+    if (
+        not np.isclose(state_of_charge, max_state_of_charge)
+        and state_of_charge > max_state_of_charge
+    ):
+        raise AssertionError("state_of_charge > max_state_of_charge")
     return charge, 0.0, state_of_charge, grid_charge
 
 

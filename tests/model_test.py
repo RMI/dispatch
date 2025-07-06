@@ -854,3 +854,14 @@ def test_weird_adj(test_dir):
     with DataZip(test_dir / "data/bad_adj.zip") as z:
         dm = DispatchModel(**z["data"], jit=False)
     dm()
+
+
+@pytest.mark.skip(reason="for debugging only")
+def test_soc_error(test_dir):
+    """Investigation of unexpected hourly load adjustment.
+
+    Potential testing for fossil startup to charge storage.
+    """
+    data = DataZip.load(test_dir / "data/nevp.zip")
+    dm = DispatchModel(**data, jit=False)
+    dm()

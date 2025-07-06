@@ -11,6 +11,14 @@ Release Notes
 What's New?
 ^^^^^^^^^^^
 *  Transition to uv and tox-uv.
+*  Downgrading kaleido version below v1.0 to avoid chrome requirement.
+
+Bug Fixes
+^^^^^^^^^
+*  Fixed a bug where net_load of zero breaks :func:`.dynamic_reserve` because it looks for relative increase.
+   Now when net load is zero we raise the whole profile by the period's max.
+   Shifting up the whole profile by the max mutes the % change relative to shifting by the average, median, etc.
+*  Fixed a bug in :func:`.dispatch_engine` where checks for values not exceeding their limit failed when they did exceed the limit but within the error of machine precision.
 
 .. _release-v0-6-0:
 
