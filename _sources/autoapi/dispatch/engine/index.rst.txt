@@ -1,0 +1,252 @@
+dispatch.engine
+===============
+
+.. py:module:: dispatch.engine
+
+.. autoapi-nested-parse::
+
+   Dispatch engine.
+
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   dispatch.engine.dispatch_engine_auto
+   dispatch.engine.choose_best_coefficient
+   dispatch.engine.dispatch_engine
+   dispatch.engine.compare
+   dispatch.engine.dynamic_reserve
+   dispatch.engine.adjust_for_storage_reserve
+   dispatch.engine.discharge_storage
+   dispatch.engine.calculate_generator_output
+   dispatch.engine.make_rank_arrays
+   dispatch.engine.charge_storage
+   dispatch.engine.validate_inputs
+
+
+Module Contents
+---------------
+
+.. py:function:: dispatch_engine_auto(net_load, hr_to_cost_idx, historical_dispatch, dispatchable_ramp_mw, dispatchable_startup_cost, dispatchable_marginal_cost, dispatchable_min_uptime, storage_mw, storage_charge_mw, storage_hrs, storage_charge_eff, storage_discharge_eff, storage_op_hour, storage_dc_charge, storage_reserve, dynamic_reserve_coeff, marginal_for_startup_rank = False)
+
+   Autotune ``dynamic_reserve_coeff`` in :func:`.dispatch_engine`.
+
+   :param net_load: net load, as in net of RE generation, negative net load means
+                    excess renewables
+   :param hr_to_cost_idx: an array that contains for each hour, the index of the correct
+                          column in ``dispatchable_marginal_cost`` that contains cost data for that
+                          hour
+   :param historical_dispatch: historic generator dispatch, acts as an hourly upper
+                               constraint on this dispatch
+   :param dispatchable_ramp_mw: max one hour ramp in MW
+   :param dispatchable_startup_cost: startup cost in $ for each dispatchable generator
+   :param dispatchable_marginal_cost: annual marginal cost for each dispatchable
+                                      generator in $/MWh rows are generators and columns are years
+   :param dispatchable_min_uptime: minimum hrs a generator must operate before its
+                                   output can be reduced
+   :param storage_mw: max discharge rate for storage in MW
+   :param storage_charge_mw: max charge rate for storage in MW
+   :param storage_hrs: duration of storage
+   :param storage_charge_eff: storage charge efficiency
+   :param storage_discharge_eff: storage discharge efficiency
+   :param storage_op_hour: first hour in which storage is available, i.e. the index of
+                           the operating date
+   :param storage_dc_charge: an array whose columns match each storage facility, and a
+                             row for each hour representing how much energy would be curtailed at an
+                             attached renewable facility because it exceeds the system's inverter. This
+                             then represents how much the storage in an RE+Storage facility could be
+                             charged by otherwise curtailed energy when ilr>1.
+   :param storage_reserve: portion of a storage facility's SOC that will be held in
+                           reserve until after dispatchable resource startup.
+   :param dynamic_reserve_coeff: coefficient passed to
+                                 :func:`dispatch.engine.dynamic_reserve` to use in exponential function.
+                                 ``-10.0`` means autotune this parameter.
+   :param marginal_for_startup_rank: if True, rather than using
+                                     ``dispatchable_startup_cost`` to order generators for startup, use marginal
+                                     cost rank
+
+   :returns:
+
+             -   **redispatch** (:class:`numpy.ndarray`) - new hourly dispatch
+             -   **storage** (:class:`numpy.ndarray`) - hourly charge, discharge, and state
+                 of charge data
+             -   **system_level** (:class:`numpy.ndarray`) - hourly deficit, dirty charge,
+                 and total curtailment dat
+             -   **starts** (:class:`numpy.ndarray`) - count of starts for each generator in
+                 each year
+
+
+.. py:function:: choose_best_coefficient(comparison)
+
+   Select the optimal combination of deficit and curtailment.
+
+   :param comparison:
+
+   Returns: index of the optimal case
+
+
+.. py:function:: dispatch_engine(net_load, hr_to_cost_idx, historical_dispatch, dispatchable_ramp_mw, dispatchable_startup_cost, dispatchable_marginal_cost, dispatchable_min_uptime, storage_mw, storage_charge_mw, storage_hrs, storage_charge_eff, storage_discharge_eff, storage_op_hour, storage_dc_charge, storage_reserve, dynamic_reserve_coeff, marginal_for_startup_rank)
+
+   Dispatch engine that can be compiled with :func:`numba.jit`.
+
+   For each hour...
+
+   1.  first iterate through operating generators
+   2.  then charge/discharge storage
+   3.  if there is still a deficit, iterate through non-operating generators
+       and turn them on if required
+
+   :param net_load: net load, as in net of RE generation, negative net load means
+                    excess renewables
+   :param hr_to_cost_idx: an array that contains for each hour, the index of the correct
+                          column in ``dispatchable_marginal_cost`` that contains cost data for that
+                          hour
+   :param historical_dispatch: historic generator dispatch, acts as an hourly upper
+                               constraint on this dispatch
+   :param dispatchable_ramp_mw: max one hour ramp in MW
+   :param dispatchable_startup_cost: startup cost in $ for each dispatchable generator
+   :param dispatchable_marginal_cost: annual marginal cost for each dispatchable
+                                      generator in $/MWh rows are generators and columns are years
+   :param dispatchable_min_uptime: minimum hrs a generator must operate before its
+                                   output can be reduced
+   :param storage_mw: max discharge rate for storage in MW
+   :param storage_charge_mw: max charge rate for storage in MW
+   :param storage_hrs: duration of storage
+   :param storage_charge_eff: storage charge efficiency
+   :param storage_discharge_eff: storage discharge efficiency
+   :param storage_op_hour: first hour in which storage is available, i.e. the index of
+                           the operating date
+   :param storage_dc_charge: an array whose columns match each storage facility, and a
+                             row for each hour representing how much energy would be curtailed at an
+                             attached renewable facility because it exceeds the system's inverter. This
+                             then represents how much the storage in an RE+Storage facility could be
+                             charged by otherwise curtailed energy when ilr>1.
+   :param storage_reserve: portion of a storage facility's SOC that will be held in
+                           reserve until after dispatchable resource startup.
+   :param dynamic_reserve_coeff: coefficient passed to
+                                 :func:`dispatch.engine.dynamic_reserve` to use in exponential function.
+   :param marginal_for_startup_rank: if True, rather than using
+                                     ``dispatchable_startup_cost`` to order generators for startup, use marginal
+                                     cost rank
+
+   :returns:
+
+             -   **redispatch** (:class:`numpy.ndarray`) - new hourly dispatch
+             -   **storage** (:class:`numpy.ndarray`) - hourly charge, discharge, and state
+                 of charge data
+             -   **system_level** (:class:`numpy.ndarray`) - hourly deficit, dirty charge,
+                 and total curtailment data
+             -   **starts** (:class:`numpy.ndarray`) - count of starts for each generator in
+                 each year
+
+
+.. py:function:: compare(a, b, msg)
+
+   Check that all entries in a are >= to the corresponding value in b.
+
+
+.. py:function:: dynamic_reserve(hr, reserve, net_load, coeff)
+
+   Adjust storage reserve based on 24hr net load.
+
+   :param hr: hour index
+   :param reserve: storage reserve defaults
+   :param net_load: net load profile
+   :param coeff: coefficient in exponential
+
+   .. math::
+      :label: reserve
+
+         ramp &= \frac{max(load_{h+1}, ..., load_{h+24})}{load_h} - 1
+
+         reserve &= 1 - e^{-coeff \times ramp}
+
+   Returns: adjusted reserves
+
+
+.. py:function:: adjust_for_storage_reserve(state_of_charge, mw, reserve, max_state_of_charge)
+
+   Adjustment to deficit to restore or use storage reserve.
+
+   :param state_of_charge: state of charge before charging/discharging
+   :param mw: storage power capacity
+   :param reserve: target filling to this reserve level or allow discharging to
+                   2x this level
+   :param max_state_of_charge: storage energy capacity
+
+   Returns: amount by which provisional deficit must be adjusted to use or replace
+       storage reserve
+
+
+.. py:function:: discharge_storage(desired_mw, state_of_charge, mw, max_state_of_charge, reserve = 0.0, eff = 1.0)
+
+   Calculations for discharging storage.
+
+   :param desired_mw: amount of power we want from storage
+   :param state_of_charge: state of charge before charging
+   :param mw: storage power capacity
+   :param max_state_of_charge: storage energy capacity
+   :param reserve: prevent discharge below this portion of ``max_state_of_charge``
+   :param eff: discharge efficiency of storage
+
+   Returns: amount of storage discharge
+
+
+.. py:function:: calculate_generator_output(desired_mw, max_mw, previous_mw, ramp_mw, current_uptime = 0, min_uptime = 0)
+
+   Determine period output for a generator.
+
+   :param desired_mw: desired generator output
+   :param max_mw: maximum output of generator this period
+   :param previous_mw: generator output in the previous period
+   :param ramp_mw: maximum one-period change in generator output in MW, up or down
+   :param current_uptime: as of the end of the previous period, for how many periods
+                          has the generator been operating
+   :param min_uptime: the minimum duration the generator must operate before its
+                      output is reduced
+
+   :returns: output of the generator for given period
+
+
+.. py:function:: make_rank_arrays(marginal_cost, startup_cost)
+
+   Turn cost arrays into rank arrays.
+
+   :param marginal_cost: array of marginal costs
+   :param startup_cost: array of startup cost
+
+   :returns:
+
+             -   **marginal_ranks** (:class:`numpy.ndarray`) - marginal rank array
+             -   **start_ranks** (:class:`numpy.ndarray`) - start rank array
+
+
+.. py:function:: charge_storage(deficit, state_of_charge, dc_charge, mw, max_state_of_charge, eff)
+
+   Calculations for charging storage.
+
+   :param deficit: amount of charging possible from the grid
+   :param state_of_charge: state of charge before charging
+   :param dc_charge: power available from DC-coupled RE
+   :param mw: storage power capacity
+   :param max_state_of_charge: storage energy capacity
+   :param eff: round-trip efficiency of storage
+
+   :returns: A tuple with the same organization of columns of internal ``storage`` in
+             :func:`.dispatch_engine`.
+
+             -   **charge** (:class:`float`) - total charge in the hour
+             -   **discharge** (:class:`float`) - always 0.0, a placeholder
+             -   **soc** (:class:`float`) - tate of charge after charging
+             -   **grid_charge** (:class:`float`) -  portion of ``charge`` that came from
+                 the grid
+
+
+.. py:function:: validate_inputs(net_load, hr_to_cost_idx, historical_dispatch, ramp_mw, startup_cost, marginal_cost, storage_mw, storage_charge_mw, storage_hrs, storage_charge_eff, storage_discharge_eff, storage_dc_charge, storage_reserve)
+
+   Validate shape of inputs.
+
+
