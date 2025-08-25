@@ -57,7 +57,7 @@ tooling = [ # in local development these are provided globally
 ]
 tests = ["rmi-dispatch[dev,tooling]"]
 viz = [
-    "plotly>5.10,<6.3",
+    "plotly>5.10,<6.4",
     "kaleido>0.2,<2",
 ]
 
