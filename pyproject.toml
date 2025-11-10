@@ -46,7 +46,7 @@ doc = [
     "sphinxcontrib-mermaid>0.7,<1.1.0",
 ]
 qa = [ # in local development these are provided globally, here for GHA
-    "pre-commit>=2.9,<4.4",  # Allow us to run pre-commit hooks in testing
+    "pre-commit>=2.9,<4.5",  # Allow us to run pre-commit hooks in testing
     "pre-commit-uv>=4.1,<4.3",
     "ruff>0.0.215,<0.12.11",
 ]
