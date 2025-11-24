@@ -32,7 +32,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "coverage>=5.3,<7.12",  # Lets us track what code is being tested
+    "coverage>=5.3,<7.13",  # Lets us track what code is being tested
     "pytest>=6.2,<9.1",  # test framework
 ]
 doc = [
