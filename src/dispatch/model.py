@@ -1828,7 +1828,7 @@ class DispatchModel(IOMixin):
             .for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
             .update_xaxes(title=None)
             .for_each_yaxis(
-                lambda yaxis: (yaxis.update(title=yt) if yaxis.title.text else None)
+                lambda yaxis: yaxis.update(title=yt) if yaxis.title.text else None
             )
             .update_traces(
                 marker_line_width=0.1,
@@ -1873,7 +1873,7 @@ class DispatchModel(IOMixin):
             .for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
             .update_xaxes(title=None)
             .for_each_yaxis(
-                lambda yaxis: (yaxis.update(title="MWh") if yaxis.title.text else None)
+                lambda yaxis: yaxis.update(title="MWh") if yaxis.title.text else None
             )
             .update_traces(
                 marker_line_width=0.1,
