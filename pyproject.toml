@@ -40,7 +40,7 @@ doc = [
     "furo>=2023.09.10",
     "rstcheck[sphinx,toml]>=5.0,<6.3",
     "sphinx>=4,!=5.1.0,<8.2.4",
-    "sphinx-autoapi>=1.8,<3.7",
+    "sphinx-autoapi>=1.8,<3.8",
     "sphinx-issues>=1.2,<5.1",
     "sphinx-autodoc-typehints>1.19,<3.2.0",
     "sphinxcontrib-mermaid>0.7,<2.1.0",
