@@ -1,0 +1,1193 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html">
+        <link rel="prefetch" href="../../_static/Small_PNG-RMI_logo_PrimaryUse.PNG" as="image">
+        <link rel="prefetch" href="../../_static/Small_PNG-RMI_logo_PrimaryUse_White_Horizontal.PNG" as="image">
+
+    <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
+        <title>dispatch.engine - Dispatch 0.6 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=b1990d62" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../index.html"><div class="brand">Dispatch 0.6 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../../_static/Small_PNG-RMI_logo_PrimaryUse.PNG" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../../_static/Small_PNG-RMI_logo_PrimaryUse_White_Horizontal.PNG" alt="Dark Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">Dispatch 0.6 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../approach.html">Approach</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release_notes.html">Release Notes</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../autoapi/index.html">API Reference</a><input aria-label="Toggle navigation of API Reference" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../autoapi/dispatch/index.html">dispatch</a><input aria-label="Toggle navigation of dispatch" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../autoapi/dispatch/engine/index.html">dispatch.engine</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../autoapi/dispatch/helpers/index.html">dispatch.helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../autoapi/dispatch/metadata/index.html">dispatch.metadata</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../autoapi/dispatch/model/index.html">dispatch.model</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../LICENSE.html">Licensing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../code_of_conduct.html">Code of Conduct</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <h1>Source code for dispatch.engine</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Dispatch engine.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">numba</span><span class="w"> </span><span class="kn">import</span> <span class="n">njit</span>
+
+<span class="n">CHARGE_IDX</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">DISCHARGE_IDX</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">SOC_IDX</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">GRIDCHARGE_IDX</span> <span class="o">=</span> <span class="mi">3</span>
+
+<span class="n">DEFICIT_IDX</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">DIRTY_IDX</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">CURTAILMENT_IDX</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">ADJUSTMENT_IDX</span> <span class="o">=</span> <span class="mi">3</span>
+
+
+<span class="nd">@njit</span><span class="p">(</span><span class="n">error_model</span><span class="o">=</span><span class="s2">&quot;numpy&quot;</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="viewcode-block" id="dispatch_engine_auto">
+<a class="viewcode-back" href="../../autoapi/dispatch/engine/index.html#dispatch.engine.dispatch_engine_auto">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">dispatch_engine_auto</span><span class="p">(</span>
+    <span class="n">net_load</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">hr_to_cost_idx</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">historical_dispatch</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">dispatchable_ramp_mw</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">dispatchable_startup_cost</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">dispatchable_marginal_cost</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">dispatchable_min_uptime</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">storage_mw</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">storage_charge_mw</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">storage_hrs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">storage_charge_eff</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">storage_discharge_eff</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">storage_op_hour</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">storage_dc_charge</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">storage_reserve</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">dynamic_reserve_coeff</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">marginal_for_startup_rank</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>  <span class="c1"># noqa: FBT001, FBT002</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Autotune ``dynamic_reserve_coeff`` in :func:`.dispatch_engine`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        net_load: net load, as in net of RE generation, negative net load means</span>
+<span class="sd">            excess renewables</span>
+<span class="sd">        hr_to_cost_idx: an array that contains for each hour, the index of the correct</span>
+<span class="sd">            column in ``dispatchable_marginal_cost`` that contains cost data for that</span>
+<span class="sd">            hour</span>
+<span class="sd">        historical_dispatch: historic generator dispatch, acts as an hourly upper</span>
+<span class="sd">            constraint on this dispatch</span>
+<span class="sd">        dispatchable_ramp_mw: max one hour ramp in MW</span>
+<span class="sd">        dispatchable_startup_cost: startup cost in $ for each dispatchable generator</span>
+<span class="sd">        dispatchable_marginal_cost: annual marginal cost for each dispatchable</span>
+<span class="sd">            generator in $/MWh rows are generators and columns are years</span>
+<span class="sd">        dispatchable_min_uptime: minimum hrs a generator must operate before its</span>
+<span class="sd">            output can be reduced</span>
+<span class="sd">        storage_mw: max discharge rate for storage in MW</span>
+<span class="sd">        storage_charge_mw: max charge rate for storage in MW</span>
+<span class="sd">        storage_hrs: duration of storage</span>
+<span class="sd">        storage_charge_eff: storage charge efficiency</span>
+<span class="sd">        storage_discharge_eff: storage discharge efficiency</span>
+<span class="sd">        storage_op_hour: first hour in which storage is available, i.e. the index of</span>
+<span class="sd">            the operating date</span>
+<span class="sd">        storage_dc_charge: an array whose columns match each storage facility, and a</span>
+<span class="sd">            row for each hour representing how much energy would be curtailed at an</span>
+<span class="sd">            attached renewable facility because it exceeds the system&#39;s inverter. This</span>
+<span class="sd">            then represents how much the storage in an RE+Storage facility could be</span>
+<span class="sd">            charged by otherwise curtailed energy when ilr&gt;1.</span>
+<span class="sd">        storage_reserve: portion of a storage facility&#39;s SOC that will be held in</span>
+<span class="sd">            reserve until after dispatchable resource startup.</span>
+<span class="sd">        dynamic_reserve_coeff: coefficient passed to</span>
+<span class="sd">            :func:`dispatch.engine.dynamic_reserve` to use in exponential function.</span>
+<span class="sd">            ``-10.0`` means autotune this parameter.</span>
+<span class="sd">        marginal_for_startup_rank: if True, rather than using</span>
+<span class="sd">            ``dispatchable_startup_cost`` to order generators for startup, use marginal</span>
+<span class="sd">            cost rank</span>
+
+
+<span class="sd">    Returns:</span>
+<span class="sd">        -   **redispatch** (:class:`numpy.ndarray`) - new hourly dispatch</span>
+<span class="sd">        -   **storage** (:class:`numpy.ndarray`) - hourly charge, discharge, and state</span>
+<span class="sd">            of charge data</span>
+<span class="sd">        -   **system_level** (:class:`numpy.ndarray`) - hourly deficit, dirty charge,</span>
+<span class="sd">            and total curtailment dat</span>
+<span class="sd">        -   **starts** (:class:`numpy.ndarray`) - count of starts for each generator in</span>
+<span class="sd">            each year</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">validate_inputs</span><span class="p">(</span>
+        <span class="n">net_load</span><span class="p">,</span>
+        <span class="n">hr_to_cost_idx</span><span class="p">,</span>
+        <span class="n">historical_dispatch</span><span class="p">,</span>
+        <span class="n">dispatchable_ramp_mw</span><span class="p">,</span>
+        <span class="n">dispatchable_startup_cost</span><span class="p">,</span>
+        <span class="n">dispatchable_marginal_cost</span><span class="p">,</span>
+        <span class="n">storage_mw</span><span class="p">,</span>
+        <span class="n">storage_charge_mw</span><span class="p">,</span>
+        <span class="n">storage_hrs</span><span class="p">,</span>
+        <span class="n">storage_charge_eff</span><span class="p">,</span>
+        <span class="n">storage_discharge_eff</span><span class="p">,</span>
+        <span class="n">storage_dc_charge</span><span class="p">,</span>
+        <span class="n">storage_reserve</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">reserve_is_dynamic</span> <span class="o">=</span> <span class="n">dynamic_reserve_coeff</span> <span class="o">==</span> <span class="o">-</span><span class="mf">10.0</span>
+    <span class="n">have_dynamic_reserve_storage</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">storage_mw</span><span class="p">[</span><span class="n">storage_reserve</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mf">0.0</span>
+    <span class="k">if</span> <span class="n">reserve_is_dynamic</span> <span class="ow">and</span> <span class="n">have_dynamic_reserve_storage</span><span class="p">:</span>
+        <span class="n">coeffs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">comparison</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">coeffs</span><span class="p">),</span> <span class="mi">4</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">coeff</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">coeffs</span><span class="p">):</span>
+            <span class="n">redispatch</span><span class="p">,</span> <span class="n">storage</span><span class="p">,</span> <span class="n">system_level</span><span class="p">,</span> <span class="n">starts</span> <span class="o">=</span> <span class="n">dispatch_engine</span><span class="p">(</span>
+                <span class="n">net_load</span><span class="o">=</span><span class="n">net_load</span><span class="p">,</span>
+                <span class="n">hr_to_cost_idx</span><span class="o">=</span><span class="n">hr_to_cost_idx</span><span class="p">,</span>
+                <span class="n">historical_dispatch</span><span class="o">=</span><span class="n">historical_dispatch</span><span class="p">,</span>
+                <span class="n">dispatchable_ramp_mw</span><span class="o">=</span><span class="n">dispatchable_ramp_mw</span><span class="p">,</span>
+                <span class="n">dispatchable_startup_cost</span><span class="o">=</span><span class="n">dispatchable_startup_cost</span><span class="p">,</span>
+                <span class="n">dispatchable_marginal_cost</span><span class="o">=</span><span class="n">dispatchable_marginal_cost</span><span class="p">,</span>
+                <span class="n">dispatchable_min_uptime</span><span class="o">=</span><span class="n">dispatchable_min_uptime</span><span class="p">,</span>
+                <span class="n">storage_mw</span><span class="o">=</span><span class="n">storage_mw</span><span class="p">,</span>
+                <span class="n">storage_charge_mw</span><span class="o">=</span><span class="n">storage_charge_mw</span><span class="p">,</span>
+                <span class="n">storage_hrs</span><span class="o">=</span><span class="n">storage_hrs</span><span class="p">,</span>
+                <span class="n">storage_charge_eff</span><span class="o">=</span><span class="n">storage_charge_eff</span><span class="p">,</span>
+                <span class="n">storage_discharge_eff</span><span class="o">=</span><span class="n">storage_discharge_eff</span><span class="p">,</span>
+                <span class="n">storage_op_hour</span><span class="o">=</span><span class="n">storage_op_hour</span><span class="p">,</span>
+                <span class="n">storage_dc_charge</span><span class="o">=</span><span class="n">storage_dc_charge</span><span class="p">,</span>
+                <span class="n">storage_reserve</span><span class="o">=</span><span class="n">storage_reserve</span><span class="p">,</span>
+                <span class="n">dynamic_reserve_coeff</span><span class="o">=</span><span class="n">coeff</span><span class="p">,</span>
+                <span class="n">marginal_for_startup_rank</span><span class="o">=</span><span class="n">marginal_for_startup_rank</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">comparison</span><span class="p">[</span><span class="n">ix</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">system_level</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">net_load</span><span class="p">)</span>
+            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">redispatch</span><span class="p">,</span> <span class="n">storage</span><span class="p">,</span> <span class="n">system_level</span><span class="p">,</span> <span class="n">starts</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">results</span><span class="p">[</span><span class="n">choose_best_coefficient</span><span class="p">(</span><span class="n">comparison</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="n">dispatch_engine</span><span class="p">(</span>
+        <span class="n">net_load</span><span class="o">=</span><span class="n">net_load</span><span class="p">,</span>
+        <span class="n">hr_to_cost_idx</span><span class="o">=</span><span class="n">hr_to_cost_idx</span><span class="p">,</span>
+        <span class="n">historical_dispatch</span><span class="o">=</span><span class="n">historical_dispatch</span><span class="p">,</span>
+        <span class="n">dispatchable_ramp_mw</span><span class="o">=</span><span class="n">dispatchable_ramp_mw</span><span class="p">,</span>
+        <span class="n">dispatchable_startup_cost</span><span class="o">=</span><span class="n">dispatchable_startup_cost</span><span class="p">,</span>
+        <span class="n">dispatchable_marginal_cost</span><span class="o">=</span><span class="n">dispatchable_marginal_cost</span><span class="p">,</span>
+        <span class="n">dispatchable_min_uptime</span><span class="o">=</span><span class="n">dispatchable_min_uptime</span><span class="p">,</span>
+        <span class="n">storage_mw</span><span class="o">=</span><span class="n">storage_mw</span><span class="p">,</span>
+        <span class="n">storage_charge_mw</span><span class="o">=</span><span class="n">storage_charge_mw</span><span class="p">,</span>
+        <span class="n">storage_hrs</span><span class="o">=</span><span class="n">storage_hrs</span><span class="p">,</span>
+        <span class="n">storage_charge_eff</span><span class="o">=</span><span class="n">storage_charge_eff</span><span class="p">,</span>
+        <span class="n">storage_discharge_eff</span><span class="o">=</span><span class="n">storage_discharge_eff</span><span class="p">,</span>
+        <span class="n">storage_op_hour</span><span class="o">=</span><span class="n">storage_op_hour</span><span class="p">,</span>
+        <span class="n">storage_dc_charge</span><span class="o">=</span><span class="n">storage_dc_charge</span><span class="p">,</span>
+        <span class="n">storage_reserve</span><span class="o">=</span><span class="n">storage_reserve</span><span class="p">,</span>
+        <span class="n">dynamic_reserve_coeff</span><span class="o">=</span><span class="n">dynamic_reserve_coeff</span><span class="p">,</span>
+        <span class="n">marginal_for_startup_rank</span><span class="o">=</span><span class="n">marginal_for_startup_rank</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<span class="nd">@njit</span><span class="p">(</span><span class="n">error_model</span><span class="o">=</span><span class="s2">&quot;numpy&quot;</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="viewcode-block" id="choose_best_coefficient">
+<a class="viewcode-back" href="../../autoapi/dispatch/engine/index.html#dispatch.engine.choose_best_coefficient">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">choose_best_coefficient</span><span class="p">(</span><span class="n">comparison</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Select the optimal combination of deficit and curtailment.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        comparison:</span>
+
+<span class="sd">    Returns: index of the optimal case</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">mins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">comparison</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">mins</span><span class="p">[</span><span class="n">DEFICIT_IDX</span><span class="p">]</span> <span class="o">==</span> <span class="n">mins</span><span class="p">[</span><span class="n">CURTAILMENT_IDX</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">mins</span><span class="p">[</span><span class="n">DEFICIT_IDX</span><span class="p">]</span>
+    <span class="n">comparison</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">((</span><span class="n">comparison</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">comparison</span><span class="p">))))</span>
+    <span class="n">ok_deficit</span> <span class="o">=</span> <span class="n">comparison</span><span class="p">[</span><span class="n">comparison</span><span class="p">[:,</span> <span class="n">DEFICIT_IDX</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mf">1e-4</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ok_deficit</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">ok_deficit</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">ok_deficit</span><span class="p">[:,</span> <span class="n">CURTAILMENT_IDX</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="mi">4</span><span class="p">])</span>
+    <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">comparison</span><span class="p">[:,</span> <span class="n">DEFICIT_IDX</span><span class="p">]))</span></div>
+
+
+
+<span class="nd">@njit</span><span class="p">(</span><span class="n">error_model</span><span class="o">=</span><span class="s2">&quot;numpy&quot;</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="viewcode-block" id="dispatch_engine">
+<a class="viewcode-back" href="../../autoapi/dispatch/engine/index.html#dispatch.engine.dispatch_engine">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">dispatch_engine</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
+    <span class="n">net_load</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">hr_to_cost_idx</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">historical_dispatch</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">dispatchable_ramp_mw</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">dispatchable_startup_cost</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">dispatchable_marginal_cost</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">dispatchable_min_uptime</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">storage_mw</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">storage_charge_mw</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">storage_hrs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">storage_charge_eff</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">storage_discharge_eff</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">storage_op_hour</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">storage_dc_charge</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">storage_reserve</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">dynamic_reserve_coeff</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">marginal_for_startup_rank</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>  <span class="c1"># noqa: FBT001</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Dispatch engine that can be compiled with :func:`numba.jit`.</span>
+
+<span class="sd">    For each hour...</span>
+
+<span class="sd">    1.  first iterate through operating generators</span>
+<span class="sd">    2.  then charge/discharge storage</span>
+<span class="sd">    3.  if there is still a deficit, iterate through non-operating generators</span>
+<span class="sd">        and turn them on if required</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        net_load: net load, as in net of RE generation, negative net load means</span>
+<span class="sd">            excess renewables</span>
+<span class="sd">        hr_to_cost_idx: an array that contains for each hour, the index of the correct</span>
+<span class="sd">            column in ``dispatchable_marginal_cost`` that contains cost data for that</span>
+<span class="sd">            hour</span>
+<span class="sd">        historical_dispatch: historic generator dispatch, acts as an hourly upper</span>
+<span class="sd">            constraint on this dispatch</span>
+<span class="sd">        dispatchable_ramp_mw: max one hour ramp in MW</span>
+<span class="sd">        dispatchable_startup_cost: startup cost in $ for each dispatchable generator</span>
+<span class="sd">        dispatchable_marginal_cost: annual marginal cost for each dispatchable</span>
+<span class="sd">            generator in $/MWh rows are generators and columns are years</span>
+<span class="sd">        dispatchable_min_uptime: minimum hrs a generator must operate before its</span>
+<span class="sd">            output can be reduced</span>
+<span class="sd">        storage_mw: max discharge rate for storage in MW</span>
+<span class="sd">        storage_charge_mw: max charge rate for storage in MW</span>
+<span class="sd">        storage_hrs: duration of storage</span>
+<span class="sd">        storage_charge_eff: storage charge efficiency</span>
+<span class="sd">        storage_discharge_eff: storage discharge efficiency</span>
+<span class="sd">        storage_op_hour: first hour in which storage is available, i.e. the index of</span>
+<span class="sd">            the operating date</span>
+<span class="sd">        storage_dc_charge: an array whose columns match each storage facility, and a</span>
+<span class="sd">            row for each hour representing how much energy would be curtailed at an</span>
+<span class="sd">            attached renewable facility because it exceeds the system&#39;s inverter. This</span>
+<span class="sd">            then represents how much the storage in an RE+Storage facility could be</span>
+<span class="sd">            charged by otherwise curtailed energy when ilr&gt;1.</span>
+<span class="sd">        storage_reserve: portion of a storage facility&#39;s SOC that will be held in</span>
+<span class="sd">            reserve until after dispatchable resource startup.</span>
+<span class="sd">        dynamic_reserve_coeff: coefficient passed to</span>
+<span class="sd">            :func:`dispatch.engine.dynamic_reserve` to use in exponential function.</span>
+<span class="sd">        marginal_for_startup_rank: if True, rather than using</span>
+<span class="sd">            ``dispatchable_startup_cost`` to order generators for startup, use marginal</span>
+<span class="sd">            cost rank</span>
+
+
+<span class="sd">    Returns:</span>
+<span class="sd">        -   **redispatch** (:class:`numpy.ndarray`) - new hourly dispatch</span>
+<span class="sd">        -   **storage** (:class:`numpy.ndarray`) - hourly charge, discharge, and state</span>
+<span class="sd">            of charge data</span>
+<span class="sd">        -   **system_level** (:class:`numpy.ndarray`) - hourly deficit, dirty charge,</span>
+<span class="sd">            and total curtailment data</span>
+<span class="sd">        -   **starts** (:class:`numpy.ndarray`) - count of starts for each generator in</span>
+<span class="sd">            each year</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">storage_soc_max</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">storage_mw</span> <span class="o">*</span> <span class="n">storage_hrs</span>
+
+    <span class="n">marginal_ranks</span><span class="p">,</span> <span class="n">start_ranks</span> <span class="o">=</span> <span class="n">make_rank_arrays</span><span class="p">(</span>
+        <span class="n">dispatchable_marginal_cost</span><span class="p">,</span> <span class="n">dispatchable_startup_cost</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">marginal_for_startup_rank</span><span class="p">:</span>
+        <span class="n">start_ranks</span> <span class="o">=</span> <span class="n">marginal_ranks</span>
+
+    <span class="c1"># create an array to keep track of re-dispatch</span>
+    <span class="n">redispatch</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">historical_dispatch</span><span class="p">)</span>
+    <span class="c1"># array to keep track of starts by year</span>
+    <span class="n">starts</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">marginal_ranks</span><span class="p">)</span>
+    <span class="c1"># array to keep track of hourly storage data. rows are hours, columns</span>
+    <span class="c1"># (0) charge, (1) discharge, (2) state of charge, (3) grid charge</span>
+    <span class="n">storage</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">net_load</span><span class="p">),</span> <span class="mi">4</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">storage_mw</span><span class="p">)))</span>
+    <span class="c1"># array to keep track of system level data (0) deficits, (1) dirty charge,</span>
+    <span class="c1"># (2) curtailment, (3) adjustment to deficit</span>
+    <span class="n">system_level</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">net_load</span><span class="p">),</span> <span class="mi">4</span><span class="p">))</span>
+    <span class="c1"># internal dispatch data we need to track; (0) current run operating_hours</span>
+    <span class="c1"># (1) whether we touched the generator in the first round of dispatch</span>
+    <span class="n">operating_data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">dispatchable_marginal_cost</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span>
+    <span class="p">)</span>
+
+    <span class="c1"># to avoid having to do the first hour differently, we just assume original</span>
+    <span class="c1"># dispatch in that hour and then skip it</span>
+    <span class="n">redispatch</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">historical_dispatch</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="c1"># need to set operating_hours to 1 for generators that we are starting</span>
+    <span class="c1"># off as operating</span>
+    <span class="n">operating_data</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">historical_dispatch</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># the big loop where we iterate through all the hours</span>
+    <span class="k">for</span> <span class="n">hr</span><span class="p">,</span> <span class="p">(</span><span class="n">deficit</span><span class="p">,</span> <span class="n">yr</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">net_load</span><span class="p">,</span> <span class="n">hr_to_cost_idx</span><span class="p">)):</span>
+        <span class="c1"># storage reserves are dynamic so we need to determine the current hour&#39;s</span>
+        <span class="c1"># reserve to use throughout</span>
+        <span class="n">storage_reserve_</span> <span class="o">=</span> <span class="n">dynamic_reserve</span><span class="p">(</span>
+            <span class="n">hr</span><span class="o">=</span><span class="n">hr</span><span class="p">,</span>
+            <span class="n">reserve</span><span class="o">=</span><span class="n">storage_reserve</span><span class="p">,</span>
+            <span class="n">net_load</span><span class="o">=</span><span class="n">net_load</span><span class="p">,</span>
+            <span class="n">coeff</span><span class="o">=</span><span class="n">dynamic_reserve_coeff</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># because of the look-backs, the first hour has to be done differently</span>
+        <span class="c1"># here we just skip it because its only one hour and we assume</span>
+        <span class="c1"># historical fossil dispatch</span>
+        <span class="k">if</span> <span class="n">hr</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># if there is excess RE we charge the battery in the first hour</span>
+            <span class="k">if</span> <span class="n">deficit</span> <span class="o">&lt;</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">storage_dc_charge</span><span class="p">[</span><span class="n">hr</span><span class="p">,</span> <span class="p">:]</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">storage_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">storage</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]):</span>
+                    <span class="c1"># skip the `es_i` storage resource if it is not yet in operation</span>
+                    <span class="k">if</span> <span class="n">storage_op_hour</span><span class="p">[</span><span class="n">storage_idx</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">hr</span><span class="p">:</span>
+                        <span class="k">continue</span>
+
+                    <span class="n">storage</span><span class="p">[</span><span class="n">hr</span><span class="p">,</span> <span class="p">:,</span> <span class="n">storage_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">charge_storage</span><span class="p">(</span>
+                        <span class="n">deficit</span><span class="o">=</span><span class="n">deficit</span><span class="p">,</span>
+                        <span class="c1"># previous state_of_charge</span>
+                        <span class="n">state_of_charge</span><span class="o">=</span><span class="n">storage_soc_max</span><span class="p">[</span><span class="n">storage_idx</span><span class="p">]</span>
+                        <span class="o">*</span> <span class="n">storage_reserve_</span><span class="p">[</span><span class="n">storage_idx</span><span class="p">],</span>
+                        <span class="n">dc_charge</span><span class="o">=</span><span class="n">storage_dc_charge</span><span class="p">[</span><span class="n">hr</span><span class="p">,</span> <span class="n">storage_idx</span><span class="p">],</span>
+                        <span class="n">mw</span><span class="o">=</span><span class="n">storage_charge_mw</span><span class="p">[</span><span class="n">storage_idx</span><span class="p">],</span>
+                        <span class="n">max_state_of_charge</span><span class="o">=</span><span class="n">storage_soc_max</span><span class="p">[</span><span class="n">storage_idx</span><span class="p">],</span>
+                        <span class="n">eff</span><span class="o">=</span><span class="n">storage_charge_eff</span><span class="p">[</span><span class="n">storage_idx</span><span class="p">],</span>
+                    <span class="p">)</span>
+
+                    <span class="c1"># update the deficit if we are grid charging</span>
+                    <span class="k">if</span> <span class="n">deficit</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
+                        <span class="n">deficit</span> <span class="o">+=</span> <span class="n">storage</span><span class="p">[</span><span class="n">hr</span><span class="p">,</span> <span class="n">GRIDCHARGE_IDX</span><span class="p">,</span> <span class="n">storage_idx</span><span class="p">]</span>
+            <span class="k">continue</span>
+
+        <span class="n">deficit_adjustment</span> <span class="o">=</span> <span class="n">adjust_for_storage_reserve</span><span class="p">(</span>
+            <span class="n">state_of_charge</span><span class="o">=</span><span class="n">storage</span><span class="p">[</span><span class="n">hr</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">SOC_IDX</span><span class="p">,</span> <span class="p">:],</span>
+            <span class="n">mw</span><span class="o">=</span><span class="n">storage_mw</span><span class="p">,</span>
+            <span class="n">reserve</span><span class="o">=</span><span class="n">storage_reserve_</span><span class="p">,</span>
+            <span class="c1"># only want to adjust the provisional deficit for storage that is</span>
+            <span class="c1"># operating</span>
+            <span class="n">max_state_of_charge</span><span class="o">=</span><span class="n">storage_soc_max</span> <span class="o">*</span> <span class="p">(</span><span class="n">hr</span> <span class="o">&gt;=</span> <span class="n">storage_op_hour</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">system_level</span><span class="p">[</span><span class="n">hr</span><span class="p">,</span> <span class="n">ADJUSTMENT_IDX</span><span class="p">]</span> <span class="o">=</span> <span class="n">deficit_adjustment</span>
+        <span class="n">provisional_deficit</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+            <span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">deficit</span> <span class="o">+</span> <span class="n">deficit_adjustment</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># new hour so reset where we keep track if we&#39;ve touched a generator for</span>
+        <span class="c1"># this hour</span>
+        <span class="n">operating_data</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># read whole numpy rows because numpy uses row-major ordering, this is</span>
+        <span class="c1"># potentially bad or useless intuition-based optimization</span>
+        <span class="n">historical_hr_dispatch</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">historical_dispatch</span><span class="p">[</span><span class="n">hr</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">previous_hr_redispatch</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">redispatch</span><span class="p">[</span><span class="n">hr</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
+
+        <span class="c1"># dispatch generators in the order of their marginal cost for year yr</span>
+        <span class="k">for</span> <span class="n">generator_idx</span> <span class="ow">in</span> <span class="n">marginal_ranks</span><span class="p">[:,</span> <span class="n">yr</span><span class="p">]:</span>
+            <span class="n">operating_hours</span> <span class="o">=</span> <span class="n">operating_data</span><span class="p">[</span><span class="n">generator_idx</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="c1"># we are only dealing with generators already operating here</span>
+            <span class="k">if</span> <span class="n">operating_hours</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">generator_output</span> <span class="o">=</span> <span class="n">calculate_generator_output</span><span class="p">(</span>
+                <span class="n">desired_mw</span><span class="o">=</span><span class="n">provisional_deficit</span><span class="p">,</span>
+                <span class="n">max_mw</span><span class="o">=</span><span class="n">historical_hr_dispatch</span><span class="p">[</span><span class="n">generator_idx</span><span class="p">],</span>
+                <span class="n">previous_mw</span><span class="o">=</span><span class="n">previous_hr_redispatch</span><span class="p">[</span><span class="n">generator_idx</span><span class="p">],</span>
+                <span class="n">ramp_mw</span><span class="o">=</span><span class="n">dispatchable_ramp_mw</span><span class="p">[</span><span class="n">generator_idx</span><span class="p">],</span>
+                <span class="n">current_uptime</span><span class="o">=</span><span class="n">operating_hours</span><span class="p">,</span>
+                <span class="n">min_uptime</span><span class="o">=</span><span class="n">dispatchable_min_uptime</span><span class="p">[</span><span class="n">generator_idx</span><span class="p">],</span>
+            <span class="p">)</span>
+            <span class="n">redispatch</span><span class="p">[</span><span class="n">hr</span><span class="p">,</span> <span class="n">generator_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">generator_output</span>
+            <span class="c1"># update operating hours and mark that we took care of this generator</span>
+            <span class="n">operating_data</span><span class="p">[</span><span class="n">generator_idx</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="p">(</span><span class="n">operating_hours</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">generator_output</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="k">else</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="mi">1</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="c1"># keep a running total of remaining deficit, having this value be negative</span>
+            <span class="c1"># just makes the loop code more complicated, if it actually should be</span>
+            <span class="c1"># negative we capture that when we calculate the true deficit based</span>
+            <span class="c1"># on redispatch below</span>
+            <span class="n">provisional_deficit</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">provisional_deficit</span> <span class="o">-</span> <span class="n">generator_output</span><span class="p">)</span>
+
+        <span class="c1"># calculate the true deficit as the hour&#39;s net load less actual dispatch</span>
+        <span class="c1"># of fossil generators in hr that were also operating in hr - 1</span>
+        <span class="n">deficit</span> <span class="o">-=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">redispatch</span><span class="p">[</span><span class="n">hr</span><span class="p">,</span> <span class="p">:])</span>
+
+        <span class="c1"># negative deficit means excess generation, so we charge the battery</span>
+        <span class="c1"># if there is DC-coupled storage, we also charge that storage if there is</span>
+        <span class="c1"># RE generation that would otherwise be curtailed</span>
+        <span class="k">if</span> <span class="n">deficit</span> <span class="o">&lt;</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">storage_dc_charge</span><span class="p">[</span><span class="n">hr</span><span class="p">,</span> <span class="p">:]</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">storage_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">storage</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]):</span>
+                <span class="c1"># skip the `es_i` storage resource if it is not yet in operation</span>
+                <span class="k">if</span> <span class="n">storage_op_hour</span><span class="p">[</span><span class="n">storage_idx</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">hr</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="n">storage</span><span class="p">[</span><span class="n">hr</span><span class="p">,</span> <span class="p">:,</span> <span class="n">storage_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">charge_storage</span><span class="p">(</span>
+                    <span class="n">deficit</span><span class="o">=</span><span class="n">deficit</span><span class="p">,</span>
+                    <span class="n">state_of_charge</span><span class="o">=</span><span class="n">storage</span><span class="p">[</span>
+                        <span class="n">hr</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">SOC_IDX</span><span class="p">,</span> <span class="n">storage_idx</span>
+                    <span class="p">],</span>  <span class="c1"># previous state_of_charge</span>
+                    <span class="n">dc_charge</span><span class="o">=</span><span class="n">storage_dc_charge</span><span class="p">[</span><span class="n">hr</span><span class="p">,</span> <span class="n">storage_idx</span><span class="p">],</span>
+                    <span class="n">mw</span><span class="o">=</span><span class="n">storage_charge_mw</span><span class="p">[</span><span class="n">storage_idx</span><span class="p">],</span>
+                    <span class="n">max_state_of_charge</span><span class="o">=</span><span class="n">storage_soc_max</span><span class="p">[</span><span class="n">storage_idx</span><span class="p">],</span>
+                    <span class="n">eff</span><span class="o">=</span><span class="n">storage_charge_eff</span><span class="p">[</span><span class="n">storage_idx</span><span class="p">],</span>
+                <span class="p">)</span>
+                <span class="c1"># alias grid_charge</span>
+                <span class="n">grid_charge</span> <span class="o">=</span> <span class="n">storage</span><span class="p">[</span><span class="n">hr</span><span class="p">,</span> <span class="n">GRIDCHARGE_IDX</span><span class="p">,</span> <span class="n">storage_idx</span><span class="p">]</span>
+                <span class="c1"># calculate the amount of charging that was dirty</span>
+                <span class="c1"># TODO check that this calculation is actually correct</span>
+                <span class="n">system_level</span><span class="p">[</span><span class="n">hr</span><span class="p">,</span> <span class="n">DIRTY_IDX</span><span class="p">]</span> <span class="o">+=</span> <span class="nb">min</span><span class="p">(</span>
+                    <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">grid_charge</span> <span class="o">-</span> <span class="n">net_load</span><span class="p">[</span><span class="n">hr</span><span class="p">]</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">grid_charge</span>
+                <span class="p">)</span>
+                <span class="c1"># if we are charging from the grid, need to update the deficit</span>
+                <span class="k">if</span> <span class="n">deficit</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
+                    <span class="n">deficit</span> <span class="o">+=</span> <span class="n">grid_charge</span>
+            <span class="c1"># store the amount of total curtailment</span>
+            <span class="c1"># TODO check that this calculation is actually correct</span>
+
+        <span class="c1"># this &#39;continue&#39; and storing of the deficit needs an extra check because</span>
+        <span class="c1"># sometimes we charge storage direct from DC-coupled RE even when there</span>
+        <span class="c1"># is a positive deficit</span>
+        <span class="k">if</span> <span class="n">deficit</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="c1"># store excess generation (-deficit) as curtailment</span>
+            <span class="n">system_level</span><span class="p">[</span><span class="n">hr</span><span class="p">,</span> <span class="n">CURTAILMENT_IDX</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">deficit</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># discharge batteries, the amount is the lesser of state of charge,</span>
+        <span class="c1"># deficit, and the max MW of the battery, we have to either charge</span>
+        <span class="c1"># or discharge every hour whether there is a deficit or not to propagate</span>
+        <span class="c1"># state of charge forward</span>
+        <span class="k">for</span> <span class="n">storage_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">storage</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]):</span>
+            <span class="c1"># skip the `storage_idx` storage resource if it is not yet in operation or</span>
+            <span class="c1"># there was excess generation from a DC-coupled RE facility</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">storage_op_hour</span><span class="p">[</span><span class="n">storage_idx</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">hr</span>
+                <span class="ow">or</span> <span class="n">storage_dc_charge</span><span class="p">[</span><span class="n">hr</span><span class="p">,</span> <span class="n">storage_idx</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.0</span>
+            <span class="p">):</span>
+                <span class="c1"># if we got here because of DC-coupled charging, we still need to</span>
+                <span class="c1"># propagate forward state_of_charge</span>
+                <span class="n">storage</span><span class="p">[</span><span class="n">hr</span><span class="p">,</span> <span class="n">SOC_IDX</span><span class="p">,</span> <span class="n">storage_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">storage</span><span class="p">[</span>
+                    <span class="n">hr</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">SOC_IDX</span><span class="p">,</span> <span class="n">storage_idx</span>
+                <span class="p">]</span>
+                <span class="k">continue</span>
+            <span class="n">discharge</span> <span class="o">=</span> <span class="n">discharge_storage</span><span class="p">(</span>
+                <span class="n">desired_mw</span><span class="o">=</span><span class="n">deficit</span><span class="p">,</span>
+                <span class="n">state_of_charge</span><span class="o">=</span><span class="n">storage</span><span class="p">[</span><span class="n">hr</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">SOC_IDX</span><span class="p">,</span> <span class="n">storage_idx</span><span class="p">],</span>
+                <span class="n">mw</span><span class="o">=</span><span class="n">storage_mw</span><span class="p">[</span><span class="n">storage_idx</span><span class="p">],</span>
+                <span class="n">max_state_of_charge</span><span class="o">=</span><span class="n">storage_soc_max</span><span class="p">[</span><span class="n">storage_idx</span><span class="p">],</span>
+                <span class="n">reserve</span><span class="o">=</span><span class="n">storage_reserve_</span><span class="p">[</span><span class="n">storage_idx</span><span class="p">],</span>
+                <span class="n">eff</span><span class="o">=</span><span class="n">storage_discharge_eff</span><span class="p">[</span><span class="n">storage_idx</span><span class="p">],</span>
+            <span class="p">)</span>
+            <span class="n">storage</span><span class="p">[</span><span class="n">hr</span><span class="p">,</span> <span class="n">DISCHARGE_IDX</span><span class="p">,</span> <span class="n">storage_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">discharge</span>
+            <span class="c1"># with discharge efficiency taken into account, we can encounter floating</span>
+            <span class="c1"># point errors that cause discharge to be a tiny bit larger than soc</span>
+            <span class="n">storage</span><span class="p">[</span><span class="n">hr</span><span class="p">,</span> <span class="n">SOC_IDX</span><span class="p">,</span> <span class="n">storage_idx</span><span class="p">]</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+                <span class="mf">0.0</span><span class="p">,</span>
+                <span class="n">storage</span><span class="p">[</span><span class="n">hr</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">SOC_IDX</span><span class="p">,</span> <span class="n">storage_idx</span><span class="p">]</span>
+                <span class="o">-</span> <span class="n">discharge</span> <span class="o">/</span> <span class="n">storage_discharge_eff</span><span class="p">[</span><span class="n">storage_idx</span><span class="p">],</span>
+            <span class="p">)</span>
+            <span class="n">deficit</span> <span class="o">-=</span> <span class="n">discharge</span>
+
+        <span class="c1"># once we&#39;ve dealt with operating generators and storage, if there is no</span>
+        <span class="c1"># positive deficit we can skip startups and go on to the next hour</span>
+        <span class="k">if</span> <span class="n">deficit</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># we also need to make sure that the deficit is not negative, if it is,</span>
+        <span class="c1"># something has gone wrong</span>
+        <span class="k">assert</span> <span class="n">deficit</span> <span class="o">&gt;=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;negative deficit after discharge, this shouldn&#39;t happen&quot;</span>
+
+        <span class="c1"># TODO check that this start_ranks ordering system is working properly</span>
+        <span class="k">for</span> <span class="n">generator_idx</span> <span class="ow">in</span> <span class="n">start_ranks</span><span class="p">[:,</span> <span class="n">yr</span><span class="p">]:</span>
+            <span class="c1"># we are only dealing with generators not already operating here</span>
+            <span class="k">if</span> <span class="n">operating_data</span><span class="p">[</span><span class="n">generator_idx</span><span class="p">,</span> <span class="mi">1</span><span class="p">]:</span>
+                <span class="k">continue</span>
+            <span class="n">ramp_mw</span> <span class="o">=</span> <span class="n">dispatchable_ramp_mw</span><span class="p">[</span><span class="n">generator_idx</span><span class="p">]</span>
+
+            <span class="c1"># a fossil generator&#39;s output during an hour is the lesser of the deficit,</span>
+            <span class="c1"># the generator&#39;s historical output, and the generator&#39;s re-dispatch output</span>
+            <span class="c1"># in the previous hour + the generator&#39;s one hour max ramp</span>
+            <span class="k">assert</span> <span class="n">previous_hr_redispatch</span><span class="p">[</span><span class="n">generator_idx</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;&quot;</span>
+            <span class="n">generator_output</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span>
+                <span class="n">deficit</span><span class="p">,</span> <span class="n">historical_hr_dispatch</span><span class="p">[</span><span class="n">generator_idx</span><span class="p">],</span> <span class="n">ramp_mw</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">generator_output</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+                <span class="n">operating_data</span><span class="p">[</span><span class="n">generator_idx</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="n">starts</span><span class="p">[</span><span class="n">generator_idx</span><span class="p">,</span> <span class="n">yr</span><span class="p">]</span> <span class="o">=</span> <span class="n">starts</span><span class="p">[</span><span class="n">generator_idx</span><span class="p">,</span> <span class="n">yr</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+                <span class="n">redispatch</span><span class="p">[</span><span class="n">hr</span><span class="p">,</span> <span class="n">generator_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">generator_output</span>
+                <span class="n">deficit</span> <span class="o">-=</span> <span class="n">generator_output</span>
+
+                <span class="k">if</span> <span class="n">deficit</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+                    <span class="k">break</span>
+
+        <span class="k">if</span> <span class="n">deficit</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># discharge batteries again but with no reserve</span>
+        <span class="k">for</span> <span class="n">storage_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">storage</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]):</span>
+            <span class="c1"># skip the `storage_idx` storage resource if it is not yet in operation</span>
+            <span class="k">if</span> <span class="n">storage_op_hour</span><span class="p">[</span><span class="n">storage_idx</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">hr</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">discharge</span> <span class="o">=</span> <span class="n">discharge_storage</span><span class="p">(</span>
+                <span class="n">desired_mw</span><span class="o">=</span><span class="n">deficit</span><span class="p">,</span>
+                <span class="c1"># may have already used the battery this hour so use the current hour</span>
+                <span class="c1"># state of charge</span>
+                <span class="n">state_of_charge</span><span class="o">=</span><span class="n">storage</span><span class="p">[</span><span class="n">hr</span><span class="p">,</span> <span class="n">SOC_IDX</span><span class="p">,</span> <span class="n">storage_idx</span><span class="p">],</span>
+                <span class="c1"># already used some of the battery&#39;s MW this hour</span>
+                <span class="n">mw</span><span class="o">=</span><span class="n">storage_mw</span><span class="p">[</span><span class="n">storage_idx</span><span class="p">]</span> <span class="o">-</span> <span class="n">storage</span><span class="p">[</span><span class="n">hr</span><span class="p">,</span> <span class="n">DISCHARGE_IDX</span><span class="p">,</span> <span class="n">storage_idx</span><span class="p">],</span>
+                <span class="n">max_state_of_charge</span><span class="o">=</span><span class="n">storage_soc_max</span><span class="p">[</span><span class="n">storage_idx</span><span class="p">],</span>
+                <span class="n">reserve</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                <span class="n">eff</span><span class="o">=</span><span class="n">storage_discharge_eff</span><span class="p">[</span><span class="n">storage_idx</span><span class="p">],</span>
+            <span class="p">)</span>
+            <span class="n">storage</span><span class="p">[</span><span class="n">hr</span><span class="p">,</span> <span class="n">DISCHARGE_IDX</span><span class="p">,</span> <span class="n">storage_idx</span><span class="p">]</span> <span class="o">+=</span> <span class="n">discharge</span>
+            <span class="c1"># with discharge efficiency taken into account, we can encounter floating</span>
+            <span class="c1"># point errors that cause discharge to be a tiny bit larger than soc</span>
+            <span class="n">storage</span><span class="p">[</span><span class="n">hr</span><span class="p">,</span> <span class="n">SOC_IDX</span><span class="p">,</span> <span class="n">storage_idx</span><span class="p">]</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+                <span class="mf">0.0</span><span class="p">,</span>
+                <span class="n">storage</span><span class="p">[</span><span class="n">hr</span><span class="p">,</span> <span class="n">SOC_IDX</span><span class="p">,</span> <span class="n">storage_idx</span><span class="p">]</span>
+                <span class="o">-</span> <span class="n">discharge</span> <span class="o">/</span> <span class="n">storage_discharge_eff</span><span class="p">[</span><span class="n">storage_idx</span><span class="p">],</span>
+            <span class="p">)</span>
+            <span class="n">deficit</span> <span class="o">-=</span> <span class="n">discharge</span>
+
+            <span class="k">if</span> <span class="n">deficit</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+                <span class="k">break</span>
+
+        <span class="k">if</span> <span class="n">deficit</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># if we end up here that means we never got the deficit to zero, we want</span>
+        <span class="c1"># to keep track of that</span>
+        <span class="n">system_level</span><span class="p">[</span><span class="n">hr</span><span class="p">,</span> <span class="n">DEFICIT_IDX</span><span class="p">]</span> <span class="o">=</span> <span class="n">deficit</span>
+
+    <span class="c1"># assert not np.any(</span>
+    <span class="c1">#     storage[storage[:, 1, 0] &gt; np.roll(storage[:, 2, 0], 1)]</span>
+    <span class="c1"># ), &quot;discharge exceeded previous state of charge in at least 1 hour for es0&quot;</span>
+    <span class="c1"># assert not np.any(</span>
+    <span class="c1">#     storage[storage[:, 1, 1] &gt; np.roll(storage[:, 2, 1], 1)]</span>
+    <span class="c1"># ), &quot;discharge exceeded previous state of charge in at least 1 hour for es1&quot;</span>
+    <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">redispatch</span> <span class="o">&lt;=</span> <span class="n">historical_dispatch</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="mf">1e-4</span><span class="p">)),</span> <span class="p">(</span>
+        <span class="s2">&quot;redispatch exceeded historical dispatch in at least 1 hour&quot;</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">storage_dc_charge</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">storage</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">==</span> <span class="n">storage</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">,</span> <span class="p">:]),</span> <span class="p">(</span>
+            <span class="s2">&quot;charge != gridcharge when storage_dc_charge is all 0.0&quot;</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># if not np.all(storage[:, 0, :] &gt;= storage[:, 3, :]):</span>
+        <span class="c1">#     raise AssertionError(</span>
+        <span class="c1">#     &quot;gridcharge exceeded charge for at least one storage facility/hour&quot;</span>
+        <span class="c1"># )</span>
+        <span class="n">compare</span><span class="p">(</span>
+            <span class="n">storage</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:],</span>
+            <span class="n">storage</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">,</span> <span class="p">:],</span>
+            <span class="s2">&quot;gridcharge exceeded charge for at least one storage facility/hour&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">es_i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">storage</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]):</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span>
+            <span class="n">storage</span><span class="p">[</span>
+                <span class="n">storage</span><span class="p">[:,</span> <span class="n">DISCHARGE_IDX</span><span class="p">,</span> <span class="n">es_i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">storage</span><span class="p">[:,</span> <span class="n">SOC_IDX</span><span class="p">,</span> <span class="n">es_i</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="p">]</span>
+        <span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">es_i</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span>
+                <span class="s2">&quot;discharge exceeded previous state of charge in at least 1 hour for above storage number&quot;</span>
+            <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">redispatch</span><span class="p">,</span> <span class="n">storage</span><span class="p">,</span> <span class="n">system_level</span><span class="p">,</span> <span class="n">starts</span></div>
+
+
+
+<span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="viewcode-block" id="compare">
+<a class="viewcode-back" href="../../autoapi/dispatch/engine/index.html#dispatch.engine.compare">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">compare</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Check that all entries in a are &gt;= to the corresponding value in b.&quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">a</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">b</span><span class="o">.</span><span class="n">shape</span>
+    <span class="k">for</span> <span class="n">a_</span><span class="p">,</span> <span class="n">b_</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">a_</span><span class="p">,</span> <span class="n">b_</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">a_</span> <span class="o">&gt;=</span> <span class="n">b_</span><span class="p">)):</span>
+            <span class="k">continue</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+
+
+
+<span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="viewcode-block" id="dynamic_reserve">
+<a class="viewcode-back" href="../../autoapi/dispatch/engine/index.html#dispatch.engine.dynamic_reserve">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">dynamic_reserve</span><span class="p">(</span>
+    <span class="n">hr</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">reserve</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">net_load</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">coeff</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Adjust storage reserve based on 24hr net load.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        hr: hour index</span>
+<span class="sd">        reserve: storage reserve defaults</span>
+<span class="sd">        net_load: net load profile</span>
+<span class="sd">        coeff: coefficient in exponential</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">       :label: reserve</span>
+
+<span class="sd">          ramp &amp;= \frac{max(load_{h+1}, ..., load_{h+24})}{load_h} - 1</span>
+
+<span class="sd">          reserve &amp;= 1 - e^{-coeff \times ramp}</span>
+
+<span class="sd">    Returns: adjusted reserves</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">projected</span> <span class="o">=</span> <span class="n">net_load</span><span class="p">[</span><span class="n">hr</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:</span> <span class="n">hr</span> <span class="o">+</span> <span class="mi">24</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">projected</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">reserve</span>
+    <span class="k">if</span> <span class="n">net_load</span><span class="p">[</span><span class="n">hr</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># equivalent to shifting up the whole profile by the max, muting the %</span>
+        <span class="c1"># change relative to shifting by the average, median, etc.</span>
+        <span class="n">projected_increase</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">projected</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">projected_increase</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">projected</span><span class="p">)</span> <span class="o">/</span> <span class="n">net_load</span><span class="p">[</span><span class="n">hr</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="n">reserve</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">coeff</span> <span class="o">*</span> <span class="n">projected_increase</span><span class="p">),</span> <span class="mi">2</span><span class="p">),</span> <span class="n">reserve</span>
+    <span class="p">)</span></div>
+
+
+
+<span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="viewcode-block" id="adjust_for_storage_reserve">
+<a class="viewcode-back" href="../../autoapi/dispatch/engine/index.html#dispatch.engine.adjust_for_storage_reserve">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">adjust_for_storage_reserve</span><span class="p">(</span>
+    <span class="n">state_of_charge</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">mw</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">reserve</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">max_state_of_charge</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Adjustment to deficit to restore or use storage reserve.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        state_of_charge: state of charge before charging/discharging</span>
+<span class="sd">        mw: storage power capacity</span>
+<span class="sd">        reserve: target filling to this reserve level or allow discharging to</span>
+<span class="sd">            2x this level</span>
+<span class="sd">        max_state_of_charge: storage energy capacity</span>
+
+<span class="sd">    Returns: amount by which provisional deficit must be adjusted to use or replace</span>
+<span class="sd">        storage reserve</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># if we are below reserve we actually want to increase the provisional</span>
+    <span class="c1"># deficit to restore the reserve</span>
+    <span class="n">under_reserve</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span>
+        <span class="n">state_of_charge</span> <span class="o">-</span> <span class="n">reserve</span> <span class="o">*</span> <span class="n">max_state_of_charge</span><span class="p">,</span>
+        <span class="mf">0.0</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">augment_deficit</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">under_reserve</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">under_reserve</span><span class="p">,</span> <span class="o">-</span><span class="n">mw</span><span class="p">),</span> <span class="mf">0.0</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">augment_deficit</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="o">-</span><span class="n">augment_deficit</span>
+
+    <span class="c1"># reserve cannot exceed one</span>
+    <span class="n">_reserve</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">reserve</span><span class="p">)</span>
+    <span class="c1"># but if we don&#39;t need to restore the reserve, we want to check if we have</span>
+    <span class="c1"># excess reserve and adjust down the provisional deficit</span>
+    <span class="k">return</span> <span class="o">-</span><span class="nb">sum</span><span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span>
+            <span class="n">mw</span><span class="p">,</span>
+            <span class="c1"># keep SOC above 2x typical reserve</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+                <span class="n">state_of_charge</span> <span class="o">-</span> <span class="n">_reserve</span> <span class="o">*</span> <span class="n">max_state_of_charge</span><span class="p">,</span>
+                <span class="mf">0.0</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+    <span class="p">)</span></div>
+
+
+
+<span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="viewcode-block" id="discharge_storage">
+<a class="viewcode-back" href="../../autoapi/dispatch/engine/index.html#dispatch.engine.discharge_storage">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">discharge_storage</span><span class="p">(</span>
+    <span class="n">desired_mw</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">state_of_charge</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">mw</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">max_state_of_charge</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">reserve</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">eff</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculations for discharging storage.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        desired_mw: amount of power we want from storage</span>
+<span class="sd">        state_of_charge: state of charge before charging</span>
+<span class="sd">        mw: storage power capacity</span>
+<span class="sd">        max_state_of_charge: storage energy capacity</span>
+<span class="sd">        reserve: prevent discharge below this portion of ``max_state_of_charge``</span>
+<span class="sd">        eff: discharge efficiency of storage</span>
+
+<span class="sd">    Returns: amount of storage discharge</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span>
+        <span class="n">desired_mw</span><span class="p">,</span>
+        <span class="n">mw</span><span class="p">,</span>
+        <span class="c1"># prevent discharge below reserve (or full SOC if reserve is 0.0)</span>
+        <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">state_of_charge</span> <span class="o">-</span> <span class="n">max_state_of_charge</span> <span class="o">*</span> <span class="n">reserve</span><span class="p">)</span> <span class="o">*</span> <span class="n">eff</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">out</span> <span class="o">/</span> <span class="n">eff</span> <span class="o">&gt;</span> <span class="n">state_of_charge</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">out</span> <span class="o">/</span> <span class="n">eff</span><span class="p">,</span> <span class="n">state_of_charge</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;discharge / eff &gt; state of charge&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">out</span></div>
+
+
+
+<span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="viewcode-block" id="calculate_generator_output">
+<a class="viewcode-back" href="../../autoapi/dispatch/engine/index.html#dispatch.engine.calculate_generator_output">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">calculate_generator_output</span><span class="p">(</span>
+    <span class="n">desired_mw</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">max_mw</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">previous_mw</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">ramp_mw</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">current_uptime</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">min_uptime</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Determine period output for a generator.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        desired_mw: desired generator output</span>
+<span class="sd">        max_mw: maximum output of generator this period</span>
+<span class="sd">        previous_mw: generator output in the previous period</span>
+<span class="sd">        ramp_mw: maximum one-period change in generator output in MW, up or down</span>
+<span class="sd">        current_uptime: as of the end of the previous period, for how many periods</span>
+<span class="sd">            has the generator been operating</span>
+<span class="sd">        min_uptime: the minimum duration the generator must operate before its</span>
+<span class="sd">            output is reduced</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        output of the generator for given period</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">current_uptime</span> <span class="o">&gt;=</span> <span class="n">min_uptime</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">min</span><span class="p">(</span>
+            <span class="c1"># we limit output to historical as a transmission</span>
+            <span class="c1"># and operating constraint proxy</span>
+            <span class="n">max_mw</span><span class="p">,</span>
+            <span class="c1"># maximum output subject to ramping constraints</span>
+            <span class="n">previous_mw</span> <span class="o">+</span> <span class="n">ramp_mw</span><span class="p">,</span>
+            <span class="c1"># max of desired output and minimum output subject to ramping constraints</span>
+            <span class="nb">max</span><span class="p">(</span><span class="n">desired_mw</span><span class="p">,</span> <span class="n">previous_mw</span> <span class="o">-</span> <span class="n">ramp_mw</span><span class="p">),</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="nb">min</span><span class="p">(</span>
+        <span class="c1"># we limit output to historical as a transmission</span>
+        <span class="c1"># and operating constraint proxy</span>
+        <span class="n">max_mw</span><span class="p">,</span>
+        <span class="c1"># maximum output subject to ramping constraints</span>
+        <span class="n">previous_mw</span> <span class="o">+</span> <span class="n">ramp_mw</span><span class="p">,</span>
+        <span class="c1"># max of desired output and previous because we cannot ramp down yet</span>
+        <span class="nb">max</span><span class="p">(</span><span class="n">desired_mw</span><span class="p">,</span> <span class="n">previous_mw</span><span class="p">),</span>
+    <span class="p">)</span></div>
+
+
+
+<span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="viewcode-block" id="make_rank_arrays">
+<a class="viewcode-back" href="../../autoapi/dispatch/engine/index.html#dispatch.engine.make_rank_arrays">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">make_rank_arrays</span><span class="p">(</span>
+    <span class="n">marginal_cost</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">startup_cost</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Turn cost arrays into rank arrays.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        marginal_cost: array of marginal costs</span>
+<span class="sd">        startup_cost: array of startup cost</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        -   **marginal_ranks** (:class:`numpy.ndarray`) - marginal rank array</span>
+<span class="sd">        -   **start_ranks** (:class:`numpy.ndarray`) - start rank array</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># create an array to determine the marginal cost dispatch order for each year</span>
+    <span class="c1"># the values in each column represent the canonical indexes for each resource</span>
+    <span class="c1"># and they are in the order of increasing marginal cost for that year (column)</span>
+    <span class="n">marginal_ranks</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span>
+        <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">marginal_cost</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="n">marginal_cost</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">marginal_cost</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="n">marginal_ranks</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">marginal_ranks</span><span class="p">[</span><span class="n">marginal_ranks</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">argsort</span><span class="p">()][:,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">marginal_ranks</span> <span class="o">=</span> <span class="n">marginal_ranks</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="c1"># create an array to determine the startup cost order for each year</span>
+    <span class="c1"># the values in each column represent the canonical indexes for each resource</span>
+    <span class="c1"># and they are in the order of increasing startup cost for that year (column)</span>
+    <span class="n">start_ranks</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span>
+        <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">startup_cost</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="n">startup_cost</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">startup_cost</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="n">start_ranks</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">start_ranks</span><span class="p">[</span><span class="n">start_ranks</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">argsort</span><span class="p">()][:,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">start_ranks</span> <span class="o">=</span> <span class="n">start_ranks</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">marginal_ranks</span><span class="p">,</span> <span class="n">start_ranks</span></div>
+
+
+
+<span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="viewcode-block" id="charge_storage">
+<a class="viewcode-back" href="../../autoapi/dispatch/engine/index.html#dispatch.engine.charge_storage">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">charge_storage</span><span class="p">(</span>
+    <span class="n">deficit</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">state_of_charge</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">dc_charge</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">mw</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">max_state_of_charge</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">eff</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculations for charging storage.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        deficit: amount of charging possible from the grid</span>
+<span class="sd">        state_of_charge: state of charge before charging</span>
+<span class="sd">        dc_charge: power available from DC-coupled RE</span>
+<span class="sd">        mw: storage power capacity</span>
+<span class="sd">        max_state_of_charge: storage energy capacity</span>
+<span class="sd">        eff: round-trip efficiency of storage</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A tuple with the same organization of columns of internal ``storage`` in</span>
+<span class="sd">        :func:`.dispatch_engine`.</span>
+
+<span class="sd">        -   **charge** (:class:`float`) - total charge in the hour</span>
+<span class="sd">        -   **discharge** (:class:`float`) - always 0.0, a placeholder</span>
+<span class="sd">        -   **soc** (:class:`float`) - tate of charge after charging</span>
+<span class="sd">        -   **grid_charge** (:class:`float`) -  portion of ``charge`` that came from</span>
+<span class="sd">            the grid</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># because we can now end up in this loop when deficit is positive,</span>
+    <span class="c1"># we need to prevent that positive deficit from mucking up our</span>
+    <span class="c1"># calculations</span>
+    <span class="n">_grid_charge</span> <span class="o">=</span> <span class="o">-</span><span class="n">deficit</span> <span class="k">if</span> <span class="n">deficit</span> <span class="o">&lt;</span> <span class="mf">0.0</span> <span class="k">else</span> <span class="mf">0.0</span>
+    <span class="n">charge</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span>
+        <span class="c1"># _grid_charge represents grid charging,</span>
+        <span class="c1"># dc_charge represents charging from a DC-coupled  RE facility</span>
+        <span class="n">_grid_charge</span> <span class="o">+</span> <span class="n">dc_charge</span><span class="p">,</span>
+        <span class="n">mw</span><span class="p">,</span>
+        <span class="c1"># calculate the amount of charging, to account for battery capacity, we</span>
+        <span class="c1"># make sure that `charge` would not put `state_of_charge` over</span>
+        <span class="c1"># `max_state_of_charge`</span>
+        <span class="p">(</span><span class="n">max_state_of_charge</span> <span class="o">-</span> <span class="n">state_of_charge</span><span class="p">)</span> <span class="o">/</span> <span class="n">eff</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="c1"># we charge from DC-coupled RE before charging from the grid</span>
+    <span class="n">grid_charge</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">charge</span> <span class="o">-</span> <span class="n">dc_charge</span><span class="p">)</span>
+    <span class="c1"># calculate new `state_of_charge` and check that it makes sense</span>
+    <span class="n">state_of_charge</span> <span class="o">=</span> <span class="n">state_of_charge</span> <span class="o">+</span> <span class="n">charge</span> <span class="o">*</span> <span class="n">eff</span>
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">state_of_charge</span><span class="p">,</span> <span class="n">max_state_of_charge</span><span class="p">)</span>
+        <span class="ow">and</span> <span class="n">state_of_charge</span> <span class="o">&gt;</span> <span class="n">max_state_of_charge</span>
+    <span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">&quot;state_of_charge &gt; max_state_of_charge&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">charge</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">state_of_charge</span><span class="p">,</span> <span class="n">grid_charge</span></div>
+
+
+
+<span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="viewcode-block" id="validate_inputs">
+<a class="viewcode-back" href="../../autoapi/dispatch/engine/index.html#dispatch.engine.validate_inputs">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">validate_inputs</span><span class="p">(</span>
+    <span class="n">net_load</span><span class="p">,</span>
+    <span class="n">hr_to_cost_idx</span><span class="p">,</span>
+    <span class="n">historical_dispatch</span><span class="p">,</span>
+    <span class="n">ramp_mw</span><span class="p">,</span>
+    <span class="n">startup_cost</span><span class="p">,</span>
+    <span class="n">marginal_cost</span><span class="p">,</span>
+    <span class="n">storage_mw</span><span class="p">,</span>
+    <span class="n">storage_charge_mw</span><span class="p">,</span>
+    <span class="n">storage_hrs</span><span class="p">,</span>
+    <span class="n">storage_charge_eff</span><span class="p">,</span>
+    <span class="n">storage_discharge_eff</span><span class="p">,</span>
+    <span class="n">storage_dc_charge</span><span class="p">,</span>
+    <span class="n">storage_reserve</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Validate shape of inputs.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span>
+        <span class="nb">len</span><span class="p">(</span><span class="n">storage_mw</span><span class="p">)</span>
+        <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">storage_charge_mw</span><span class="p">)</span>
+        <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">storage_hrs</span><span class="p">)</span>
+        <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">storage_charge_eff</span><span class="p">)</span>
+        <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">storage_discharge_eff</span><span class="p">)</span>
+        <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">storage_reserve</span><span class="p">)</span>
+        <span class="o">==</span> <span class="n">storage_dc_charge</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">&quot;storage data does not match&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span>
+        <span class="n">ramp_mw</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="o">==</span> <span class="n">startup_cost</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="o">==</span> <span class="n">marginal_cost</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="o">==</span> <span class="n">historical_dispatch</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">&quot;shapes of dispatchable generator data do not match&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span>
+        <span class="nb">len</span><span class="p">(</span><span class="n">net_load</span><span class="p">)</span>
+        <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">hr_to_cost_idx</span><span class="p">)</span>
+        <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">historical_dispatch</span><span class="p">)</span>
+        <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">storage_dc_charge</span><span class="p">)</span>
+    <span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">&quot;profile lengths do not match&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span>
+        <span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">hr_to_cost_idx</span><span class="p">))</span>
+        <span class="o">==</span> <span class="n">marginal_cost</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="o">==</span> <span class="n">startup_cost</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span>
+            <span class="s2">&quot;# of unique values in `hr_to_cost_idx` does not match # of columns &quot;</span>
+            <span class="s2">&quot;in `dispatchable_marginal_cost` and `dispatchable_startup_cost`&quot;</span>
+        <span class="p">)</span></div>
+
+</pre></div>
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, RMI, CC-BY-4.0
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              <a class="muted-link " href="https://github.com/rmi/dispatch" aria-label="GitHub">
+            <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+            </svg>
+        </a>
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
+  </div>
+</div><script src="../../_static/documentation_options.js?v=ba5251a8"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
+    </body>
+</html>

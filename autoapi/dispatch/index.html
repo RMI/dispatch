@@ -1,0 +1,1270 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="dispatch.engine" href="engine/index.html"><link rel="prev" title="API Reference" href="../index.html">
+        <link rel="prefetch" href="../../_static/Small_PNG-RMI_logo_PrimaryUse.PNG" as="image">
+        <link rel="prefetch" href="../../_static/Small_PNG-RMI_logo_PrimaryUse_White_Horizontal.PNG" as="image">
+
+    <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
+        <title>dispatch - Dispatch 0.6 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=b1990d62" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../index.html"><div class="brand">Dispatch 0.6 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../../_static/Small_PNG-RMI_logo_PrimaryUse.PNG" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../../_static/Small_PNG-RMI_logo_PrimaryUse_White_Horizontal.PNG" alt="Dark Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">Dispatch 0.6 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../approach.html">Approach</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release_notes.html">Release Notes</a></li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../index.html">API Reference</a><input aria-label="Toggle navigation of API Reference" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2 current has-children current-page"><a class="current reference internal" href="#">dispatch</a><input aria-label="Toggle navigation of dispatch" checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="engine/index.html">dispatch.engine</a></li>
+<li class="toctree-l3"><a class="reference internal" href="helpers/index.html">dispatch.helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="metadata/index.html">dispatch.metadata</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model/index.html">dispatch.model</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../LICENSE.html">Licensing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../code_of_conduct.html">Code of Conduct</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/rmi/dispatch/blob/main/docs/autoapi/dispatch/index.rst?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/rmi/dispatch/edit/main/docs/autoapi/dispatch/index.rst" rel="edit" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="module-dispatch">
+<span id="dispatch"></span><h1>dispatch<a class="headerlink" href="#module-dispatch" title="Link to this heading">¶</a></h1>
+<p>RMI’s electricity dispatch model.</p>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="engine/index.html">dispatch.engine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="helpers/index.html">dispatch.helpers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="metadata/index.html">dispatch.metadata</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model/index.html">dispatch.model</a></li>
+</ul>
+</div>
+</section>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dispatch.DispatchModel" title="dispatch.DispatchModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DispatchModel</span></code></a></p></td>
+<td><p>Class to contain the core dispatch model functionality.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dispatch.apply_op_ret_date" title="dispatch.apply_op_ret_date"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_op_ret_date</span></code></a>(profiles, operating_date, ...[, ...])</p></td>
+<td><p>Renamed to <a class="reference internal" href="#dispatch.zero_profiles_outside_operating_dates" title="dispatch.zero_profiles_outside_operating_dates"><code class="xref py py-func docutils literal notranslate"><span class="pre">zero_profiles_outside_operating_dates()</span></code></a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#dispatch.copy_profile" title="dispatch.copy_profile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">copy_profile</span></code></a>(profiles, years)</p></td>
+<td><p>Create multiple 'years' of hourly profile data.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dispatch.zero_profiles_outside_operating_dates" title="dispatch.zero_profiles_outside_operating_dates"><code class="xref py py-obj docutils literal notranslate"><span class="pre">zero_profiles_outside_operating_dates</span></code></a>(profiles, ...[, ...])</p></td>
+<td><p>Zero profile unless it is between operating and retirement date.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="package-contents">
+<h2>Package Contents<a class="headerlink" href="#package-contents" title="Link to this heading">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="dispatch.apply_op_ret_date">
+<span class="sig-prename descclassname"><span class="pre">dispatch.</span></span><span class="sig-name descname"><span class="pre">apply_op_ret_date</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">profiles</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">operating_date</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">retirement_date</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">capacity_mw</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dispatch/helpers.html#apply_op_ret_date"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dispatch.apply_op_ret_date" title="Link to this definition">¶</a></dt>
+<dd><p>Renamed to <a class="reference internal" href="#dispatch.zero_profiles_outside_operating_dates" title="dispatch.zero_profiles_outside_operating_dates"><code class="xref py py-func docutils literal notranslate"><span class="pre">zero_profiles_outside_operating_dates()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>profiles</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)"><em>pandas.DataFrame</em></a>)</p></li>
+<li><p><strong>operating_date</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html#pandas.Series" title="(in pandas v3.0.0)"><em>pandas.Series</em></a>)</p></li>
+<li><p><strong>retirement_date</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html#pandas.Series" title="(in pandas v3.0.0)"><em>pandas.Series</em></a>)</p></li>
+<li><p><strong>capacity_mw</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html#pandas.Series" title="(in pandas v3.0.0)"><em>pandas.Series</em></a><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)">pandas.DataFrame</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="dispatch.copy_profile">
+<span class="sig-prename descclassname"><span class="pre">dispatch.</span></span><span class="sig-name descname"><span class="pre">copy_profile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">profiles</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">years</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dispatch/helpers.html#copy_profile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dispatch.copy_profile" title="Link to this definition">¶</a></dt>
+<dd><p>Create multiple ‘years’ of hourly profile data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>profiles</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)"><em>pandas.DataFrame</em></a><em> | </em><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html#pandas.Series" title="(in pandas v3.0.0)"><em>pandas.Series</em></a>) – the profile to make copies of</p></li>
+<li><p><strong>years</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#range" title="(in Python v3.14)"><em>range</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><em>tuple</em></a>) – the years, each of which will be a copy
+of <code class="docutils literal notranslate"><span class="pre">profile</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Copied profiles.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)">pandas.DataFrame</a> | <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html#pandas.Series" title="(in pandas v3.0.0)">pandas.Series</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="dispatch.zero_profiles_outside_operating_dates">
+<span class="sig-prename descclassname"><span class="pre">dispatch.</span></span><span class="sig-name descname"><span class="pre">zero_profiles_outside_operating_dates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">profiles</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">operating_date</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">retirement_date</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">capacity_mw</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dispatch/helpers.html#zero_profiles_outside_operating_dates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dispatch.zero_profiles_outside_operating_dates" title="Link to this definition">¶</a></dt>
+<dd><p>Zero profile unless it is between operating and retirement date.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>profiles</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)"><em>pandas.DataFrame</em></a>) – profiles of plants with a DatetimeIndex</p></li>
+<li><p><strong>operating_date</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html#pandas.Series" title="(in pandas v3.0.0)"><em>pandas.Series</em></a>) – in service date for each plant, the index of operating date is
+used throughout</p></li>
+<li><p><strong>retirement_date</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html#pandas.Series" title="(in pandas v3.0.0)"><em>pandas.Series</em></a>) – retirement date for each plant</p></li>
+<li><p><strong>capacity_mw</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html#pandas.Series" title="(in pandas v3.0.0)"><em>pandas.Series</em></a><em> | </em><em>None</em>) – capacity of each plant (only used when <code class="docutils literal notranslate"><span class="pre">profiles</span></code> are
+normalized)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Profiles reflecting operating and retirement dates.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)">pandas.DataFrame</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="dispatch.DispatchModel">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dispatch.</span></span><span class="sig-name descname"><span class="pre">DispatchModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">load_profile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispatchable_specs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispatchable_profiles</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispatchable_cost</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">storage_specs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">re_profiles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">re_plant_specs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dispatch/model.html#DispatchModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dispatch.DispatchModel" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://rmi.github.io/etoolbox/autoapi/etoolbox/datazip/index.html#etoolbox.datazip.IOMixin" title="(in eToolBox v0.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">etoolbox.datazip.IOMixin</span></code></a></p>
+<p>Class to contain the core dispatch model functionality.</p>
+<ul class="simple">
+<li><p>allow the core dispatch model to accept data set up for different uses</p></li>
+<li><p>provide a nicer API on top of <a class="reference internal" href="engine/index.html#dispatch.engine.dispatch_engine" title="dispatch.engine.dispatch_engine"><code class="xref py py-func docutils literal notranslate"><span class="pre">dispatch_engine()</span></code></a> that accepts
+<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/index.html#module-pandas" title="(in pandas v3.0.0)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pandas</span></code></a> objects</p></li>
+<li><p>methods for common analysis of dispatch results</p></li>
+</ul>
+<p>Initialize DispatchModel.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>load_profile</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html#pandas.Series" title="(in pandas v3.0.0)"><em>pandas.Series</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>]</em>) – load profile that resources will be dispatched against. If
+<code class="docutils literal notranslate"><span class="pre">re_profiles</span></code> and <code class="docutils literal notranslate"><span class="pre">re_plant_specs</span></code> are not provided, this should
+be a net load profile. If they are provided, this <em>must</em> be a gross
+profile, or at least, gross of those RE resources.</p></li>
+<li><p><strong>dispatchable_specs</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)"><em>pandas.DataFrame</em></a>) – <p>rows are dispatchable generators, columns must include:</p>
+<ul>
+<li><p>capacity_mw: generator nameplate/operating capacity</p></li>
+<li><p>ramp_rate: max 1-hr increase in output, in MW</p></li>
+<li><p>operating_date: the date the plant entered or will enter service</p></li>
+<li><p>retirement_date: the date the plant will retire</p></li>
+<li><p>min_uptime: (Optional) the minimum number of hours the generator
+must be on before its output can be reduced.</p></li>
+<li><p>exclude: (Optional) True means the generator will NOT be
+redispatched. Its historical data will be preserved and redispatch
+data will be zero.</p></li>
+<li><p>no_limit: (Optional) True means the generator will not have the
+hourly maximum from <code class="docutils literal notranslate"><span class="pre">dispatchable_profiles</span></code> enforced, instead the
+max of historical and capacity_mw will be used. This allows the
+removal of the cap without affecting historical metrics.</p></li>
+</ul>
+<p>The index must be a <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.MultiIndex.html#pandas.MultiIndex" title="(in pandas v3.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.MultiIndex</span></code></a> of
+<code class="docutils literal notranslate"><span class="pre">['plant_id_eia',</span> <span class="pre">'generator_id']</span></code>.</p>
+</p></li>
+<li><p><strong>dispatchable_profiles</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)"><em>pandas.DataFrame</em></a>) – set the maximum output of each generator in
+each hour.</p></li>
+<li><p><strong>dispatchable_cost</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)"><em>pandas.DataFrame</em></a>) – <p>cost metrics for each dispatchable generator in
+each period must be tidy with <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.MultiIndex.html#pandas.MultiIndex" title="(in pandas v3.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.MultiIndex</span></code></a> of
+<code class="docutils literal notranslate"><span class="pre">['plant_id_eia',</span> <span class="pre">'generator_id',</span> <span class="pre">'datetime']</span></code>, data can be annual
+or monthly, columns must include:</p>
+<ul>
+<li><p>vom_per_mwh: variable O&amp;M (USD/MWh)</p></li>
+<li><p>fuel_per_mwh: fuel cost (USD/MWh)</p></li>
+<li><p>fom_per_kw: fixed O&amp;M (USD/kW)</p></li>
+<li><p>start_per_kw: generator startup cost (USD/kW)</p></li>
+<li><p>total_var_mwh: (Optional) total variable cost (USD/MWh), if not
+provided it will be calculates as  vom_per_mwh + fuel_per_mwh.
+If it is provided, this value will be used to determine marginal
+cost rank but will not be used to calculate operating costs.
+This allows for a kludgy kind of must-run or uneconomic dispatch.</p></li>
+<li><p>heat_rate: (Optional) (mmbtu/MWh)</p></li>
+<li><p>co2_factor: (Optional) (X/mmbtu) X should be tonnes or short
+tonnes.</p></li>
+</ul>
+</p></li>
+<li><p><strong>storage_specs</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)"><em>pandas.DataFrame</em></a><em> | </em><em>None</em>) – <p>rows are storage facilities, for RE+Storage facilities,
+the <code class="docutils literal notranslate"><span class="pre">plant_id_eia</span></code> for the storage component must match the
+<code class="docutils literal notranslate"><span class="pre">plant_id_eia</span></code> for the RE component in <code class="docutils literal notranslate"><span class="pre">re_profiles</span></code> and
+<code class="docutils literal notranslate"><span class="pre">re_plant_specs</span></code>. Columns must include:</p>
+<ul>
+<li><p>capacity_mw: max charge/discharge capacity in MW.</p></li>
+<li><p>duration_hrs: storage duration in hours.</p></li>
+<li><p>roundtrip_eff: roundtrip efficiency.</p></li>
+<li><p>operating_date: datetime unit starts operating.</p></li>
+<li><p>reserve: [Optional] % of state of charge to hold in reserve until
+after dispatchable startup. If this is not provided or the reserve
+is 0.0, the reserve will be set dynamically each hour looking
+out 24 hours.</p></li>
+<li><p>charge_mw: [Optional] a peak charge rate that is different than
+<code class="docutils literal notranslate"><span class="pre">capacity_mw</span></code>, which remains the discharge rate. If not provided,
+this will be set to equal <code class="docutils literal notranslate"><span class="pre">capacity_mw</span></code>.</p></li>
+<li><p>charge_eff: [Optional] when not provided, assumed to be the square
+root of roundtrip_eff</p></li>
+<li><p>discharge_eff: [Optional] when not provided, assumed to be the
+square root of roundtrip_eff</p></li>
+</ul>
+<p>The index must be a <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.MultiIndex.html#pandas.MultiIndex" title="(in pandas v3.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.MultiIndex</span></code></a> of
+<code class="docutils literal notranslate"><span class="pre">['plant_id_eia',</span> <span class="pre">'generator_id']</span></code>.</p>
+</p></li>
+<li><p><strong>re_profiles</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)"><em>pandas.DataFrame</em></a><em> | </em><em>None</em>) – normalized renewable profiles, these should be DC profiles,
+especially when they are part of RE+Storage resources, if they are
+AC profiles, make sure the ilr in <code class="docutils literal notranslate"><span class="pre">re_plant_specs</span></code> is 1.0.</p></li>
+<li><p><strong>re_plant_specs</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)"><em>pandas.DataFrame</em></a><em> | </em><em>None</em>) – <p>rows are renewable facilities, for RE+Storage facilities,
+the <code class="docutils literal notranslate"><span class="pre">plant_id_eia</span></code> for the RE component must match the
+<code class="docutils literal notranslate"><span class="pre">plant_id_eia</span></code> for the storage component in <code class="docutils literal notranslate"><span class="pre">storage_specs</span></code>.
+Columns must include:</p>
+<ul>
+<li><p>capacity_mw: AC capacity of the generator</p></li>
+<li><p>ilr: inverter loading ratio, if ilr != 1, the corresponding
+profile must be a DC profile.</p></li>
+<li><p>operating_date: datetime unit starts operating</p></li>
+<li><p>interconnect_mw: (Optional) the interconnect capacity of the
+renewable facility. By default, this is the same as <code class="docutils literal notranslate"><span class="pre">capacity_mw</span></code>
+but can be reduced to reflect facility-specific transmission /
+interconnection constraints. If the facility has storage, storage
+can be charged by the constrained excess.</p></li>
+<li><p>fom_per_kw: (Optional) fixed O&amp;M (USD/kW)</p></li>
+</ul>
+<p>The index must be a <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.MultiIndex.html#pandas.MultiIndex" title="(in pandas v3.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.MultiIndex</span></code></a> of
+<code class="docutils literal notranslate"><span class="pre">['plant_id_eia',</span> <span class="pre">'generator_id']</span></code>.</p>
+</p></li>
+<li><p><strong>jit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – if <code class="docutils literal notranslate"><span class="pre">True</span></code>, use numba to compile the dispatch engine, <code class="docutils literal notranslate"><span class="pre">False</span></code> is
+mostly for debugging</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – a name, only used in the <code class="docutils literal notranslate"><span class="pre">repr</span></code></p></li>
+<li><p><strong>config</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em> | </em><em>None</em>) – <p>a dict of changes to <code class="xref py py-attr docutils literal notranslate"><span class="pre">DispatchModel.default_config</span></code>, can
+include:</p>
+<ul>
+<li><p>dynamic_reserve_coeff: passed to
+<a class="reference internal" href="engine/index.html#dispatch.engine.dynamic_reserve" title="dispatch.engine.dynamic_reserve"><code class="xref py py-func docutils literal notranslate"><span class="pre">dispatch.engine.dynamic_reserve()</span></code></a> the default value is ‘auto’
+which then tries a number of values and selects the best using
+<a class="reference internal" href="engine/index.html#dispatch.engine.choose_best_coefficient" title="dispatch.engine.choose_best_coefficient"><code class="xref py py-func docutils literal notranslate"><span class="pre">dispatch.engine.choose_best_coefficient()</span></code></a>.</p></li>
+</ul>
+</p></li>
+</ul>
+</dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">pd</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">display</span><span class="o">.</span><span class="n">width</span> <span class="o">=</span> <span class="mi">1000</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pd</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">display</span><span class="o">.</span><span class="n">max_columns</span> <span class="o">=</span> <span class="mi">6</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pd</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">display</span><span class="o">.</span><span class="n">max_colwidth</span> <span class="o">=</span> <span class="mi">30</span>
+</pre></div>
+</div>
+<p class="rubric">Examples</p>
+<p><strong>Input Tables</strong></p>
+<p>The load profile that resources will be dispatched against.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">load_profile</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="mi">550</span>
+<span class="gp">... </span>    <span class="o">+</span> <span class="mi">40</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">8784</span><span class="p">)</span> <span class="o">/</span> <span class="mi">24</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">6</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span>
+<span class="gp">... </span>    <span class="o">+</span> <span class="mi">20</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">8784</span><span class="p">)</span> <span class="o">/</span> <span class="mi">12</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span>
+<span class="gp">... </span>    <span class="o">+</span> <span class="mi">250</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">8784</span><span class="p">)</span> <span class="o">/</span> <span class="mi">4392</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="o">+</span> <span class="mi">200</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">8784</span><span class="p">)</span> <span class="o">/</span> <span class="mi">8784</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">),</span>
+<span class="gp">... </span>    <span class="n">index</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span>
+<span class="gp">... </span>        <span class="s2">&quot;2020-01-01&quot;</span><span class="p">,</span> <span class="n">freq</span><span class="o">=</span><span class="s2">&quot;h&quot;</span><span class="p">,</span> <span class="n">periods</span><span class="o">=</span><span class="mi">8784</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;datetime&quot;</span>
+<span class="gp">... </span>    <span class="p">),</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">load_profile</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+<span class="go">datetime</span>
+<span class="go">2020-01-01 00:00:00    810.000000</span>
+<span class="go">2020-01-01 01:00:00    807.197508</span>
+<span class="go">2020-01-01 02:00:00    807.679083</span>
+<span class="go">2020-01-01 03:00:00    810.680563</span>
+<span class="go">2020-01-01 04:00:00    814.998363</span>
+<span class="go">Freq: h, dtype: float64</span>
+</pre></div>
+</div>
+<p>Core specification of dispatchable generators.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">dispatchable_specs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="p">{</span>
+<span class="gp">... </span>        <span class="s2">&quot;capacity_mw&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">350</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="mi">600</span><span class="p">],</span>
+<span class="gp">... </span>        <span class="s2">&quot;ramp_rate&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">350</span><span class="p">,</span> <span class="mi">250</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span>
+<span class="gp">... </span>        <span class="s2">&quot;technology_description&quot;</span><span class="p">:</span> <span class="p">[</span>
+<span class="gp">... </span>            <span class="s2">&quot;Natural Gas Fired Combustion Turbine&quot;</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="s2">&quot;Natural Gas Fired Combined Cycle&quot;</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="s2">&quot;Conventional Steam Coal&quot;</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="p">],</span>
+<span class="gp">... </span>    <span class="p">},</span>
+<span class="gp">... </span>    <span class="n">index</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_tuples</span><span class="p">(</span>
+<span class="gp">... </span>        <span class="p">[(</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;2&quot;</span><span class="p">),</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">)],</span>
+<span class="gp">... </span>        <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;plant_id_eia&quot;</span><span class="p">,</span> <span class="s2">&quot;generator_id&quot;</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="p">),</span>
+<span class="gp">... </span><span class="p">)</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">operating_date</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s2">&quot;2000-01-01&quot;</span><span class="p">),</span>
+<span class="gp">... </span>    <span class="n">retirement_date</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s2">&quot;2050-01-01&quot;</span><span class="p">),</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dispatchable_specs</span>
+<span class="go">                           capacity_mw  ramp_rate         technology_description operating_date retirement_date</span>
+<span class="go">plant_id_eia generator_id</span>
+<span class="go">1            1                     350        350  Natural Gas Fired Combusti...     2000-01-01      2050-01-01</span>
+<span class="go">             2                     500        250  Natural Gas Fired Combined...     2000-01-01      2050-01-01</span>
+<span class="go">2            1                     600        100        Conventional Steam Coal     2000-01-01      2050-01-01</span>
+</pre></div>
+</div>
+<p>Set the maximum output of each generator in each hour. In this case we set the
+maximum in every hour as the generator’s nameplate capacity.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">dispatchable_profiles</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">dispatchable_specs</span><span class="o">.</span><span class="n">capacity_mw</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(),</span> <span class="p">(</span><span class="mi">8784</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span>
+<span class="gp">... </span>    <span class="n">index</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span>
+<span class="gp">... </span>        <span class="s2">&quot;2020-01-01&quot;</span><span class="p">,</span> <span class="n">freq</span><span class="o">=</span><span class="s2">&quot;h&quot;</span><span class="p">,</span> <span class="n">periods</span><span class="o">=</span><span class="mi">8784</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;datetime&quot;</span>
+<span class="gp">... </span>    <span class="p">),</span>
+<span class="gp">... </span>    <span class="n">columns</span><span class="o">=</span><span class="n">dispatchable_specs</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dispatchable_profiles</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+<span class="go">plant_id_eia           1         2</span>
+<span class="go">generator_id           1    2    1</span>
+<span class="go">datetime</span>
+<span class="go">2020-01-01 00:00:00  350  500  600</span>
+<span class="go">2020-01-01 01:00:00  350  500  600</span>
+<span class="go">2020-01-01 02:00:00  350  500  600</span>
+<span class="go">2020-01-01 03:00:00  350  500  600</span>
+<span class="go">2020-01-01 04:00:00  350  500  600</span>
+</pre></div>
+</div>
+<p>Cost metrics for each dispatchable generator in each year.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">dispatchable_cost</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="p">{</span>
+<span class="gp">... </span>        <span class="s2">&quot;vom_per_mwh&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">15.0</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">],</span>
+<span class="gp">... </span>        <span class="s2">&quot;fuel_per_mwh&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">45.0</span><span class="p">,</span> <span class="mf">35.0</span><span class="p">,</span> <span class="mf">20.0</span><span class="p">],</span>
+<span class="gp">... </span>        <span class="s2">&quot;fom_per_kw&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">25</span><span class="p">],</span>
+<span class="gp">... </span>        <span class="s2">&quot;start_per_kw&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.005</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.03</span><span class="p">],</span>
+<span class="gp">... </span>        <span class="s2">&quot;heat_rate&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">10.0</span><span class="p">,</span> <span class="mf">6.5</span><span class="p">,</span> <span class="mf">9.5</span><span class="p">],</span>
+<span class="gp">... </span>        <span class="s2">&quot;co2_factor&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.05291</span><span class="p">,</span> <span class="mf">0.05291</span><span class="p">,</span> <span class="mf">0.09713</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="p">},</span>
+<span class="gp">... </span>    <span class="n">index</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_tuples</span><span class="p">(</span>
+<span class="gp">... </span>        <span class="p">[</span>
+<span class="gp">... </span>            <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s2">&quot;2020-01-01&quot;</span><span class="p">)),</span>
+<span class="gp">... </span>            <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;2&quot;</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s2">&quot;2020-01-01&quot;</span><span class="p">)),</span>
+<span class="gp">... </span>            <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s2">&quot;2020-01-01&quot;</span><span class="p">)),</span>
+<span class="gp">... </span>        <span class="p">],</span>
+<span class="gp">... </span>        <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;plant_id_eia&quot;</span><span class="p">,</span> <span class="s2">&quot;generator_id&quot;</span><span class="p">,</span> <span class="s2">&quot;datetime&quot;</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="p">),</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dispatchable_cost</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">levels</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">freq</span> <span class="o">=</span> <span class="s2">&quot;YS-JAN&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dispatchable_cost</span>
+<span class="go">                                      vom_per_mwh  fuel_per_mwh  fom_per_kw  start_per_kw  heat_rate  co2_factor</span>
+<span class="go">plant_id_eia generator_id datetime</span>
+<span class="go">1            1            2020-01-01         15.0          45.0           2         0.005       10.0     0.05291</span>
+<span class="go">             2            2020-01-01          5.0          35.0          15         0.010        6.5     0.05291</span>
+<span class="go">2            1            2020-01-01          2.0          20.0          25         0.030        9.5     0.09713</span>
+</pre></div>
+</div>
+<p>Specifications for storage facilities. For RE+Storage facilities, the
+<code class="docutils literal notranslate"><span class="pre">plant_id_eia</span></code> for the storage component must match the <code class="docutils literal notranslate"><span class="pre">plant_id_eia</span></code> for
+the RE component in <code class="docutils literal notranslate"><span class="pre">re_profiles</span></code> and <code class="docutils literal notranslate"><span class="pre">re_plant_specs</span></code>.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">storage_specs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="p">{</span>
+<span class="gp">... </span>        <span class="s2">&quot;capacity_mw&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">250</span><span class="p">,</span> <span class="mi">200</span><span class="p">],</span>
+<span class="gp">... </span>        <span class="s2">&quot;duration_hrs&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">12</span><span class="p">],</span>
+<span class="gp">... </span>        <span class="s2">&quot;roundtrip_eff&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.9</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span>
+<span class="gp">... </span>        <span class="s2">&quot;technology_description&quot;</span><span class="p">:</span> <span class="p">[</span>
+<span class="gp">... </span>            <span class="s2">&quot;Solar Photovoltaic with Energy Storage&quot;</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="s2">&quot;Batteries&quot;</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="p">],</span>
+<span class="gp">... </span>    <span class="p">},</span>
+<span class="gp">... </span>    <span class="n">index</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_tuples</span><span class="p">(</span>
+<span class="gp">... </span>        <span class="p">[(</span><span class="mi">5</span><span class="p">,</span> <span class="s2">&quot;es&quot;</span><span class="p">),</span> <span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">)],</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;plant_id_eia&quot;</span><span class="p">,</span> <span class="s2">&quot;generator_id&quot;</span><span class="p">]</span>
+<span class="gp">... </span>    <span class="p">),</span>
+<span class="gp">... </span><span class="p">)</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">operating_date</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s2">&quot;2000-01-01 00:00:00&quot;</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">storage_specs</span>
+<span class="go">                           capacity_mw  duration_hrs  roundtrip_eff         technology_description operating_date</span>
+<span class="go">plant_id_eia generator_id</span>
+<span class="go">5            es                    250             4            0.9  Solar Photovoltaic with En...     2000-01-01</span>
+<span class="go">7            1                     200            12            0.5                      Batteries     2000-01-01</span>
+</pre></div>
+</div>
+<p>Specifications for renewable facilities. Becasue <code class="docutils literal notranslate"><span class="pre">plant_id_eia</span></code> 5 shows up in both
+<code class="docutils literal notranslate"><span class="pre">storage_specs</span></code> and <code class="docutils literal notranslate"><span class="pre">re_plant_specs</span></code>, those resources will be DC-coupled.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">re_plant_specs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="p">{</span>
+<span class="gp">... </span>        <span class="s2">&quot;capacity_mw&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">500</span><span class="p">,</span> <span class="mi">500</span><span class="p">],</span>
+<span class="gp">... </span>        <span class="s2">&quot;ilr&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.3</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span>
+<span class="gp">... </span>        <span class="s2">&quot;technology_description&quot;</span><span class="p">:</span> <span class="p">[</span>
+<span class="gp">... </span>            <span class="s2">&quot;Solar Photovoltaic with Energy Storage&quot;</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="s2">&quot;Onshore Wind&quot;</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="p">],</span>
+<span class="gp">... </span>    <span class="p">},</span>
+<span class="gp">... </span>    <span class="n">index</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_tuples</span><span class="p">(</span>
+<span class="gp">... </span>        <span class="p">[(</span><span class="mi">5</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">),</span> <span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">)],</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;plant_id_eia&quot;</span><span class="p">,</span> <span class="s2">&quot;generator_id&quot;</span><span class="p">]</span>
+<span class="gp">... </span>    <span class="p">),</span>
+<span class="gp">... </span><span class="p">)</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">operating_date</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s2">&quot;2000-01-01&quot;</span><span class="p">),</span>
+<span class="gp">... </span>    <span class="n">retirement_date</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s2">&quot;2050-01-01&quot;</span><span class="p">),</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">re_plant_specs</span>
+<span class="go">                           capacity_mw  ilr         technology_description operating_date retirement_date</span>
+<span class="go">plant_id_eia generator_id</span>
+<span class="go">5            1                     500  1.3  Solar Photovoltaic with En...     2000-01-01      2050-01-01</span>
+<span class="go">6            1                     500  1.0                   Onshore Wind     2000-01-01      2050-01-01</span>
+</pre></div>
+</div>
+<p>Normalized renewable DC profiles.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">re_profiles</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span>
+<span class="gp">... </span>        <span class="p">(</span>
+<span class="gp">... </span>            <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">8784</span><span class="p">)</span> <span class="o">/</span> <span class="mi">24</span><span class="p">)</span> <span class="o">**</span> <span class="mi">8</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">8784</span><span class="p">)</span> <span class="o">/</span> <span class="mi">24</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="p">)</span>
+<span class="gp">... </span>    <span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">columns</span><span class="o">=</span><span class="n">re_plant_specs</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">index</span><span class="o">=</span><span class="n">load_profile</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">re_profiles</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+<span class="go">plant_id_eia           5     6</span>
+<span class="go">generator_id           1     1</span>
+<span class="go">datetime</span>
+<span class="go">2020-01-01 00:00:00  0.0  1.00</span>
+<span class="go">2020-01-01 01:00:00  0.0  0.98</span>
+<span class="go">2020-01-01 02:00:00  0.0  0.93</span>
+<span class="go">2020-01-01 03:00:00  0.0  0.85</span>
+<span class="go">2020-01-01 04:00:00  0.0  0.75</span>
+</pre></div>
+</div>
+<p><strong>Setting up the model</strong></p>
+<p>Create the <a class="reference internal" href="#dispatch.DispatchModel" title="dispatch.DispatchModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">DispatchModel</span></code></a> object:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">dm</span> <span class="o">=</span> <span class="n">DispatchModel</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">load_profile</span><span class="o">=</span><span class="n">load_profile</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">dispatchable_specs</span><span class="o">=</span><span class="n">dispatchable_specs</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">dispatchable_profiles</span><span class="o">=</span><span class="n">dispatchable_profiles</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">dispatchable_cost</span><span class="o">=</span><span class="n">dispatchable_cost</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">storage_specs</span><span class="o">=</span><span class="n">storage_specs</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">re_profiles</span><span class="o">=</span><span class="n">re_profiles</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">re_plant_specs</span><span class="o">=</span><span class="n">re_plant_specs</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;test&quot;</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Run the dispatch model, the model runs inplace but also returns itself for
+convenience.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">dm</span> <span class="o">=</span> <span class="n">dm</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Explore the results, starting with how much load could not be met.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">dm</span><span class="o">.</span><span class="n">lost_load</span><span class="p">()</span>
+<span class="go">(-0.001, 0.0001]    8784</span>
+<span class="go">(0.0001, 0.02]         0</span>
+<span class="go">(0.02, 0.05]           0</span>
+<span class="go">(0.05, 0.1]            0</span>
+<span class="go">(0.1, 0.15]            0</span>
+<span class="go">(0.15, 0.2]            0</span>
+<span class="go">(0.2, 0.3]             0</span>
+<span class="go">(0.3, 0.4]             0</span>
+<span class="go">(0.4, 0.5]             0</span>
+<span class="go">(0.5, 0.75]            0</span>
+<span class="go">(0.75, 1.0]            0</span>
+<span class="go">Name: count, dtype: int64</span>
+</pre></div>
+</div>
+<p>Generate a full, combined output of all resources at specified frequency.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">dm</span><span class="o">.</span><span class="n">full_output</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="s2">&quot;YS&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="go">                                      capacity_mw  historical_mwh  historical_mmbtu  ...  charge_eff  discharge_eff  reserve</span>
+<span class="go">plant_id_eia generator_id datetime                                                   ...</span>
+<span class="go">0            curtailment  2020-01-01          NaN             NaN               NaN  ...         NaN            NaN      NaN</span>
+<span class="go">             deficit      2020-01-01          NaN             NaN               NaN  ...         NaN            NaN      NaN</span>
+<span class="go">1            1            2020-01-01        350.0             0.0               0.0  ...         NaN            NaN      NaN</span>
+<span class="go">             2            2020-01-01        500.0             0.0               0.0  ...         NaN            NaN      NaN</span>
+<span class="go">2            1            2020-01-01        600.0             0.0               0.0  ...         NaN            NaN      NaN</span>
+<span class="go">5            1            2020-01-01        500.0             NaN               NaN  ...         NaN            NaN      NaN</span>
+<span class="go">             es           2020-01-01        250.0             NaN               NaN  ...         0.9            1.0      0.0</span>
+<span class="go">6            1            2020-01-01        500.0             NaN               NaN  ...         NaN            NaN      NaN</span>
+<span class="go">7            1            2020-01-01        200.0             NaN               NaN  ...         0.5            1.0      0.0</span>
+
+<span class="go">[9 rows x 37 columns]</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="dispatch.DispatchModel.re_and_net_load">
+<span class="sig-name descname"><span class="pre">re_and_net_load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">re_profiles</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dispatch/model.html#DispatchModel.re_and_net_load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dispatch.DispatchModel.re_and_net_load" title="Link to this definition">¶</a></dt>
+<dd><p>Create net_load_profile based on what RE data was provided.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dispatch.DispatchModel.dc_charge">
+<span class="sig-name descname"><span class="pre">dc_charge</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dispatch/model.html#DispatchModel.dc_charge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dispatch.DispatchModel.dc_charge" title="Link to this definition">¶</a></dt>
+<dd><p>Align excess_re to match the storage facilities it could charge.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dispatch.DispatchModel.__getattr__">
+<span class="sig-name descname"><span class="pre">__getattr__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dispatch/model.html#DispatchModel.__getattr__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dispatch.DispatchModel.__getattr__" title="Link to this definition">¶</a></dt>
+<dd><p>Get values from <code class="docutils literal notranslate"><span class="pre">self._metadata</span></code> as if they were properties.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dispatch.DispatchModel.set_metadata">
+<span class="sig-name descname"><span class="pre">set_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dispatch/model.html#DispatchModel.set_metadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dispatch.DispatchModel.set_metadata" title="Link to this definition">¶</a></dt>
+<dd><p>Set a value in metadata.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>value</strong> (<em>Any</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dispatch.DispatchModel.from_patio">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_patio</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dispatch/model.html#DispatchModel.from_patio"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dispatch.DispatchModel.from_patio" title="Link to this definition">¶</a></dt>
+<dd><p>Create <a class="reference internal" href="#dispatch.DispatchModel" title="dispatch.DispatchModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">DispatchModel</span></code></a> with data from patio.BAScenario.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#dispatch.DispatchModel" title="dispatch.DispatchModel">DispatchModel</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dispatch.DispatchModel.from_fresh">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_fresh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">net_load_profile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispatchable_specs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispatchable_cost</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">storage_specs</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">jit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dispatch/model.html#DispatchModel.from_fresh"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dispatch.DispatchModel.from_fresh" title="Link to this definition">¶</a></dt>
+<dd><p>Run dispatch without historical hourly operating constraints.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>net_load_profile</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html#pandas.Series" title="(in pandas v3.0.0)"><em>pandas.Series</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>]</em>)</p></li>
+<li><p><strong>dispatchable_specs</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)"><em>pandas.DataFrame</em></a>)</p></li>
+<li><p><strong>dispatchable_cost</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)"><em>pandas.DataFrame</em></a>)</p></li>
+<li><p><strong>storage_specs</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)"><em>pandas.DataFrame</em></a>)</p></li>
+<li><p><strong>jit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#dispatch.DispatchModel" title="dispatch.DispatchModel">DispatchModel</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="dispatch.DispatchModel.is_redispatch">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_redispatch</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></em><a class="headerlink" href="#dispatch.DispatchModel.is_redispatch" title="Link to this definition">¶</a></dt>
+<dd><p>Determine if this is a redispatch.</p>
+<p>True if this is redispatch, i.e. has meaningful historical dispatch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="dispatch.DispatchModel.historical_cost">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">historical_cost</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)"><span class="pre">pandas.DataFrame</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#dispatch.DispatchModel.historical_cost" title="Link to this definition">¶</a></dt>
+<dd><p>Total hourly historical cost by generator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)">pandas.DataFrame</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="dispatch.DispatchModel.historical_dispatch">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">historical_dispatch</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)"><span class="pre">pandas.DataFrame</span></a></em><a class="headerlink" href="#dispatch.DispatchModel.historical_dispatch" title="Link to this definition">¶</a></dt>
+<dd><p>Total hourly historical cost by generator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)">pandas.DataFrame</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="dispatch.DispatchModel.redispatch_cost">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">redispatch_cost</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)"><span class="pre">pandas.DataFrame</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#dispatch.DispatchModel.redispatch_cost" title="Link to this definition">¶</a></dt>
+<dd><p>Total hourly redispatch cost by generator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)">pandas.DataFrame</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dispatch.DispatchModel.__call__">
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dispatch/model.html#DispatchModel.__call__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dispatch.DispatchModel.__call__" title="Link to this definition">¶</a></dt>
+<dd><p>Run dispatch model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#dispatch.DispatchModel" title="dispatch.DispatchModel">DispatchModel</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dispatch.DispatchModel.redispatch_lambda">
+<span class="sig-name descname"><span class="pre">redispatch_lambda</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dispatch/model.html#DispatchModel.redispatch_lambda"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dispatch.DispatchModel.redispatch_lambda" title="Link to this definition">¶</a></dt>
+<dd><p>Return hourly marginal cost (aka system lambda) of redispatch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)">pandas.DataFrame</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dispatch.DispatchModel.historical_lambda">
+<span class="sig-name descname"><span class="pre">historical_lambda</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dispatch/model.html#DispatchModel.historical_lambda"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dispatch.DispatchModel.historical_lambda" title="Link to this definition">¶</a></dt>
+<dd><p>Return hourly marginal cost (aka system lambda) of historic dispatch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)">pandas.DataFrame</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dispatch.DispatchModel.grouper">
+<span class="sig-name descname"><span class="pre">grouper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'technology_description'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'YS'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dispatch/model.html#DispatchModel.grouper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dispatch.DispatchModel.grouper" title="Link to this definition">¶</a></dt>
+<dd><p>Aggregate a df of generator profiles.</p>
+<p>Columns are grouped using <cite>by</cite> column from
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">DispatchModel.dispatchable_specs</span></code> and <cite>freq</cite> determines
+the output time resolution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)"><em>pandas.DataFrame</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)"><em>pandas.DataFrame</em></a><em>]</em>) – dataframe to apply grouping to, if a dict of dataframes, does the
+grouping on each and then concatenates them together with keys as
+column name suffix</p></li>
+<li><p><strong>by</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><em>None</em>) – column from <code class="xref py py-attr docutils literal notranslate"><span class="pre">DispatchModel.dispatchable_specs</span></code> to use for
+grouping df columns, if None, no column grouping</p></li>
+<li><p><strong>freq</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – output time resolution</p></li>
+<li><p><strong>col_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><em>None</em>) – if specified, stack the output and use this as the column name,
+if <cite>df</cite> is a dict, each df is stacked and <cite>col_name</cite> if any is
+prepended to the key to form the column name.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)">pandas.DataFrame</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dispatch.DispatchModel.strict_grouper">
+<span class="sig-name descname"><span class="pre">strict_grouper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">by</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq_agg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'sum'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dispatch/model.html#DispatchModel.strict_grouper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dispatch.DispatchModel.strict_grouper" title="Link to this definition">¶</a></dt>
+<dd><p>Aggregate a df of generator profiles.</p>
+<p>Columns are grouped using <cite>by</cite> column from
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">DispatchModel.dispatchable_specs</span></code> and <cite>freq</cite> determines
+the output time resolution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)"><em>pandas.DataFrame</em></a>) – dataframe to apply grouping to</p></li>
+<li><p><strong>by</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><em>None</em>) – column from <code class="xref py py-attr docutils literal notranslate"><span class="pre">DispatchModel.dispatchable_specs</span></code> to use for
+grouping df columns, if None, no column grouping</p></li>
+<li><p><strong>freq</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – output time resolution</p></li>
+<li><p><strong>col_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><em>None</em>) – if specified, stack the output and use this as the column name</p></li>
+<li><p><strong>freq_agg</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – aggregation func to use in frequency groupby</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)">pandas.DataFrame</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dispatch.DispatchModel.lost_load">
+<span class="sig-name descname"><span class="pre">lost_load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">comparison</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dispatch/model.html#DispatchModel.lost_load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dispatch.DispatchModel.lost_load" title="Link to this definition">¶</a></dt>
+<dd><p>Value counts of deficit.</p>
+<p>Number of hours during which deficit was in various duration bins.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>comparison</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html#pandas.Series" title="(in pandas v3.0.0)"><em>pandas.Series</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>] </em><em>| </em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><em>numpy.ndarray</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> | </em><em>None</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html#pandas.Series" title="(in pandas v3.0.0)">pandas.Series</a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dispatch.DispatchModel.hrs_to_check">
+<span class="sig-name descname"><span class="pre">hrs_to_check</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'deficit'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comparison</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dispatch/model.html#DispatchModel.hrs_to_check"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dispatch.DispatchModel.hrs_to_check" title="Link to this definition">¶</a></dt>
+<dd><p>Hours from dispatch to look at more closely.</p>
+<p>Hours with positive deficits are ones where not all of net load was served we
+want to be able to easily check the two hours immediately before these positive
+deficit hours.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>kind</strong> (<em>Literal</em><em>[</em><em>'deficit'</em><em>, </em><em>'curtailment'</em><em>]</em>) – ‘curtailment’ or ‘deficit’</p></li>
+<li><p><strong>cutoff</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – if deficit / curtailment exceeds this proportion of
+<code class="docutils literal notranslate"><span class="pre">comparison</span></code>, include the hour</p></li>
+<li><p><strong>comparison</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html#pandas.Series" title="(in pandas v3.0.0)"><em>pandas.Series</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>] </em><em>| </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> | </em><em>None</em>) – default is annual peak load</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a>[<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v3.0.0)">pandas.Timestamp</a>]</p>
+</dd>
+</dl>
+<p>Returns: list of hours</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dispatch.DispatchModel.hourly_data_check">
+<span class="sig-name descname"><span class="pre">hourly_data_check</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'deficit'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dispatch/model.html#DispatchModel.hourly_data_check"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dispatch.DispatchModel.hourly_data_check" title="Link to this definition">¶</a></dt>
+<dd><p>Aggregate data for <a class="reference internal" href="#dispatch.DispatchModel.hrs_to_check" title="dispatch.DispatchModel.hrs_to_check"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.hrs_to_check()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>kind</strong> (<em>Literal</em><em>[</em><em>'deficit'</em><em>, </em><em>'curtailment'</em><em>]</em>) – ‘curtailment’ or ‘deficit’</p></li>
+<li><p><strong>cutoff</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – if deficit / curtailment exceeds this proportion of
+<code class="docutils literal notranslate"><span class="pre">comparison</span></code>, include the hour</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)">pandas.DataFrame</a></p>
+</dd>
+</dl>
+<p>Returns: context for hours preceding deficit or curtailment hours</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dispatch.DispatchModel.storage_capacity">
+<span class="sig-name descname"><span class="pre">storage_capacity</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dispatch/model.html#DispatchModel.storage_capacity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dispatch.DispatchModel.storage_capacity" title="Link to this definition">¶</a></dt>
+<dd><p>Value counts of charge and discharge.</p>
+<p>Number of hours when storage charge or discharge was in various bins.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)">pandas.DataFrame</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dispatch.DispatchModel.storage_durations">
+<span class="sig-name descname"><span class="pre">storage_durations</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dispatch/model.html#DispatchModel.storage_durations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dispatch.DispatchModel.storage_durations" title="Link to this definition">¶</a></dt>
+<dd><p>Value counts of state of charge hours.</p>
+<p>Number of hours during which state of charge was in various duration bins.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)">pandas.DataFrame</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dispatch.DispatchModel.system_level_summary">
+<span class="sig-name descname"><span class="pre">system_level_summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'YS'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">storage_rollup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dispatch/model.html#DispatchModel.system_level_summary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dispatch.DispatchModel.system_level_summary" title="Link to this definition">¶</a></dt>
+<dd><p>Create system and storage summary metrics.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>freq</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – temporal frequency to aggregate hourly data to.</p></li>
+<li><p><strong>storage_rollup</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em> | </em><em>None</em>) – as {group name: [id1, id2, …]} ids included here will
+be aggregated together according to the group names and will not be
+included in their own columns. Utilization metrics are not available.</p></li>
+<li><p><strong>**kwargs</strong></p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)">pandas.DataFrame</a></p>
+</dd>
+</dl>
+<p>Returns: summary of curtailment, deficit, storage and select metrics</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dispatch.DispatchModel.system_summary_core">
+<span class="sig-name descname"><span class="pre">system_summary_core</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'YS'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dispatch/model.html#DispatchModel.system_summary_core"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dispatch.DispatchModel.system_summary_core" title="Link to this definition">¶</a></dt>
+<dd><p>Create core system and reliability metrics.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>freq</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – temporal frequency to aggregate hourly data to.</p>
+</dd>
+</dl>
+<p>Returns: summary of curtailment, deficit, and select metrics</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dispatch.DispatchModel.re_summary">
+<span class="sig-name descname"><span class="pre">re_summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'technology_description'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'YS'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dispatch/model.html#DispatchModel.re_summary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dispatch.DispatchModel.re_summary" title="Link to this definition">¶</a></dt>
+<dd><p>Create granular summary of renewable plant metrics.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>by</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><em>None</em>)</p></li>
+<li><p><strong>freq</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)">pandas.DataFrame</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dispatch.DispatchModel.storage_summary">
+<span class="sig-name descname"><span class="pre">storage_summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'technology_description'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'YS'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dispatch/model.html#DispatchModel.storage_summary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dispatch.DispatchModel.storage_summary" title="Link to this definition">¶</a></dt>
+<dd><p>Create granular summary of storage plant metrics.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>by</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><em>None</em>)</p></li>
+<li><p><strong>freq</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)">pandas.DataFrame</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dispatch.DispatchModel.full_output">
+<span class="sig-name descname"><span class="pre">full_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'YS'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dispatch/model.html#DispatchModel.full_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dispatch.DispatchModel.full_output" title="Link to this definition">¶</a></dt>
+<dd><p>Create full operations output.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>freq</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)">pandas.DataFrame</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dispatch.DispatchModel.load_summary">
+<span class="sig-name descname"><span class="pre">load_summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dispatch/model.html#DispatchModel.load_summary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dispatch.DispatchModel.load_summary" title="Link to this definition">¶</a></dt>
+<dd><p>Create summary of load data.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dispatch.DispatchModel.dispatchable_summary">
+<span class="sig-name descname"><span class="pre">dispatchable_summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">by</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'technology_description'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'YS'</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">augment</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dispatch/model.html#DispatchModel.dispatchable_summary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dispatch.DispatchModel.dispatchable_summary" title="Link to this definition">¶</a></dt>
+<dd><p>Create granular summary of dispatchable plant metrics.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>by</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> | </em><em>None</em>) – column from <code class="xref py py-attr docutils literal notranslate"><span class="pre">DispatchModel.dispatchable_specs</span></code> to use for
+grouping dispatchable plants, if None, no column grouping</p></li>
+<li><p><strong>freq</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – output time resolution</p></li>
+<li><p><strong>augment</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – include columns from plant_specs columns</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)">pandas.DataFrame</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dispatch.DispatchModel.plot_period">
+<span class="sig-name descname"><span class="pre">plot_period</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">begin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">by_gen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compare_hist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dispatch/model.html#DispatchModel.plot_period"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dispatch.DispatchModel.plot_period" title="Link to this definition">¶</a></dt>
+<dd><p>Plot hourly dispatch by generator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://plotly.com/python-api-reference/generated/plotly.graph_objects.html#plotly.graph_objects.Figure" title="(in )">plotly.graph_objects.Figure</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dispatch.DispatchModel.plot_year">
+<span class="sig-name descname"><span class="pre">plot_year</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">year</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'D'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dispatch/model.html#DispatchModel.plot_year"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dispatch.DispatchModel.plot_year" title="Link to this definition">¶</a></dt>
+<dd><p>Monthly facet plot of daily dispatch for a year.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>year</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://plotly.com/python-api-reference/generated/plotly.graph_objects.html#plotly.graph_objects.Figure" title="(in )">plotly.graph_objects.Figure</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dispatch.DispatchModel.plot_all_years">
+<span class="sig-name descname"><span class="pre">plot_all_years</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dispatch/model.html#DispatchModel.plot_all_years"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dispatch.DispatchModel.plot_all_years" title="Link to this definition">¶</a></dt>
+<dd><p>Facet plot of daily dispatch for all years.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://plotly.com/python-api-reference/generated/plotly.graph_objects.html#plotly.graph_objects.Figure" title="(in )">plotly.graph_objects.Figure</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dispatch.DispatchModel.plot_output">
+<span class="sig-name descname"><span class="pre">plot_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'resource'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'YS'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/dispatch/model.html#DispatchModel.plot_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dispatch.DispatchModel.plot_output" title="Link to this definition">¶</a></dt>
+<dd><p>Plot a columns from <a class="reference internal" href="#dispatch.DispatchModel.full_output" title="dispatch.DispatchModel.full_output"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.full_output()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>y</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://plotly.com/python-api-reference/generated/plotly.graph_objects.html#plotly.graph_objects.Figure" title="(in )">plotly.graph_objects.Figure</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="engine/index.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">dispatch.engine</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="../index.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">API Reference</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, RMI, CC-BY-4.0
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              <a class="muted-link " href="https://github.com/rmi/dispatch" aria-label="GitHub">
+            <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+            </svg>
+        </a>
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">dispatch</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#classes">Classes</a></li>
+<li><a class="reference internal" href="#functions">Functions</a></li>
+<li><a class="reference internal" href="#package-contents">Package Contents</a><ul>
+<li><a class="reference internal" href="#dispatch.apply_op_ret_date"><code class="docutils literal notranslate"><span class="pre">apply_op_ret_date()</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.copy_profile"><code class="docutils literal notranslate"><span class="pre">copy_profile()</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.zero_profiles_outside_operating_dates"><code class="docutils literal notranslate"><span class="pre">zero_profiles_outside_operating_dates()</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.DispatchModel"><code class="docutils literal notranslate"><span class="pre">DispatchModel</span></code></a><ul>
+<li><a class="reference internal" href="#dispatch.DispatchModel.re_and_net_load"><code class="docutils literal notranslate"><span class="pre">DispatchModel.re_and_net_load()</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.DispatchModel.dc_charge"><code class="docutils literal notranslate"><span class="pre">DispatchModel.dc_charge()</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.DispatchModel.__getattr__"><code class="docutils literal notranslate"><span class="pre">DispatchModel.__getattr__()</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.DispatchModel.set_metadata"><code class="docutils literal notranslate"><span class="pre">DispatchModel.set_metadata()</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.DispatchModel.from_patio"><code class="docutils literal notranslate"><span class="pre">DispatchModel.from_patio()</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.DispatchModel.from_fresh"><code class="docutils literal notranslate"><span class="pre">DispatchModel.from_fresh()</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.DispatchModel.is_redispatch"><code class="docutils literal notranslate"><span class="pre">DispatchModel.is_redispatch</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.DispatchModel.historical_cost"><code class="docutils literal notranslate"><span class="pre">DispatchModel.historical_cost</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.DispatchModel.historical_dispatch"><code class="docutils literal notranslate"><span class="pre">DispatchModel.historical_dispatch</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.DispatchModel.redispatch_cost"><code class="docutils literal notranslate"><span class="pre">DispatchModel.redispatch_cost</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.DispatchModel.__call__"><code class="docutils literal notranslate"><span class="pre">DispatchModel.__call__()</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.DispatchModel.redispatch_lambda"><code class="docutils literal notranslate"><span class="pre">DispatchModel.redispatch_lambda()</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.DispatchModel.historical_lambda"><code class="docutils literal notranslate"><span class="pre">DispatchModel.historical_lambda()</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.DispatchModel.grouper"><code class="docutils literal notranslate"><span class="pre">DispatchModel.grouper()</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.DispatchModel.strict_grouper"><code class="docutils literal notranslate"><span class="pre">DispatchModel.strict_grouper()</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.DispatchModel.lost_load"><code class="docutils literal notranslate"><span class="pre">DispatchModel.lost_load()</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.DispatchModel.hrs_to_check"><code class="docutils literal notranslate"><span class="pre">DispatchModel.hrs_to_check()</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.DispatchModel.hourly_data_check"><code class="docutils literal notranslate"><span class="pre">DispatchModel.hourly_data_check()</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.DispatchModel.storage_capacity"><code class="docutils literal notranslate"><span class="pre">DispatchModel.storage_capacity()</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.DispatchModel.storage_durations"><code class="docutils literal notranslate"><span class="pre">DispatchModel.storage_durations()</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.DispatchModel.system_level_summary"><code class="docutils literal notranslate"><span class="pre">DispatchModel.system_level_summary()</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.DispatchModel.system_summary_core"><code class="docutils literal notranslate"><span class="pre">DispatchModel.system_summary_core()</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.DispatchModel.re_summary"><code class="docutils literal notranslate"><span class="pre">DispatchModel.re_summary()</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.DispatchModel.storage_summary"><code class="docutils literal notranslate"><span class="pre">DispatchModel.storage_summary()</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.DispatchModel.full_output"><code class="docutils literal notranslate"><span class="pre">DispatchModel.full_output()</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.DispatchModel.load_summary"><code class="docutils literal notranslate"><span class="pre">DispatchModel.load_summary()</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.DispatchModel.dispatchable_summary"><code class="docutils literal notranslate"><span class="pre">DispatchModel.dispatchable_summary()</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.DispatchModel.plot_period"><code class="docutils literal notranslate"><span class="pre">DispatchModel.plot_period()</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.DispatchModel.plot_year"><code class="docutils literal notranslate"><span class="pre">DispatchModel.plot_year()</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.DispatchModel.plot_all_years"><code class="docutils literal notranslate"><span class="pre">DispatchModel.plot_all_years()</span></code></a></li>
+<li><a class="reference internal" href="#dispatch.DispatchModel.plot_output"><code class="docutils literal notranslate"><span class="pre">DispatchModel.plot_output()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../../_static/documentation_options.js?v=ba5251a8"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
+    </body>
+</html>

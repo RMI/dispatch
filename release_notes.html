@@ -1,0 +1,773 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="API Reference" href="autoapi/index.html"><link rel="prev" title="Approach" href="approach.html">
+        <link rel="prefetch" href="_static/Small_PNG-RMI_logo_PrimaryUse.PNG" as="image">
+        <link rel="prefetch" href="_static/Small_PNG-RMI_logo_PrimaryUse_White_Horizontal.PNG" as="image">
+
+    <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
+        <title>Release Notes - Dispatch 0.6 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=b1990d62" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">Dispatch 0.6 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="_static/Small_PNG-RMI_logo_PrimaryUse.PNG" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="_static/Small_PNG-RMI_logo_PrimaryUse_White_Horizontal.PNG" alt="Dark Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">Dispatch 0.6 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="approach.html">Approach</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Release Notes</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="autoapi/index.html">API Reference</a><input aria-label="Toggle navigation of API Reference" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="autoapi/dispatch/index.html">dispatch</a><input aria-label="Toggle navigation of dispatch" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="autoapi/dispatch/engine/index.html">dispatch.engine</a></li>
+<li class="toctree-l3"><a class="reference internal" href="autoapi/dispatch/helpers/index.html">dispatch.helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="autoapi/dispatch/metadata/index.html">dispatch.metadata</a></li>
+<li class="toctree-l3"><a class="reference internal" href="autoapi/dispatch/model/index.html">dispatch.model</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="LICENSE.html">Licensing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="code_of_conduct.html">Code of Conduct</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/rmi/dispatch/blob/main/docs/release_notes.rst?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/rmi/dispatch/edit/main/docs/release_notes.rst" rel="edit" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="release-notes">
+<h1>Release Notes<a class="headerlink" href="#release-notes" title="Link to this heading">¶</a></h1>
+<section id="xx-xx">
+<span id="release-v0-6-1"></span><h2>0.6.1 (2025-XX-XX)<a class="headerlink" href="#xx-xx" title="Link to this heading">¶</a></h2>
+<section id="what-s-new">
+<h3>What’s New?<a class="headerlink" href="#what-s-new" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Transition to uv and tox-uv.</p></li>
+<li><p>Downgrading kaleido version below v1.0 to avoid chrome requirement.</p></li>
+</ul>
+</section>
+<section id="bug-fixes">
+<h3>Bug Fixes<a class="headerlink" href="#bug-fixes" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Fixed a bug where net_load of zero breaks <a class="reference internal" href="autoapi/dispatch/engine/index.html#dispatch.engine.dynamic_reserve" title="dispatch.engine.dynamic_reserve"><code class="xref py py-func docutils literal notranslate"><span class="pre">dynamic_reserve()</span></code></a> because it looks for relative increase.
+Now when net load is zero we raise the whole profile by the period’s max.
+Shifting up the whole profile by the max mutes the % change relative to shifting by the average, median, etc.</p></li>
+<li><p>Fixed a bug in <a class="reference internal" href="autoapi/dispatch/engine/index.html#dispatch.engine.dispatch_engine" title="dispatch.engine.dispatch_engine"><code class="xref py py-func docutils literal notranslate"><span class="pre">dispatch_engine()</span></code></a> where checks for values not exceeding their limit failed when they did exceed the limit but within the error of machine precision.</p></li>
+</ul>
+</section>
+</section>
+<section id="release-v0-6-0">
+<span id="id1"></span><h2>0.6.0 (2025-03-28)<a class="headerlink" href="#release-v0-6-0" title="Link to this heading">¶</a></h2>
+<section id="id2">
+<h3>What’s New?<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Initial implementation of dynamic storage reserves. If storage does not have a
+reserve or the reserve is <code class="docutils literal notranslate"><span class="pre">0.0</span></code>, we calculate a dynamic reserve based on the next
+24 hours of net load using <a class="reference internal" href="#equation-reserve">(1)</a>. The value of <code class="docutils literal notranslate"><span class="pre">coeff</span></code> can be set manually
+when creating <a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel" title="dispatch.DispatchModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">DispatchModel</span></code></a>, or automatically (default) by trying a number
+of values between 0.0 and 1.5 and selecting the one that best minimizes deficit and
+curtailment, using <a class="reference internal" href="autoapi/dispatch/engine/index.html#dispatch.engine.choose_best_coefficient" title="dispatch.engine.choose_best_coefficient"><code class="xref py py-func docutils literal notranslate"><span class="pre">dispatch.engine.choose_best_coefficient()</span></code></a>.</p></li>
+</ul>
+<div class="math-wrapper docutils container" id="equation-reserve">
+<div class="math notranslate nohighlight" id="equation-reserve">
+<span class="eqno">(1)<a class="headerlink" href="#equation-reserve" title="Link to this equation">¶</a></span>\[ \begin{align}\begin{aligned}   ramp &amp;= \frac{max(load_{h+1}, ..., load_{h+24})}{load_h} - 1\\   reserve &amp;= 1 - e^{-coeff \times ramp}\end{aligned}\end{align} \]</div>
+</div>
+<ul class="simple">
+<li><p>Additional deficit and curtailment metrics in
+<a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.system_level_summary" title="dispatch.DispatchModel.system_level_summary"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.system_level_summary()</span></code></a>.</p></li>
+<li><p><a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.dispatchable_summary" title="dispatch.DispatchModel.dispatchable_summary"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.dispatchable_summary()</span></code></a> and <a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.full_output" title="dispatch.DispatchModel.full_output"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.full_output()</span></code></a>
+now include all columns provided in <code class="docutils literal notranslate"><span class="pre">&lt;x&gt;_specs</span></code>.</p></li>
+<li><p>Enable multiple storage generators under a single <code class="docutils literal notranslate"><span class="pre">plant_id_eia</span></code> so long as they
+don’t share a <code class="docutils literal notranslate"><span class="pre">plant_id_eia</span></code> with a renewable generator.</p></li>
+<li><p><a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.system_level_summary" title="dispatch.DispatchModel.system_level_summary"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.system_level_summary()</span></code></a> allows for the roll-up of storage
+facilities to create higher-level metrics using the <code class="docutils literal notranslate"><span class="pre">storage_rollup</span></code> parameter.</p></li>
+<li><p><a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.hourly_data_check" title="dispatch.DispatchModel.hourly_data_check"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.hourly_data_check()</span></code></a> allows exploration of hours preceding and
+including both deficit and curtailment hours.</p></li>
+<li><p><a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel" title="dispatch.DispatchModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">DispatchModel</span></code></a> now accepts <code class="docutils literal notranslate"><span class="pre">dispatchable_cost</span></code> with monthly frequency.</p></li>
+<li><p>Added <a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.set_metadata" title="dispatch.DispatchModel.set_metadata"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.set_metadata()</span></code></a> to safely set metadata.
+<a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.__getattr__" title="dispatch.DispatchModel.__getattr__"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.__getattr__()</span></code></a> allows retrieving metadata using attribute access.</p></li>
+<li><p>Added <code class="docutils literal notranslate"><span class="pre">marginal_for_startup_rank</span></code> flag to <a class="reference internal" href="autoapi/dispatch/engine/index.html#dispatch.engine.dispatch_engine" title="dispatch.engine.dispatch_engine"><code class="xref py py-func docutils literal notranslate"><span class="pre">dispatch_engine()</span></code></a> and
+<a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel" title="dispatch.DispatchModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">DispatchModel</span></code></a> <code class="docutils literal notranslate"><span class="pre">config</span></code> to use marginal cost rank to order generators for
+startup rather than startup cost. Given costs from <code class="xref py py-mod docutils literal notranslate"><span class="pre">rmi.gencost</span></code> have very low
+startup cost relative to marginal costs, marginal costs can be a better metric for
+committing units.</p></li>
+<li><p>Update build tool versions in <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code> and <code class="docutils literal notranslate"><span class="pre">environment.yml</span></code>.</p></li>
+<li><p>Address <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/index.html#module-pandas" title="(in pandas v3.0.0)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pandas</span></code></a> <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#DeprecationWarning" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DeprecationWarning</span></code></a> in <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.groupby.html#pandas.DataFrame.groupby" title="(in pandas v3.0.0)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pandas.DataFrame.groupby()</span></code></a>
+and <code class="xref py py-func docutils literal notranslate"><span class="pre">pandas.value_counts()</span></code>.</p></li>
+<li><p>Remove local pytest and blackdoc hooks from pre-commit.</p></li>
+<li><p>Switch from black to ruff format for autoformatting.</p></li>
+<li><p>New storage features to represent more types of storage:</p>
+<ul>
+<li><p>Storage charge rate can be different from discharge rate, to use, provide
+<code class="docutils literal notranslate"><span class="pre">charge_mw</span></code> column in <code class="docutils literal notranslate"><span class="pre">storage_specs</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">charge_eff</span></code> and <code class="docutils literal notranslate"><span class="pre">discharge_eff</span></code> will replace <code class="docutils literal notranslate"><span class="pre">roundtrip_eff</span></code> in
+<code class="docutils literal notranslate"><span class="pre">storage_specs</span></code> to enable finer-grained control of when losses occur.
+Previously <code class="docutils literal notranslate"><span class="pre">roundtrip_eff</span></code> was effectively treated as the charge efficiency and
+there were no discharge losses.</p></li>
+</ul>
+</li>
+<li><p>Add support for Python 3.12.</p></li>
+<li><p>New <a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.redispatch_lambda" title="dispatch.DispatchModel.redispatch_lambda"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.redispatch_lambda()</span></code></a> and
+<a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.historical_lambda" title="dispatch.DispatchModel.historical_lambda"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.historical_lambda()</span></code></a> to calculate hourly marginal costs.</p></li>
+<li><p>Updates to narrative description of dispatch logic in <code class="docutils literal notranslate"><span class="pre">approach.rst</span></code>.</p></li>
+<li><p>Attempts to reduce memory use and unnecessary allocations in
+<a class="reference internal" href="autoapi/dispatch/helpers/index.html#dispatch.helpers.zero_profiles_outside_operating_dates" title="dispatch.helpers.zero_profiles_outside_operating_dates"><code class="xref py py-func docutils literal notranslate"><span class="pre">zero_profiles_outside_operating_dates()</span></code></a> and by validate inputs inplace.</p></li>
+<li><p>Create new <a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.system_summary_core" title="dispatch.DispatchModel.system_summary_core"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.system_summary_core()</span></code></a> that includes only a subset of
+the columns in <a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.system_level_summary" title="dispatch.DispatchModel.system_level_summary"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.system_level_summary()</span></code></a> that can be produced
+faster and excludes storage metrics.</p></li>
+</ul>
+</section>
+<section id="id3">
+<h3>Bug Fixes<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Fixed a bug where <code class="docutils literal notranslate"><span class="pre">operating_date</span></code> and <code class="docutils literal notranslate"><span class="pre">retirement_date</span></code> did not apply to
+dispatchable resources, where <code class="docutils literal notranslate"><span class="pre">no_limit</span></code> is <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>
+<li><p>Fixed a bug where <code class="docutils literal notranslate"><span class="pre">capacity_mw</span></code> for storage and renewables was not zero in outputs
+before their operating date. We now compare the modeled year to the operating year
+rather than the date. This provides the expected output when outputs are aggregated
+annually as is the typical case.</p></li>
+<li><p>Fixed renewable name maps for plotting in <code class="xref py py-const docutils literal notranslate"><span class="pre">dispatch.constants.PLOT_MAP</span></code>.</p></li>
+<li><p>Added a second fallback method for determining the frequency of cost data in
+<a class="reference internal" href="autoapi/dispatch/metadata/index.html#dispatch.metadata.Validator.dispatchable_cost" title="dispatch.metadata.Validator.dispatchable_cost"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Validator.dispatchable_cost()</span></code></a>. While this isn’t needed within the model
+anymore, it is used to determine if there is missing data.</p></li>
+<li><p>Fixed a bug where profile index validation failed because <code class="xref py py-mod docutils literal notranslate"><span class="pre">pandera</span></code>
+<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DatetimeIndex.html#pandas.DatetimeIndex" title="(in pandas v3.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DatetimeIndex</span></code></a> type validation was applied inconsistently between
+<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a> and <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html#pandas.Series" title="(in pandas v3.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.Series</span></code></a>.</p></li>
+<li><p>Fixed a bug where the <code class="docutils literal notranslate"><span class="pre">capacity_mw</span></code> column returned by
+<a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.re_summary" title="dispatch.DispatchModel.re_summary"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.re_summary()</span></code></a> and <a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.storage_summary" title="dispatch.DispatchModel.storage_summary"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.storage_summary()</span></code></a>
+was zero in the first year of operations when <code class="docutils literal notranslate"><span class="pre">freq='YS'</span></code>.</p></li>
+</ul>
+</section>
+</section>
+<section id="release-v0-5-0">
+<span id="id4"></span><h2>0.5.0 (2023-05-15)<a class="headerlink" href="#release-v0-5-0" title="Link to this heading">¶</a></h2>
+<section id="id5">
+<h3>What’s New?<a class="headerlink" href="#id5" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Added checks to make sure that the datetime indexes of <code class="docutils literal notranslate"><span class="pre">load_profile</span></code>,
+<code class="docutils literal notranslate"><span class="pre">dispatchable_profiles</span></code>, and <code class="docutils literal notranslate"><span class="pre">re_profiles</span></code> match.</p></li>
+<li><p>Prep for deprecating <a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.from_patio" title="dispatch.DispatchModel.from_patio"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.from_patio()</span></code></a> and
+<a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.from_fresh" title="dispatch.DispatchModel.from_fresh"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.from_fresh()</span></code></a>.</p></li>
+<li><p>Extracted <a class="reference internal" href="autoapi/dispatch/engine/index.html#dispatch.engine.calculate_generator_output" title="dispatch.engine.calculate_generator_output"><code class="xref py py-func docutils literal notranslate"><span class="pre">calculate_generator_output()</span></code></a> from <a class="reference internal" href="autoapi/dispatch/engine/index.html#dispatch.engine.dispatch_engine" title="dispatch.engine.dispatch_engine"><code class="xref py py-func docutils literal notranslate"><span class="pre">dispatch_engine()</span></code></a> to make
+the latter easier to read and to more easily test the former’s logic.</p></li>
+<li><p>Many updates to internal variable names in <a class="reference internal" href="autoapi/dispatch/engine/index.html#module-dispatch.engine" title="dispatch.engine"><code class="xref py py-mod docutils literal notranslate"><span class="pre">engine</span></code></a> to make the code easier to
+read.</p></li>
+<li><p>Renamed <a class="reference internal" href="autoapi/dispatch/helpers/index.html#dispatch.helpers.apply_op_ret_date" title="dispatch.helpers.apply_op_ret_date"><code class="xref py py-func docutils literal notranslate"><span class="pre">apply_op_ret_date()</span></code></a> to
+<a class="reference internal" href="autoapi/dispatch/helpers/index.html#dispatch.helpers.zero_profiles_outside_operating_dates" title="dispatch.helpers.zero_profiles_outside_operating_dates"><code class="xref py py-func docutils literal notranslate"><span class="pre">zero_profiles_outside_operating_dates()</span></code></a> for clarity, use of the former name
+will be removed in the future.</p></li>
+<li><p>Code cleanup along with adoption of ruff and removal of bandit, flake8, isort, etc.</p></li>
+<li><p>Added the ability to specify in <code class="docutils literal notranslate"><span class="pre">dispatchable_specs</span></code> via a <code class="docutils literal notranslate"><span class="pre">no_limit</span></code> column
+that a generator not limited to its historical hourly output by the model without
+affecting historical dispatch data.</p></li>
+<li><p>Added the ability to specify in <code class="docutils literal notranslate"><span class="pre">dispatchable_specs</span></code> via a <code class="docutils literal notranslate"><span class="pre">min_uptime</span></code> column
+the minimum number of hours a generator must have been operating before it can start
+ramping down.</p></li>
+<li><p>Adjusted process of determining the provisional deficit used to dispatch currently
+operating generators. Previously, we adjusted our target for dispatchable generation
+based on the assumption we would want to use up all storage state of charge before
+dispatching operating generators. We now set the provisional deficit so that we hold
+2x <code class="docutils literal notranslate"><span class="pre">reserve</span></code> state of charge in reserve. If state of charge is below <code class="docutils literal notranslate"><span class="pre">reserve</span></code>,
+we increase the provisional deficit in order to replenish the reserve.</p></li>
+<li><p>Changed battery discharge so that only a part of storage can be used before
+dispatchable start-up, only down to the <code class="docutils literal notranslate"><span class="pre">reserve</span></code>. After dispatchable start-up,
+storage is dispatched a second time in case a deficit remains, in this part of the
+sequence, all storage state of charge can be used.</p></li>
+<li><p>dispatch now works with Python 3.11 using newly released <code class="xref py py-mod docutils literal notranslate"><span class="pre">numba</span></code> version 0.57.</p></li>
+<li><p>dispatch now works with <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/index.html#module-pandas" title="(in pandas v3.0.0)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pandas</span></code></a> 2.0.</p></li>
+</ul>
+</section>
+</section>
+<section id="release-v0-4-0">
+<span id="id6"></span><h2>0.4.0 (2023-01-25)<a class="headerlink" href="#release-v0-4-0" title="Link to this heading">¶</a></h2>
+<section id="id7">
+<h3>What’s New?<a class="headerlink" href="#id7" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Tests for <a class="reference internal" href="autoapi/dispatch/engine/index.html#dispatch.engine.dispatch_engine" title="dispatch.engine.dispatch_engine"><code class="xref py py-func docutils literal notranslate"><span class="pre">engine.dispatch_engine()</span></code></a>, <a class="reference internal" href="autoapi/dispatch/helpers/index.html#dispatch.helpers.copy_profile" title="dispatch.helpers.copy_profile"><code class="xref py py-func docutils literal notranslate"><span class="pre">copy_profile()</span></code></a>.</p></li>
+<li><p><a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.hourly_data_check" title="dispatch.DispatchModel.hourly_data_check"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.hourly_data_check()</span></code></a> to help in checking for dispatch errors,
+and running down why deficits are occuring.</p></li>
+<li><p><a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel" title="dispatch.DispatchModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">DispatchModel</span></code></a> now takes <code class="docutils literal notranslate"><span class="pre">load_profile</span></code> that resources will be
+dispatched against. If <code class="docutils literal notranslate"><span class="pre">re_profiles</span></code> and <code class="docutils literal notranslate"><span class="pre">re_plant_specs</span></code> are not provided,
+this should be a net load profile. If they are provided, this <em>must</em> be a gross
+load profile, or at least, gross of those RE resources. These calculations are done
+by <a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.re_and_net_load" title="dispatch.DispatchModel.re_and_net_load"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.re_and_net_load()</span></code></a>.</p></li>
+<li><p><a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel" title="dispatch.DispatchModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">DispatchModel</span></code></a> now accepts (and requires) raw DC <code class="docutils literal notranslate"><span class="pre">re_profiles</span></code>, it
+determines actual renewable output using capacity data and ilr provided in
+<code class="docutils literal notranslate"><span class="pre">re_plant_specs</span></code>. This will allow <a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel" title="dispatch.DispatchModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">DispatchModel</span></code></a> to model DC-coupled
+RE+Storage facilities that can charge from otherwise clipped generation. The
+calculations for the amount of charging from DC-coupled RE is in
+<a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.dc_charge" title="dispatch.DispatchModel.dc_charge"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.dc_charge()</span></code></a>.</p></li>
+<li><p>Updates to <a class="reference internal" href="autoapi/dispatch/engine/index.html#dispatch.engine.dispatch_engine" title="dispatch.engine.dispatch_engine"><code class="xref py py-func docutils literal notranslate"><span class="pre">engine.dispatch_engine()</span></code></a> and <a class="reference internal" href="autoapi/dispatch/engine/index.html#dispatch.engine.validate_inputs" title="dispatch.engine.validate_inputs"><code class="xref py py-func docutils literal notranslate"><span class="pre">engine.validate_inputs()</span></code></a> to
+accommodate DC-coupled RE charging data. Storage can now be charged from
+DC-coupled RE in addition to the grid. This includes tracking <code class="docutils literal notranslate"><span class="pre">gridcharge</span></code>
+in addition to <code class="docutils literal notranslate"><span class="pre">charge</span></code>, where the latter includes charging from the grid
+and DC-coupled RE.</p></li>
+<li><p>All output charging metrics use the <code class="docutils literal notranslate"><span class="pre">gridcharge</span></code> data because from the grid’s
+perspective, this is what matters. <code class="docutils literal notranslate"><span class="pre">discharge</span></code> data does not distinguish,
+so in some cases net charge data may be positive, this reflects RE generation
+run through the battery that otherwise would have been curtailed.</p></li>
+<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">DataZip</span></code>, a subclass of <a class="reference external" href="https://docs.python.org/3/library/zipfile.html#zipfile.ZipFile" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">zipfile.ZipFile</span></code></a> that has methods for
+easily reading and writing <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a> as <code class="docutils literal notranslate"><span class="pre">parquet</span></code> and
+<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a> as <code class="docutils literal notranslate"><span class="pre">json</span></code>. This includes storing column names separately that
+cannot be included in a <code class="docutils literal notranslate"><span class="pre">parquet</span></code>.</p></li>
+<li><p>Extracted <a class="reference internal" href="autoapi/dispatch/engine/index.html#dispatch.engine.charge_storage" title="dispatch.engine.charge_storage"><code class="xref py py-func docutils literal notranslate"><span class="pre">engine.charge_storage()</span></code></a> and
+<a class="reference internal" href="autoapi/dispatch/engine/index.html#dispatch.engine.make_rank_arrays" title="dispatch.engine.make_rank_arrays"><code class="xref py py-func docutils literal notranslate"><span class="pre">engine.make_rank_arrays()</span></code></a> from <a class="reference internal" href="autoapi/dispatch/engine/index.html#dispatch.engine.dispatch_engine" title="dispatch.engine.dispatch_engine"><code class="xref py py-func docutils literal notranslate"><span class="pre">engine.dispatch_engine()</span></code></a>. This
+allows easier unit testing and, in the former case, makes sure all charging is
+implemented consistently.</p></li>
+<li><p>Added plotting functions <a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.plot_output" title="dispatch.DispatchModel.plot_output"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.plot_output()</span></code></a> to visualize columns
+from <a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.full_output" title="dispatch.DispatchModel.full_output"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.full_output()</span></code></a> and updated
+<a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.plot_period" title="dispatch.DispatchModel.plot_period"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.plot_period()</span></code></a> to display data by generator if <code class="docutils literal notranslate"><span class="pre">by_gen=True</span></code>.
+<a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.plot_year" title="dispatch.DispatchModel.plot_year"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.plot_year()</span></code></a> can now display the results with daily or hourly
+frequency.</p></li>
+<li><p>For renewables, <code class="docutils literal notranslate"><span class="pre">plant_id_eia</span></code> no longer need by unique, now for renewables,
+<code class="docutils literal notranslate"><span class="pre">plant_id_eia</span></code> and <code class="docutils literal notranslate"><span class="pre">generator_id</span></code> must be jointly unique. In cases where a
+single <code class="docutils literal notranslate"><span class="pre">plant_id_eia</span></code> has two renewable generator’s as well as storage,
+<a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.dc_charge" title="dispatch.DispatchModel.dc_charge"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.dc_charge()</span></code></a> assumes excess renewable generation from the
+several generators can be combined to charge the facility’s storage.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">re_plant_specs</span></code>, <code class="docutils literal notranslate"><span class="pre">dispatchable_specs</span></code>, and <code class="docutils literal notranslate"><span class="pre">storage_specs</span></code>, now allow zeros
+for <code class="docutils literal notranslate"><span class="pre">capacity_mw</span></code> and <code class="docutils literal notranslate"><span class="pre">duration_hrs</span></code>.</p></li>
+<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">DataZip</span></code>, <code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.to_file()</span></code>, and
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.from_file()</span></code> now support <a class="reference external" href="https://docs.python.org/3/library/io.html#io.BytesIO" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">io.BytesIO</span></code></a> as <code class="docutils literal notranslate"><span class="pre">file</span></code>
+or <code class="docutils literal notranslate"><span class="pre">path</span></code>. This now allows any object that implements <code class="docutils literal notranslate"><span class="pre">to_file</span></code>/<code class="docutils literal notranslate"><span class="pre">from_file</span></code>
+methods using <code class="xref py py-class docutils literal notranslate"><span class="pre">DataZip</span></code>, to be written into and recovered from another
+<code class="xref py py-class docutils literal notranslate"><span class="pre">DataZip</span></code>.</p></li>
+<li><p>Added the ability to specify in <code class="docutils literal notranslate"><span class="pre">dispatchable_specs</span></code> via an <code class="docutils literal notranslate"><span class="pre">exclude</span></code> column
+that a generator not be dispatched by the model without affecting historical
+dispatch data.</p></li>
+<li><p>Migrating <code class="xref py py-class docutils literal notranslate"><span class="pre">DataZip</span></code> functionality to <a class="reference external" href="https://rmi.github.io/etoolbox/autoapi/etoolbox/datazip/index.html#etoolbox.datazip.DataZip" title="(in eToolBox v0.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">etoolbox.datazip.DataZip</span></code></a>.</p></li>
+<li><p>Updates to constants to allow Nuclear and Conventional Hydroelectric to be properly
+displayed in plots.</p></li>
+<li><p>Updates to <code class="docutils literal notranslate"><span class="pre">re_plant_specs</span></code>, its validation, and
+<a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.re_and_net_load" title="dispatch.DispatchModel.re_and_net_load"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.re_and_net_load()</span></code></a> for a new column, <code class="docutils literal notranslate"><span class="pre">interconnect_mw</span></code>, that
+allows interconnection capacity for a renewable facility to independent of its
+capacity. By default, this is the same as <code class="docutils literal notranslate"><span class="pre">capacity_mw</span></code> but can be reduced to
+reflect facility-specific transmission / interconnection constraints. If the
+facility has storage, storage can be charged by the constrained excess.</p></li>
+<li><p>Added <code class="docutils literal notranslate"><span class="pre">compare_hist</span></code> argument to <a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.plot_period" title="dispatch.DispatchModel.plot_period"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.plot_period()</span></code></a> which creates
+panel plot showing both historical dispatch and redispatch for the period.</p></li>
+<li><p><a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.plot_output" title="dispatch.DispatchModel.plot_output"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.plot_output()</span></code></a> adds a row facet to show both historical and
+redispatch versions of the requested data if available.</p></li>
+<li><p>Cleanup of configuration and packaging files. Contents of <code class="docutils literal notranslate"><span class="pre">setup.cfg</span></code> and
+<code class="docutils literal notranslate"><span class="pre">tox.ini</span></code> moved to <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code>.</p></li>
+<li><p>Added the ability to specify FOM for renewables in <code class="docutils literal notranslate"><span class="pre">re_plant_specs</span></code> via an
+optional <code class="docutils literal notranslate"><span class="pre">fom_per_kw</span></code> column. This allows <a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.re_summary" title="dispatch.DispatchModel.re_summary"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.re_summary()</span></code></a> and
+derived outputs to include a <code class="docutils literal notranslate"><span class="pre">redispatch_cost_fom</span></code> column.</p></li>
+<li><p><a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel" title="dispatch.DispatchModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">DispatchModel</span></code></a> now contains examples as doctests.</p></li>
+<li><p><a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.plot_all_years" title="dispatch.DispatchModel.plot_all_years"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.plot_all_years()</span></code></a> to create daily redispatch plot faceted by
+month and year.</p></li>
+<li><p><a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.dispatchable_summary" title="dispatch.DispatchModel.dispatchable_summary"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.dispatchable_summary()</span></code></a> now includes mmbtu and co2 data for
+historical, redispatch, and avoided column groupings. These metrics are based on
+<code class="docutils literal notranslate"><span class="pre">heat_rate</span></code> and <code class="docutils literal notranslate"><span class="pre">co2_factor</span></code> columns in <code class="docutils literal notranslate"><span class="pre">dispatchable_cost</span></code>, these columns are
+optional.</p></li>
+<li><p>Updates to <a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel" title="dispatch.DispatchModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">DispatchModel</span></code></a> to work with the new simpler, cleaner
+<code class="xref py py-class docutils literal notranslate"><span class="pre">DataZip</span></code>.</p></li>
+</ul>
+</section>
+<section id="id8">
+<h3>Bug Fixes<a class="headerlink" href="#id8" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Fixed an issue in <a class="reference internal" href="autoapi/dispatch/engine/index.html#dispatch.engine.dispatch_engine" title="dispatch.engine.dispatch_engine"><code class="xref py py-func docutils literal notranslate"><span class="pre">engine.dispatch_engine()</span></code></a> where a storage resource’s state of
+charge would not be carried forward if it wasn’t charged or discharged in that
+hour.</p></li>
+<li><p>Fixed a bug where storage metrics in <a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.system_level_summary" title="dispatch.DispatchModel.system_level_summary"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.system_level_summary()</span></code></a>
+were <code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.nan</span></code> because selecting of data from <code class="docutils literal notranslate"><span class="pre">storage_specs</span></code> returned
+a <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html#pandas.Series" title="(in pandas v3.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.Series</span></code></a> rather than a <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a> or <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>. Further, in
+cases of division be zero in these calculations, the result is now 0 rather than
+<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.nan</span></code>. Tests now make sure that no new <code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.nan</span></code> show up.</p></li>
+<li><p>Fixed a bug in <a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.dispatchable_summary" title="dispatch.DispatchModel.dispatchable_summary"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.dispatchable_summary()</span></code></a> where <code class="docutils literal notranslate"><span class="pre">pct_replaced</span></code>
+would be <code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.nan</span></code> because of division by zero in these calculations, the
+result is now 0 rather than <code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.nan</span></code>. Tests now make sure that no new
+<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.nan</span></code> show up.</p></li>
+<li><p>Fixed an issue where <a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.full_output" title="dispatch.DispatchModel.full_output"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.full_output()</span></code></a> and methods that use it,
+i.e. <a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.plot_output" title="dispatch.DispatchModel.plot_output"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.plot_output()</span></code></a> improperly aggregated
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">DispatchModel.system_data</span></code> when <code class="docutils literal notranslate"><span class="pre">freq</span></code> was not ‘YS’.</p></li>
+<li><p>Fixed an issue where <a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.full_output" title="dispatch.DispatchModel.full_output"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.full_output()</span></code></a> didn’t properly show
+<code class="docutils literal notranslate"><span class="pre">Curtailment</span></code> and <code class="docutils literal notranslate"><span class="pre">Storage</span></code>.</p></li>
+</ul>
+</section>
+<section id="known-issues">
+<h3>Known Issues<a class="headerlink" href="#known-issues" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>The storage in DC-coupled RE+Storage system can be charged by either the grid or
+excess RE that would have been curtailed because of the size of the inverter. It is
+not possible to restrict grid charging in these systems. It is also not possible to
+charge storage rather than export to the grid when RE output can fit through the
+inverter.</p></li>
+<li><p>It is possible that output from DC-coupled RE+Storage facilities during some hours
+will exceed the system’s inverter capacity because when we discharge these storage
+facilities, we do not know how much ‘room’ there is in the inverter because we do
+not know the RE-side’s output. This issue is now in some sense compounded when
+<code class="docutils literal notranslate"><span class="pre">interconnect_mw</span></code> is less than <code class="docutils literal notranslate"><span class="pre">capacity_mw</span></code>.</p></li>
+<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">DataZip</span></code> are effectively immutable once they are created so the <code class="docutils literal notranslate"><span class="pre">a</span></code> mode
+is not allowed and the <code class="docutils literal notranslate"><span class="pre">w</span></code> mode is not allowed on existing files. This is because
+it is not possible to overwrite or remove a file already in a
+<a class="reference external" href="https://docs.python.org/3/library/zipfile.html#zipfile.ZipFile" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">zipfile.ZipFile</span></code></a>. That fact prevents us from updating metadata about
+<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a> that cannot be stored in the <code class="docutils literal notranslate"><span class="pre">parquet</span></code> itself. Ways of
+addressing this get messy and still wouldn’t allow updating existing data without
+copying everything which a user can do if that is needed.</p></li>
+</ul>
+</section>
+</section>
+<section id="release-v0-3-0">
+<span id="id9"></span><h2>0.3.0 (2022-10-08)<a class="headerlink" href="#release-v0-3-0" title="Link to this heading">¶</a></h2>
+<section id="id10">
+<h3>What’s New?<a class="headerlink" href="#id10" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.to_file()</span></code> can create an output with summary
+outputs.</p></li>
+<li><p>Adopting <code class="xref py py-mod docutils literal notranslate"><span class="pre">pandera</span></code> for metadata and validation using
+<a class="reference internal" href="autoapi/dispatch/metadata/index.html#dispatch.metadata.Validator" title="dispatch.metadata.Validator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Validator</span></code></a> to organize and specialize data input
+checking.</p></li>
+<li><p>Adding cost component details and capacity data to
+<a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.dispatchable_summary" title="dispatch.DispatchModel.dispatchable_summary"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.dispatchable_summary()</span></code></a>.</p></li>
+<li><p>We now automatically apply <code class="docutils literal notranslate"><span class="pre">operating_date</span></code> and <code class="docutils literal notranslate"><span class="pre">retirement_date</span></code> from
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">DispatchModel.dispatchable_plant_specs</span></code> to
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">DispatchModel.dispatchable_profiles</span></code> using
+<a class="reference internal" href="autoapi/dispatch/helpers/index.html#dispatch.helpers.apply_op_ret_date" title="dispatch.helpers.apply_op_ret_date"><code class="xref py py-func docutils literal notranslate"><span class="pre">apply_op_ret_date()</span></code></a>.</p></li>
+<li><p>Added validation and processing for <code class="xref py py-attr docutils literal notranslate"><span class="pre">DispatchModel.re_plant_specs</span></code> and
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">DispatchModel.re_profiles</span></code>, as well as <a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.re_summary" title="dispatch.DispatchModel.re_summary"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.re_summary()</span></code></a>
+to, when the data is provided create a summary of renewable operations analogous
+to <a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.dispatchable_summary" title="dispatch.DispatchModel.dispatchable_summary"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.dispatchable_summary()</span></code></a>.</p></li>
+<li><p>Added <a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.storage_summary" title="dispatch.DispatchModel.storage_summary"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.storage_summary()</span></code></a> to create a summary of storage
+operations analogous to <a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.dispatchable_summary" title="dispatch.DispatchModel.dispatchable_summary"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.dispatchable_summary()</span></code></a>.</p></li>
+<li><p>Added <a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.full_output" title="dispatch.DispatchModel.full_output"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.full_output()</span></code></a> to create the kind of outputs needed by
+Optimus and other post-dispatch analysis tools.</p></li>
+<li><p>Added validation steps for each type of specs that raise an error when an
+operating_date is after the dispatch period which would otherwise result in
+dispatch errors.</p></li>
+<li><p>New helpers (<code class="xref py py-meth docutils literal notranslate"><span class="pre">DataZip.dfs_to_zip()</span></code> and <code class="xref py py-meth docutils literal notranslate"><span class="pre">DataZip.dfs_from_zip()</span></code>) that
+simplify saving and reading in groups of <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>.</p></li>
+<li><p>Added plotting functions <a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.plot_period" title="dispatch.DispatchModel.plot_period"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.plot_period()</span></code></a> and
+<a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.plot_year" title="dispatch.DispatchModel.plot_year"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.plot_year()</span></code></a>.</p></li>
+</ul>
+</section>
+<section id="id11">
+<h3>Known Issues<a class="headerlink" href="#id11" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.re_summary" title="dispatch.DispatchModel.re_summary"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.re_summary()</span></code></a> and <a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.storage_summary" title="dispatch.DispatchModel.storage_summary"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.storage_summary()</span></code></a> have
+null operations cost data.</p></li>
+<li><p>There is still no nice way to include nuclear and hydro resources.</p></li>
+<li><p><a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.plot_year" title="dispatch.DispatchModel.plot_year"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.plot_year()</span></code></a> doesn’t seem to really work. At all.</p></li>
+</ul>
+</section>
+<section id="id12">
+<h3>Bug Fixes<a class="headerlink" href="#id12" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>A validation check throws an error when ramp rates are zero which otherwise would
+prevent plant output from ever changing on a fresh dispatch.</p></li>
+<li><p>Fixed a <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.14)"><code class="xref py py-exc docutils literal notranslate"><span class="pre">TypeError</span></code></a> issue in <a class="reference internal" href="autoapi/dispatch/helpers/index.html#dispatch.helpers.apply_op_ret_date" title="dispatch.helpers.apply_op_ret_date"><code class="xref py py-func docutils literal notranslate"><span class="pre">apply_op_ret_date()</span></code></a> when some dates were
+inexplicably converted to <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a> rather than <a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.datetime64" title="(in NumPy v2.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.datetime64</span></code></a> by
+<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.to_numpy.html#pandas.DataFrame.to_numpy" title="(in pandas v3.0.0)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pandas.DataFrame.to_numpy()</span></code></a>.</p></li>
+</ul>
+</section>
+</section>
+<section id="release-v0-2-0">
+<span id="id13"></span><h2>0.2.0 (2022-09-15)<a class="headerlink" href="#release-v0-2-0" title="Link to this heading">¶</a></h2>
+<section id="id14">
+<h3>What’s New?<a class="headerlink" href="#id14" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel" title="dispatch.DispatchModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">DispatchModel</span></code></a> now uses <code class="docutils literal notranslate"><span class="pre">__slots__</span></code></p></li>
+<li><p>New <code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.to_file()</span></code> and <code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.from_file()</span></code> methods
+that allow a <a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel" title="dispatch.DispatchModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">DispatchModel</span></code></a> object to be saved to disk and recreated
+from a file. This uses a <code class="docutils literal notranslate"><span class="pre">zip</span></code> of many <code class="docutils literal notranslate"><span class="pre">parquet</span></code> files for size and to avoid
+<code class="docutils literal notranslate"><span class="pre">pickle</span></code> being tied to a particular module layout.</p></li>
+<li><p>Methods to calculate hourly cost for historical and redispatch.</p></li>
+<li><p>Method to simplify aggregating hourly generator-level data to less granular
+frequencies and asset specificity.</p></li>
+<li><p>Storage resources can now be added to the portfolio over time based on their
+<code class="docutils literal notranslate"><span class="pre">operating_date</span></code> in <code class="docutils literal notranslate"><span class="pre">storage_specs</span></code>.</p></li>
+<li><p>When using <a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel.from_fresh" title="dispatch.DispatchModel.from_fresh"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.from_fresh()</span></code></a>, <code class="docutils literal notranslate"><span class="pre">operating_date</span></code> and
+<code class="docutils literal notranslate"><span class="pre">retirement_date</span></code> columns in <code class="docutils literal notranslate"><span class="pre">dispatchable_plant_specs</span></code> determine the period
+during dispatch that a generator may operate. This provides a straightforward
+method for having the portfolio you wish to dispatch change over time.</p></li>
+<li><p>Cleanup and rationalization of <code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.to_file()</span></code> and
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.from_file()</span></code> methods.</p></li>
+<li><p>Updates to system for storing and processing marginal cost data. This is now a
+separate argument to <code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.__init__()</span></code> rather than a
+messy confusing part of <code class="docutils literal notranslate"><span class="pre">dispatchable_plant_specs</span></code>. This is now consistent with
+how <code class="docutils literal notranslate"><span class="pre">patio</span></code> prepares and stores the data.</p></li>
+</ul>
+</section>
+<section id="id15">
+<h3>Bug Fixes<a class="headerlink" href="#id15" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.to_file()</span></code> and
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">DispatchModel.from_file()</span></code> now properly deal with
+internal data stored in both <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a> and <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html#pandas.Series" title="(in pandas v3.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.Series</span></code></a>.</p></li>
+</ul>
+</section>
+<section id="id16">
+<h3>Known Issues<a class="headerlink" href="#id16" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Tests are still pretty rudimentary.</p></li>
+</ul>
+</section>
+</section>
+<section id="release-v0-1-0">
+<span id="id17"></span><h2>0.1.0 (2022-08-23)<a class="headerlink" href="#release-v0-1-0" title="Link to this heading">¶</a></h2>
+<section id="id18">
+<h3>What’s New?<a class="headerlink" href="#id18" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>A dispatch model with no RMI dependencies and in its own repository!</p></li>
+<li><p>Repository built off of
+<a class="reference external" href="https://github.com/catalyst-cooperative/cheshire">catalyst-cooperative.cheshire</a>
+that uses cool tools like <code class="docutils literal notranslate"><span class="pre">tox</span></code>, <code class="docutils literal notranslate"><span class="pre">sphinx</span></code>, etc.</p></li>
+</ul>
+</section>
+<section id="id19">
+<h3>Bug Fixes<a class="headerlink" href="#id19" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/python/mypy">mypy</a> is disabled because of error described
+in <a class="reference external" href="https://github.com/rmi/dispatch/issues/1">#1</a>.</p></li>
+</ul>
+</section>
+<section id="id20">
+<h3>Known Issues<a class="headerlink" href="#id20" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><a class="reference internal" href="autoapi/dispatch/index.html#dispatch.DispatchModel" title="dispatch.DispatchModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">DispatchModel</span></code></a> only set up to work properly with
+<a class="reference external" href="https://github.com/rmi-electricity/patio-model">patio-model</a>.</p></li>
+<li><p>Test thoroughness is lacking.</p></li>
+<li><p>No substantive readme or documentation.</p></li>
+</ul>
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="autoapi/index.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">API Reference</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="approach.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Approach</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, RMI, CC-BY-4.0
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              <a class="muted-link " href="https://github.com/rmi/dispatch" aria-label="GitHub">
+            <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+            </svg>
+        </a>
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Release Notes</a><ul>
+<li><a class="reference internal" href="#xx-xx">0.6.1 (2025-XX-XX)</a><ul>
+<li><a class="reference internal" href="#what-s-new">What’s New?</a></li>
+<li><a class="reference internal" href="#bug-fixes">Bug Fixes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#release-v0-6-0">0.6.0 (2025-03-28)</a><ul>
+<li><a class="reference internal" href="#id2">What’s New?</a></li>
+<li><a class="reference internal" href="#id3">Bug Fixes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#release-v0-5-0">0.5.0 (2023-05-15)</a><ul>
+<li><a class="reference internal" href="#id5">What’s New?</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#release-v0-4-0">0.4.0 (2023-01-25)</a><ul>
+<li><a class="reference internal" href="#id7">What’s New?</a></li>
+<li><a class="reference internal" href="#id8">Bug Fixes</a></li>
+<li><a class="reference internal" href="#known-issues">Known Issues</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#release-v0-3-0">0.3.0 (2022-10-08)</a><ul>
+<li><a class="reference internal" href="#id10">What’s New?</a></li>
+<li><a class="reference internal" href="#id11">Known Issues</a></li>
+<li><a class="reference internal" href="#id12">Bug Fixes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#release-v0-2-0">0.2.0 (2022-09-15)</a><ul>
+<li><a class="reference internal" href="#id14">What’s New?</a></li>
+<li><a class="reference internal" href="#id15">Bug Fixes</a></li>
+<li><a class="reference internal" href="#id16">Known Issues</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#release-v0-1-0">0.1.0 (2022-08-23)</a><ul>
+<li><a class="reference internal" href="#id18">What’s New?</a></li>
+<li><a class="reference internal" href="#id19">Bug Fixes</a></li>
+<li><a class="reference internal" href="#id20">Known Issues</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=ba5251a8"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    </body>
+</html>
