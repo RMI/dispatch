@@ -1,0 +1,69 @@
+dispatch.metadata
+=================
+
+.. py:module:: dispatch.metadata
+
+.. autoapi-nested-parse::
+
+   Metadata and :mod:`pandera` stuff.
+
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   dispatch.metadata.Validator
+
+
+Module Contents
+---------------
+
+.. py:class:: Validator(obj, gen_set, re_set)
+
+   Validator for :class:`.DispatchModel` inputs.
+
+   Init Validator.
+
+
+   .. py:method:: dispatchable_specs(dispatchable_specs)
+
+      Validate dispatchable_specs.
+
+
+
+   .. py:method:: dispatchable_profiles(dispatchable_profiles)
+
+      Validate dispatchable_profiles.
+
+      changed the limit to 2e4 but these look like errors...
+
+      E           pandera.errors.SchemaError: <Schema
+      Column(name=(55178, 'CT-1'), E
+      type=DataType(float64))> failed element-wise validator 0: E
+      <Check in_range: in_range(0.0, 10000.0)> E           failure
+      cases: E                           index  failure_case E
+      0 2011-03-08 18:00:00  10842.857422 E           1 2011-03-10
+      09:00:00  12690.857422
+
+
+
+   .. py:method:: dispatchable_cost(dispatchable_cost)
+
+      Validate dispatchable_cost.
+
+
+
+   .. py:method:: storage_specs(storage_specs)
+
+      Validate storage_specs.
+
+
+
+   .. py:method:: renewables(re_plant_specs, re_profiles)
+
+      Validate renewable specs and profiles.
+
+
+
