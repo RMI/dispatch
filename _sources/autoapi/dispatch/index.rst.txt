@@ -1,0 +1,66 @@
+dispatch
+========
+
+.. py:module:: dispatch
+
+.. autoapi-nested-parse::
+
+   RMI's electricity dispatch model.
+
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/dispatch/engine/index
+   /autoapi/dispatch/helpers/index
+   /autoapi/dispatch/metadata/index
+   /autoapi/dispatch/model/index
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   dispatch.apply_op_ret_date
+   dispatch.copy_profile
+   dispatch.zero_profiles_outside_operating_dates
+
+
+Package Contents
+----------------
+
+.. py:function:: apply_op_ret_date(profiles, operating_date, retirement_date, capacity_mw = None)
+
+   Renamed to :func:`.zero_profiles_outside_operating_dates`.
+
+
+.. py:function:: copy_profile(profiles, years)
+
+   Create multiple 'years' of hourly profile data.
+
+   :param profiles: the profile to make copies of
+   :param years: the years, each of which will be a copy
+                 of ``profile``.
+
+   :returns: Copied profiles.
+
+
+.. py:function:: zero_profiles_outside_operating_dates(profiles, operating_date, retirement_date, capacity_mw = None)
+
+   Zero profile unless it is between operating and retirement date.
+
+   :param profiles: profiles of plants with a DatetimeIndex
+   :param operating_date: in service date for each plant, the index of operating date is
+                          used throughout
+   :param retirement_date: retirement date for each plant
+   :param capacity_mw: capacity of each plant (only used when ``profiles`` are
+                       normalized)
+
+   :returns: Profiles reflecting operating and retirement dates.
+
+
